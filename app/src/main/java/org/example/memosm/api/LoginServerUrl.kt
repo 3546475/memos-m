@@ -9,6 +9,8 @@ fun normalizeLoginServerUrl(value: String): String? {
     val url = (if (input.contains("://")) input else "https://$input").toHttpUrlOrNull()
         ?: return null
     if (url.username.isNotEmpty() || url.password.isNotEmpty() || url.query != null || url.fragment != null) return null
-    val path = url.encodedPath.trimEnd('/').removeSuffix("/api/v1") + "/"
+    val path = url.encodedPath.trimEnd('/').let {
+        it.removeSuffix(if (it.endsWith("/api/v1")) "/api/v1" else "/api")
+    } + "/"
     return url.newBuilder().encodedPath(path).build().toString()
 }

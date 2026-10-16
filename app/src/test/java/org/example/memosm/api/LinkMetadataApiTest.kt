@@ -21,7 +21,7 @@ class LinkMetadataApiTest {
                 .body("""{"url":"$url","title":"Example","description":"A page","image":"https://example.com/image.jpg"}""".toResponseBody())
                 .build()
         }.build()
-        val retrofit = Retrofit.Builder().baseUrl("https://memos.example/memos/").client(client)
+        val retrofit = Retrofit.Builder().baseUrl("https://memos.example/memos/api/v1/").client(client)
             .addConverterFactory(GsonConverterFactory.create(GsonProvider.gson)).build()
         val api = MemosApiV0300Impl(retrofit.create(MemosApiV0300::class.java))
         val metadata = api.getLinkMetadata(url)

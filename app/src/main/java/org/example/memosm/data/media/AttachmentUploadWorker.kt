@@ -41,7 +41,8 @@ class AttachmentUploadWorker(
         )
         val streamingApi = StreamingAttachmentApi(
             OkHttpClient.Builder().addInterceptor(AuthInterceptor(account.accessToken)).build(),
-            account.hostUrl
+            account.hostUrl,
+            api.constants.apiPath
         )
 
         try {

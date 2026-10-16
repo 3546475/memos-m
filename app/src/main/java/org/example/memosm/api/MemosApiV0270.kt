@@ -16,13 +16,13 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface MemosApiV0270 : MemosApiV0260 {
-    @GET("api/v1/auth/me")
+    @GET("auth/me")
     suspend fun getCurrentUserV0270(): GetCurrentUserResponseDtoV0270
 
-    @POST("api/v1/auth/signin")
+    @POST("auth/signin")
     suspend fun signInV0270(@Body request: SignInRequest): SignInResponseDtoV0270
 
-    @GET("api/v1/users")
+    @GET("users")
     suspend fun listUsersV0270(
         @Query("pageSize") pageSize: Int? = null,
         @Query("pageToken") pageToken: String? = null,
@@ -30,7 +30,7 @@ interface MemosApiV0270 : MemosApiV0260 {
         @Query("showDeleted") showDeleted: Boolean? = null
     ): ListUsersResponseV0270
 
-    @POST("api/v1/users")
+    @POST("users")
     suspend fun createUserV0270(
         @Body user: UserSnapshot,
         @Query("userId") userId: String? = null,
@@ -38,13 +38,13 @@ interface MemosApiV0270 : MemosApiV0260 {
         @Query("requestId") requestId: String? = null
     ): UserV0270
 
-    @GET("api/v1/{user}")
+    @GET("{user}")
     suspend fun getUserV0270(
         @Path("user", encoded = true) user: String,
         @Query("readMask") readMask: String? = null
     ): UserV0270
 
-    @PATCH("api/v1/{user}")
+    @PATCH("{user}")
     suspend fun updateUserV0270(
         @Path("user", encoded = true) user: String,
         @Body userData: UserSnapshot,

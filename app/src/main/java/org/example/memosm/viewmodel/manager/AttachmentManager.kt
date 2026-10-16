@@ -78,7 +78,7 @@ class AttachmentManager(
         val account = accountSession.current ?: return null
         val connection = account.connection
         val api = connection.api
-        val streamingApi = StreamingAttachmentApi(account.httpClient, account.account.hostUrl)
+        val streamingApi = StreamingAttachmentApi(account.httpClient, account.account.hostUrl, api.constants.apiPath)
         try {
             Log.d(TAG, "uploadAttachment: starting upload for uri=$uri")
 

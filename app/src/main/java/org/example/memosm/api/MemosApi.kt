@@ -60,7 +60,8 @@ data class ApiConstants(
     val webhookMaskUrl: String,
 
     val shortcutMaskTitle: String,
-    val shortcutMaskFilter: String
+    val shortcutMaskFilter: String,
+    val apiPath: String = "api/v1"
 )
 
 enum class MemoCreatorFilterStyle {

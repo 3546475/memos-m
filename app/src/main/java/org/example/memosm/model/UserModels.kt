@@ -84,7 +84,7 @@ data class UserStats(
     val memoDisplayTimestamps: List<String>? = null,
     @SerializedName(value = "memoTypeStats", alternate = ["memo_type_stats"])
     val memoTypeStats: MemoTypeStats? = null,
-    @SerializedName(value = "tagCount", alternate = ["tag_count"])
+    @SerializedName(value = "tagCount", alternate = ["tag_count", "tagCounts", "tag_counts"])
     val tagCount: Map<String, Int>? = null,
     @SerializedName(value = "pinnedMemos", alternate = ["pinned_memos"])
     val pinnedMemos: List<String>? = null,
@@ -127,9 +127,8 @@ data class RefreshTokenRequest(
 )
 
 data class RefreshTokenResponse(
-    // @SerializedName("access_token")
     val accessToken: String,
-    // @SerializedName("expires_at")
+    @SerializedName("expiresAt", alternate = ["accessTokenExpireTime"])
     val expiresAt: String? = null
 )
 
@@ -287,9 +286,9 @@ data class ListPersonalAccessTokensResponse(
 data class PersonalAccessToken(
     val name: String? = null,
     val description: String? = null,
-    val createdAt: String? = null,
-    val expiresAt: String? = null,
-    val lastUsedAt: String? = null
+    @SerializedName("createdAt", alternate = ["createTime"]) val createdAt: String? = null,
+    @SerializedName("expiresAt", alternate = ["expireTime"]) val expiresAt: String? = null,
+    @SerializedName("lastUsedAt", alternate = ["lastUseTime"]) val lastUsedAt: String? = null
 )
 
 data class CreatePersonalAccessTokenRequest(
@@ -301,7 +300,7 @@ data class CreatePersonalAccessTokenResponse(
 )
 
 data class ListUserSettingsResponse(
-    val settings: List<UserSetting>?, val nextPageToken: String?, val totalSize: Int?
+    @SerializedName("settings", alternate = ["userSettings"]) val settings: List<UserSetting>?, val nextPageToken: String?, val totalSize: Int?
 )
 
 data class UserSetting(
@@ -335,5 +334,5 @@ data class UserWebhook(
 )
 
 data class ListAllUserStatsResponse(
-    val stats: List<UserStats>?
+    @SerializedName("stats", alternate = ["userStats"]) val stats: List<UserStats>?
 )

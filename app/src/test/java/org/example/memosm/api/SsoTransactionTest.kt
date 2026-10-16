@@ -99,6 +99,8 @@ class SsoTransactionTest {
     @Test fun `server URL normalization preserves prefixes and accepts API roots`() {
         assertEquals("https://memos.example/", normalizeLoginServerUrl(" memos.example "))
         assertEquals("http://localhost:8080/notes/", normalizeLoginServerUrl("http://localhost:8080/notes/api/v1"))
+        assertEquals("http://localhost:8080/notes/", normalizeLoginServerUrl("http://localhost:8080/notes/api"))
+        assertEquals("https://memos.example/api/", normalizeLoginServerUrl("https://memos.example/api/api/v1"))
         assertEquals("https://memos.example/a%20b/", normalizeLoginServerUrl("https://memos.example/a%20b/"))
         listOf("", "ftp://memos.example", "https://user:password@memos.example", "https://memos.example/?token=secret",
             "https://memos.example/#fragment").forEach { assertNull(normalizeLoginServerUrl(it)) }
