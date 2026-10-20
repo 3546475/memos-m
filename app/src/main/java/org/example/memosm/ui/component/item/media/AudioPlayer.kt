@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item.media
 
+import org.example.memosm.ui.theme.AppCard
+
 import org.example.memosm.ui.theme.AppSlider
 
 import org.example.memosm.ui.theme.flatCardElevation
@@ -314,11 +316,10 @@ fun AudioPlayer(
     }
 
     if (showContainer && mode != AudioPlayerMode.FULL_SCREEN) {
-        Card(
-            elevation = flatCardElevation(),
+        AppCard(
             modifier = modifier.then(if (mode == AudioPlayerMode.NORMAL || mode == AudioPlayerMode.COMPACT) Modifier.height(100.dp) else Modifier),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            shape = MaterialTheme.shapes.medium
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            cornerRadius = 12.dp
         ) { content() }
     } else {
         Box(modifier = modifier) { content() }
