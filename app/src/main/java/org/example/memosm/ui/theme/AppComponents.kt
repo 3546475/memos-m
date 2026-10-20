@@ -881,6 +881,7 @@ fun AppExtendedFloatingActionButton(
             MiuixButton(
                 onClick = onClick,
                 modifier = modifier,
+                colors = MiuixButtonDefaults.buttonColorsPrimary(),
                 content = {
                     CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onPrimary) {
                         icon()
