@@ -379,10 +379,24 @@ AppTopBar(
   `AppTextField` 新增 `minLines`/`maxLines` 透传（Miuix 与 M3 都支持）。
 - 真机检查：设置总览、常规页、个人页渲染正常。
 
+**进度：第二轮已完成**（密码框 + 滑条原语）
+
+第二轮已完成：
+- `AppSecureTextField(state: TextFieldState, label, …)`：MD 走 `OutlinedSecureTextField`，MIUIX 走
+  Miuix `TextField(value = …, visualTransformation = PasswordVisualTransformation())`。
+  ⚠️ 该构造在本项目 Compose 版本已 deprecated（官方建议 `BasicSecureTextField`），但 Miuix 只提供
+  `VisualTransformation` 这条路径，因此在函数上做了带注释的 `@Suppress("DEPRECATION")`；
+  日后若要彻底去掉，需自己用 `BasicSecureTextField` + Miuix 容器重绘。
+  登录密码、修改密码、备份密码三处已切换。
+- `AppSlider(state: SliderState, onValueChange, valueRange)` 重载：复用已有的 value 版本。
+  ⚠️ Material 的 `SliderState` 不暴露 `trackRange`/`onValueChangeFinished`，所以范围要由调用方传；
+  外观「标题大小」「色相」两处已切换，真机确认是 Miuix 分段轨道样式。
+
 **已知待处理**
 - 设置总览的分组图标底圈是淡紫色（`primaryContainer` 取色），和 HyperOS 的浅蓝灰不一致，
   属于配色映射调优，放到 P6 统一定稿。
-- 密码框（登录密码、备份密码）仍是 Material `OutlinedSecureTextField`，需要 `AppSecureTextField`。
+- 密码框已解决（见上）；`AccountsList` / `AuditLogCard` / `OfflineSettingsCard` 的行与开关、
+  备份恢复长表单、账号编辑页仍是 Material。
 
 **范围**
 
