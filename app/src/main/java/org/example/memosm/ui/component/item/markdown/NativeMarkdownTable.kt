@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item.markdown
 
+import org.example.memosm.ui.theme.AppDivider
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -197,7 +199,7 @@ fun NativeMarkdownTable(
                             }
                             // 2. Force the HorizontalDivider to match the calculated width
                             if (rowIndex < allRows.lastIndex) {
-                                HorizontalDivider(
+                                AppDivider(
                                     modifier = Modifier.width(with(LocalDensity.current) { tableWidth.toDp() }),
                                     thickness = 1.dp,
                                     color = lineColor

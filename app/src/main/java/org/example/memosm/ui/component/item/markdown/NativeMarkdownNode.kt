@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item.markdown
 
+import org.example.memosm.ui.theme.AppDivider
+
 import android.content.Context
 import android.view.View.MeasureSpec
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -511,7 +513,7 @@ fun NativeMarkdownNodeRecursive(node: ASTNode, allowPreview: Boolean = false) {
         }
 
         MarkdownTokenTypes.HORIZONTAL_RULE -> {
-            androidx.compose.material3.HorizontalDivider(
+            AppDivider(
                 modifier = Modifier.padding(vertical = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant
             )

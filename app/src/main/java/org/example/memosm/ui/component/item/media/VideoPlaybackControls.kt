@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item.media
 
+import org.example.memosm.ui.theme.AppSlider
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -172,7 +174,7 @@ internal fun VideoPlaybackControls(
                         LaunchedEffect(progress) { sliderState.value = progress }
                         val seekLabel = stringResource(R.string.video_seek)
                         val durationText = if (state.duration > 0L) formatMediaTime(state.duration) else "--:--"
-                        Slider(
+                        AppSlider(
                             state = sliderState, enabled = canSeek && visible,
                             onValueChange = { value ->
                                 interaction++

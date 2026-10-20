@@ -1,6 +1,9 @@
 package org.example.memosm.ui.component.item.markdown
 
+import org.example.memosm.ui.theme.AppCard
+
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,12 +87,9 @@ internal fun LinkPreviewCard(url: String, metadata: LinkMetadata) {
     val uriHandler = LocalUriHandler.current
     val image = metadata.image.trim().takeIf { it.toHttpUrlOrNull() != null }
     var imageFailed by remember(url, image) { mutableStateOf(false) }
-    Surface(
-        onClick = { uriHandler.openUri(url) },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    AppCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { uriHandler.openUri(url) },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(

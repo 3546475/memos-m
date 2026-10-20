@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item.media
 
+import org.example.memosm.ui.theme.AppSlider
+
 import org.example.memosm.ui.theme.flatCardElevation
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
@@ -156,7 +158,7 @@ fun AudioPlayer(
     val seekSlider: @Composable (Modifier) -> Unit = { sliderModifier ->
         val sliderState = remember(exoPlayer) { SliderState(value = progress) }
         LaunchedEffect(progress) { sliderState.value = progress }
-        Slider(
+        AppSlider(
             state = sliderState,
             enabled = canSeek,
             onValueChange = { scrubPosition = (it * duration).toLong() },

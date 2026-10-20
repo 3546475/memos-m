@@ -260,11 +260,25 @@ fun AppListItem(
 }
 
 @Composable
-fun AppDivider(modifier: Modifier = Modifier) {
+fun AppDivider(
+    modifier: Modifier = Modifier,
+    thickness: Dp? = null,
+    color: Color? = null
+) {
     if (usesMiuix) {
-        MiuixDivider(modifier = modifier)
+        when {
+            thickness != null && color != null -> MiuixDivider(modifier = modifier, thickness = thickness, color = color)
+            thickness != null -> MiuixDivider(modifier = modifier, thickness = thickness)
+            color != null -> MiuixDivider(modifier = modifier, color = color)
+            else -> MiuixDivider(modifier = modifier)
+        }
     } else {
-        HorizontalDivider(modifier = modifier)
+        when {
+            thickness != null && color != null -> HorizontalDivider(modifier = modifier, thickness = thickness, color = color)
+            thickness != null -> HorizontalDivider(modifier = modifier, thickness = thickness)
+            color != null -> HorizontalDivider(modifier = modifier, color = color)
+            else -> HorizontalDivider(modifier = modifier)
+        }
     }
 }
 
@@ -483,7 +497,9 @@ fun AppSlider(
     state: SliderState,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f
+    enabled: Boolean = true,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    onValueChangeFinished: (() -> Unit)? = null
 ) {
     AppSlider(
         value = state.value,
@@ -492,8 +508,10 @@ fun AppSlider(
             onValueChange(newValue)
         },
         modifier = modifier,
+        enabled = enabled,
         valueRange = valueRange,
-        steps = state.steps
+        steps = state.steps,
+        onValueChangeFinished = onValueChangeFinished
     )
 }
 
