@@ -34,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -72,6 +71,7 @@ import org.example.memosm.ui.component.StatsActivityCard
 import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.ui.component.setting.SettingsGroup
 import org.example.memosm.ui.component.setting.SettingsNavigationRow
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
 import org.koin.compose.koinInject
@@ -276,7 +276,7 @@ private fun ProfileListPane(
                                     .padding(vertical = 32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                AppCircularProgressIndicator()
                             }
                         }
                     }

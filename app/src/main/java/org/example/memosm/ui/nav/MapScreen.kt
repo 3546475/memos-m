@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 import org.example.memosm.ui.component.map.MemoMapController
 import org.example.memosm.ui.component.map.NativeMemoMap
 import org.example.memosm.ui.component.map.mapPinLabelColor
+import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.viewmodel.MemosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -222,8 +223,8 @@ fun MapScreen(
                         extraFilters = {
                             if (map.scope == MapScope.MEMOS && ui.userMemoList.shortcuts.isNotEmpty()) {
                                 Box(Modifier.padding(horizontal = 16.dp)) {
-                                    FilterChip(selected = map.savedView != null, onClick = { showViews = true },
-                                        label = { Text(map.savedView?.title ?: stringResource(R.string.map_all_views)) })
+                                    AppFilterChip(selected = map.savedView != null, onClick = { showViews = true },
+                                        content = { Text(map.savedView?.title ?: stringResource(R.string.map_all_views)) })
                                     DropdownMenu(expanded = showViews, onDismissRequest = { showViews = false }) {
                                         DropdownMenuItem(text = { Text(stringResource(R.string.map_all_views)) }, onClick = {
                                             showViews = false; viewModel.memoMapManager.selectView(null)
@@ -242,22 +243,21 @@ fun MapScreen(
                             .padding(horizontal = 16.dp).testTag("map_scopes"),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             MapScope.entries.forEach { scope ->
-                                val shape = RoundedCornerShape(50)
-                                FilterChip(selected = map.scope == scope,
+                                AppFilterChip(selected = map.scope == scope,
                                     onClick = { if (map.scope != scope) viewModel.memoMapManager.selectScope(scope) },
-                                    shape = shape, border = null,
-                                    colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
                                     modifier = Modifier.testTag("map_scope_${scope.name.lowercase()}"),
-                                    leadingIcon = { Icon(when (scope) {
-                                        MapScope.MEMOS -> Icons.Outlined.Description
-                                        MapScope.EXPLORE -> Icons.Outlined.Explore
-                                        MapScope.ALL -> Icons.Outlined.Layers
-                                    }, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                                    label = { Text(stringResource(when (scope) {
-                                        MapScope.MEMOS -> R.string.nav_memos
-                                        MapScope.EXPLORE -> R.string.nav_explore
-                                        MapScope.ALL -> R.string.map_all
-                                    })) })
+                                    content = {
+                                        Icon(when (scope) {
+                                            MapScope.MEMOS -> Icons.Outlined.Description
+                                            MapScope.EXPLORE -> Icons.Outlined.Explore
+                                            MapScope.ALL -> Icons.Outlined.Layers
+                                        }, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Text(stringResource(when (scope) {
+                                            MapScope.MEMOS -> R.string.nav_memos
+                                            MapScope.EXPLORE -> R.string.nav_explore
+                                            MapScope.ALL -> R.string.map_all
+                                        }))
+                                    })
                             }
                         }
                       }

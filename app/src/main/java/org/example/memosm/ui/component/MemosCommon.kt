@@ -31,7 +31,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -44,9 +43,6 @@ import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -76,6 +72,8 @@ import org.example.memosm.ui.component.composer.ComposerMode
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.component.item.MemoItem
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.viewmodel.MemosViewModel
 
 val LocalMemoEditor = compositionLocalOf<(Memo) -> Unit> { { } }
@@ -348,27 +346,17 @@ fun MemosScaffold(
             }
         }
 
-        val pullToRefreshState = rememberPullToRefreshState()
-        PullToRefreshBox(
+        AppPullToRefresh(
             isRefreshing = isRefreshing,
             onRefresh = { if (isActive) onRefresh() },
-            state = pullToRefreshState,
             modifier = modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         focusManager.clearFocus()
                     })
-                },
-            indicator = {
-                PullToRefreshDefaults.Indicator(
-                    state = pullToRefreshState,
-                    isRefreshing = isRefreshing,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 8.dp)
-                )
-            }) {
+                }
+        ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -384,7 +372,7 @@ fun MemosScaffold(
                             modifier = Modifier.fillParentMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator()
+                            AppCircularProgressIndicator()
                         }
                     }
                 } else if (uiState.error != null && memos.isEmpty()) {
@@ -425,7 +413,7 @@ fun MemosScaffold(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                AppCircularProgressIndicator()
                             }
                         }
                     } else if (!isLoading && nextPageToken == null && memos.isNotEmpty()) {

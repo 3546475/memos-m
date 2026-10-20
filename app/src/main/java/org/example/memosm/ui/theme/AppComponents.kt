@@ -16,6 +16,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +43,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -57,6 +61,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator as MiuixCircularPro
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFab
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixDivider
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator as MiuixLinearProgressIndicator
+import top.yukonga.miuix.kmp.basic.PullToRefresh as MiuixPullToRefresh
 import top.yukonga.miuix.kmp.basic.RadioButton as MiuixRadioButton
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar as MiuixSmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Slider as MiuixSlider
@@ -501,10 +506,10 @@ fun AppCircularProgressIndicator(
 @Composable
 fun AppFilterChip(
     selected: Boolean,
-    label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
 ) {
     if (usesMiuix) {
         val shape = RoundedCornerShape(MiuixTokens.PillCornerRadius)
@@ -521,9 +526,11 @@ fun AppFilterChip(
                     MiuixTheme.colorScheme.onSurfaceContainer
                 }
             ) {
-                Text(
-                    text = label,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    content = content
                 )
             }
         }
@@ -531,7 +538,13 @@ fun AppFilterChip(
         FilterChip(
             selected = selected,
             onClick = onClick,
-            label = { Text(label) },
+            label = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    content = content
+                )
+            },
             modifier = modifier,
             enabled = enabled
         )
@@ -539,3 +552,40 @@ fun AppFilterChip(
 }
 
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
+
+/** Pull-to-refresh container: Miuix's own indicator, or Material's while MD is active. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppPullToRefresh(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    if (usesMiuix) {
+        MiuixPullToRefresh(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = modifier
+        ) {
+            content()
+        }
+    } else {
+        val state = rememberPullToRefreshState()
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            state = state,
+            modifier = modifier,
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = state,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)
+                )
+            }
+        ) {
+            content()
+        }
+    }
+}

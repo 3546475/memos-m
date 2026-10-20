@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.data.audit.SyncAuditEntry
 import org.example.memosm.data.audit.SyncAuditLogger
 import org.koin.core.context.GlobalContext
@@ -61,10 +62,10 @@ fun AuditLogContent(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LogCategory.entries.forEach { category ->
-                    FilterChip(
+                    AppFilterChip(
                         selected = category == selectedCategory,
                         onClick = { selectedCategory = category },
-                        label = { Text(stringResource(category.labelRes)) }
+                        content = { Text(stringResource(category.labelRes)) }
                     )
                 }
             }

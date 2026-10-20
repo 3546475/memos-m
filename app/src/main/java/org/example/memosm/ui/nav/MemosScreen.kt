@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
@@ -461,26 +462,21 @@ private fun MemosListPane(
                             ) {
                                 if (selectedHashtag != null) {
                                     item {
-                                        FilterChip(
+                                        AppFilterChip(
                                             selected = true,
                                             onClick = {
                                                 viewModel.shortcutDelegate.toggleHashtagFilter(
                                                     selectedHashtag
                                                 )
                                             },
-                                            label = {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Tag,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(selectedHashtag.removePrefix("#"))
-                                                }
-                                            },
-                                            shape = RoundedCornerShape(16.dp),
-                                            trailingIcon = {
+                                            content = {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Tag,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(selectedHashtag.removePrefix("#"))
                                                 Icon(
                                                     imageVector = Icons.Outlined.Close,
                                                     contentDescription = null,
@@ -498,34 +494,29 @@ private fun MemosListPane(
                                 }) { index, shortcut ->
                                     val isSelected =
                                         uiState.userMemoList.selectedShortcut?.name == shortcut.name
-                                    FilterChip(
+                                    AppFilterChip(
                                         selected = isSelected,
                                         onClick = {
                                             viewModel.shortcutDelegate.toggleShortcutFilter(
                                                 shortcut
                                             )
                                         },
-                                        label = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Outlined.Shortcut,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(shortcut.title ?: "")
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(16.dp),
-                                        trailingIcon = if (isSelected) {
-                                            {
+                                        content = {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Outlined.Shortcut,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(shortcut.title ?: "")
+                                            if (isSelected) {
                                                 Icon(
                                                     imageVector = Icons.Outlined.Close,
                                                     contentDescription = null,
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                             }
-                                        } else null)
+                                        })
                                 }
                             }
                         }

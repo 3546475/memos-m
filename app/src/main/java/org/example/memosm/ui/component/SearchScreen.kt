@@ -1,5 +1,8 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.AppFilterChip
+import org.example.memosm.ui.theme.LocalThemeStyle
 import org.example.memosm.ui.theme.flatCardElevation
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,7 +16,9 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,7 +50,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -59,6 +63,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
@@ -102,7 +107,10 @@ import org.example.memosm.ui.component.item.MemoItem
 import org.example.memosm.ui.nav.SettingsSection
 import org.example.memosm.ui.profile.SettingsActivity
 import org.example.memosm.viewmodel.MemosUiState
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.viewmodel.MemosViewModel
+import top.yukonga.miuix.kmp.basic.InputField as MiuixInputField
+import top.yukonga.miuix.kmp.basic.SearchBar as MiuixSearchBar
 import org.example.memosm.viewmodel.manager.LocalSearchFilter
 
 /** The map has already loaded its history, so search can filter the same pool offline. */
@@ -260,70 +268,51 @@ fun MemoSearchBar(
             .focusable()
             .zIndex(1f)
     ) {
-        val inputField: @Composable () -> Unit = {
-            SearchBarDefaults.InputField(
-                textFieldState = queryState,
-                searchBarState = searchBarState,
-                onSearch = {
-                    focusManager.clearFocus()
-                    if (filterActionLabel != null) collapseSearch()
-                },
-                placeholder = { Text(placeholder) },
-                leadingIcon = {
-                    if (expanded) {
-                        IconButton(onClick = {
-                            collapseSearch()
-                            onExpandedChange(false)
-                            focusManager.clearFocus()
-                        }) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(R.string.memo_detail_back))
-                        }
-                    } else {
-                        Icon(Icons.Outlined.Search, contentDescription = null)
-                    }
-                },
-                trailingIcon = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (query.isNotEmpty() || searchSelectedTags.isNotEmpty() || startDateMillis != null || endDateMillis != null) {
-                            IconButton(onClick = {
-                                queryState.setTextAndPlaceCursorAtEnd("")
-                                searchSelectedTags = emptySet()
-                                startDateMillis = null
-                                endDateMillis = null
-                            }) {
-                                Icon(Icons.Outlined.Clear, contentDescription = null)
-                            }
-                        }
-                        // Sync/cache status icon, hidden while search is expanded.
-                        // Lives inside the search bar's own trailing slot so
-                        // it is always vertically centered with the input.
-                        androidx.compose.animation.AnimatedVisibility(visible = !expanded && localMemos == null) {
-                            SyncStatusIconButton(
-                                uiState = uiState,
-                                onClick = { showSyncPanel = true }
-                            )
-                        }
-                    }
-                },
-            )
+        val expandSearch: (Boolean) -> Unit = { expand ->
+            if (expand) searchScope.launch { searchBarState.animateToExpanded() } else collapseSearch()
         }
-        // The inline overload respects the list pane's bounds and scaffold insets.
-        // The newer expanded variants use separate dialog/popup windows.
-        @Suppress("DEPRECATION")
-        SearchBar(
-            inputField = inputField,
-            expanded = expanded,
-            onExpandedChange = { expand ->
-                if (expand) searchScope.launch { searchBarState.animateToExpanded() }
-                else collapseSearch()
-            },
-            modifier = Modifier.fillMaxWidth().testTag("memo_search_bar"),
-            // This surface stays inside MemosScaffold, which handles system bars and cutouts.
-            windowInsets = WindowInsets(0, 0, 0, 0)
-        ) {
+
+        val leadingIcon: @Composable () -> Unit = {
+            if (expanded) {
+                IconButton(onClick = {
+                    collapseSearch()
+                    onExpandedChange(false)
+                    focusManager.clearFocus()
+                }) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = stringResource(R.string.memo_detail_back))
+                }
+            } else {
+                Icon(Icons.Outlined.Search, contentDescription = null)
+            }
+        }
+        val trailingIcon: @Composable () -> Unit = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (query.isNotEmpty() || searchSelectedTags.isNotEmpty() || startDateMillis != null || endDateMillis != null) {
+                    IconButton(onClick = {
+                        queryState.setTextAndPlaceCursorAtEnd("")
+                        searchSelectedTags = emptySet()
+                        startDateMillis = null
+                        endDateMillis = null
+                    }) {
+                        Icon(Icons.Outlined.Clear, contentDescription = null)
+                    }
+                }
+                // Sync/cache status icon, hidden while search is expanded.
+                // Lives inside the search bar's own trailing slot so
+                // it is always vertically centered with the input.
+                androidx.compose.animation.AnimatedVisibility(visible = !expanded && localMemos == null) {
+                    SyncStatusIconButton(
+                        uiState = uiState,
+                        onClick = { showSyncPanel = true }
+                    )
+                }
+            }
+        }
+
+        val searchResults: @Composable () -> Unit = {
             SearchResultContent(
                 query = query,
                 selectedTags = searchSelectedTags,
@@ -360,6 +349,63 @@ fun MemoSearchBar(
                         null
                     )
                 })
+        }
+
+        if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+            MiuixSearchBar(
+                inputField = {
+                    MiuixInputField(
+                        query = query,
+                        onQueryChange = { queryState.setTextAndPlaceCursorAtEnd(it) },
+                        onSearch = {
+                            focusManager.clearFocus()
+                            if (filterActionLabel != null) collapseSearch()
+                        },
+                        expanded = expanded,
+                        onExpandedChange = expandSearch,
+                        label = placeholder,
+                        leadingIcon = leadingIcon,
+                        trailingIcon = trailingIcon
+                    )
+                },
+                expanded = expanded,
+                onExpandedChange = expandSearch,
+                modifier = Modifier.fillMaxWidth().testTag("memo_search_bar"),
+                content = {
+                    // Miuix's SearchBar does not paint a surface for its content, so the
+                    // expanded results need an opaque background of their own.
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface)
+                    ) { searchResults() }
+                }
+            )
+        } else {
+            // The inline overload respects the list pane's bounds and scaffold insets.
+            // The newer expanded variants use separate dialog/popup windows.
+            @Suppress("DEPRECATION")
+            SearchBar(
+                inputField = {
+                    SearchBarDefaults.InputField(
+                        textFieldState = queryState,
+                        searchBarState = searchBarState,
+                        onSearch = {
+                            focusManager.clearFocus()
+                            if (filterActionLabel != null) collapseSearch()
+                        },
+                        placeholder = { Text(placeholder) },
+                        leadingIcon = leadingIcon,
+                        trailingIcon = trailingIcon,
+                    )
+                },
+                expanded = expanded,
+                onExpandedChange = expandSearch,
+                modifier = Modifier.fillMaxWidth().testTag("memo_search_bar"),
+                // This surface stays inside MemosScaffold, which handles system bars and cutouts.
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                content = { searchResults() }
+            )
         }
 
         if (showSyncPanel) {
@@ -507,32 +553,23 @@ private fun SearchResultContent(
                             ) {
                                 availableTags.forEach { (tag, count) ->
                                     val isSelected = tag in selectedTags
-                                    FilterChip(
+                                    AppFilterChip(
                                         modifier = Modifier.height(28.dp),
                                         selected = isSelected,
                                         onClick = { onTagClick(tag) },
-                                        label = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                        content = {
+                                            Text(
+                                                text = "#$tag",
+                                                style = MaterialTheme.typography.labelMedium
+                                            )
+                                            if (count > 0) {
+                                                Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = "#$tag",
-                                                    style = MaterialTheme.typography.labelMedium
+                                                    text = count.toString(),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = LocalContentColor.current.copy(alpha = 0.7f)
                                                 )
-                                                if (count > 0) {
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = count.toString(),
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                                                            alpha = 0.7f
-                                                        )
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                            alpha = 0.7f
-                                                        )
-                                                    )
-                                                }
                                             }
-                                        },
-                                        trailingIcon = {
                                             AnimatedVisibility(
                                                 visible = isSelected,
                                                 enter = fadeIn() + expandHorizontally(),
@@ -544,26 +581,7 @@ private fun SearchResultContent(
                                                     modifier = Modifier.size(14.dp)
                                                 )
                                             }
-                                        },
-                                        shape = MaterialTheme.shapes.medium,
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                        ),
-                                        border = FilterChipDefaults.filterChipBorder(
-                                            enabled = true,
-                                            selected = isSelected,
-                                            borderColor = MaterialTheme.colorScheme.outline.copy(
-                                                alpha = 0.5f
-                                            ),
-                                            selectedBorderColor = MaterialTheme.colorScheme.primary.copy(
-                                                alpha = 0.5f
-                                            ),
-                                            borderWidth = 0.5.dp,
-                                            selectedBorderWidth = 0.5.dp
-                                        )
+                                        }
                                     )
                                 }
                             }
@@ -697,7 +715,7 @@ private fun SearchResultContent(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    AppCircularProgressIndicator()
                 }
             }
         }

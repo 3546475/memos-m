@@ -85,7 +85,7 @@
 | --- | --- | --- |
 | **P0 已完成** | 主题开关 + 偏好持久化 + 备份；调色板；适配层雏形；顶栏 / 导航 / 标签 / FAB / 卡片 / 设置行 / 开关 | ✅ `329d7bf`、`4b883ce` |
 | **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
-| **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | ⬜ |
+| **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
 | **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | ⬜ |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
 | **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
@@ -203,23 +203,33 @@
 | `ui/component/MemosCommon.kt` | 共用 `SearchBar` 封装 |
 | 全局 | `SnackbarHost`（4 处/4 文件）、`CircularProgressIndicator`（约 26 文件）、`PullToRefresh`、滚动条 |
 
+**进度：第一轮已完成**（首页搜索栏、筛选胶囊、下拉刷新、加载指示已切到 Miuix）
+
 **做法**
 
-- 搜索栏优先：Miuix `SearchBar` 的交互与 M3 差异较大（展开/收起、取消按钮），先在
-  `MemosCommon` 封装一个 `AppSearchBar`，三个使用点统一替换。
-- `FilterChip`：Miuix 无 chip 组件，用 `TabRow` 或自绘胶囊（`Surface` + 圆角 + 选中态）实现
-  `AppFilterChip`，保持单行横向滚动。
-- 下拉刷新：MIUIX 用 Miuix `PullToRefresh`，注意与 `LazyColumn` 的互斥和 `isRefreshing` 状态桥接。
-- 进度指示：统一 `AppProgressIndicator`，替换 26 个文件里的 `CircularProgressIndicator`（分批）。
+- 搜索栏：`MemoSearchBar` 内部按 `LocalThemeStyle` 分叉 —— MIUIX 用 Miuix
+  `SearchBar` + `InputField`，MD 保留原有 M3 `SearchBar`/`SearchBarDefaults.InputField`。
+  ⚠️ Miuix `SearchBar` 的 `content` **不画背景**，展开时必须在内容外包一层不透明容器
+  （当前用 `Box(Modifier.fillMaxSize().background(colorScheme.surface))`），否则列表会透出来。
+- `FilterChip`：Miuix 无 chip 组件，`AppFilterChip` 用自绘胶囊（`Surface` + 圆角 + 选中态）实现，
+  已替换首页标签/快捷方式筛选、地图 scope、搜索标签、审计日志分类。
+- 下拉刷新：`AppPullToRefresh` 封装 Miuix `PullToRefresh` / M3 `PullToRefreshBox`，
+  落在共享的 `GenericMemosListPane` 上，四个主 tab 与搜索/归档列表同时受益。
+  ⚠️ 指示器当前从列表顶部（列表头下方）出现，若与自定义 header 冲突，需要用
+  `contentPadding` 或 `topAppBarScrollBehavior` 调位置。
+- 进度指示：`AppCircularProgressIndicator` / `AppLinearProgressIndicator` 已替换
+  `MemosCommon`、`MemosScreen`、`AttachmentsScreen`、`ProfileScreen`、`SearchScreen`。
+  带自定义尺寸/描边的场景（地图草稿指示、同步面板）暂留 Material。
 - overscroll / 按压反馈：`MiuixTheme` 已提供 `LocalOverscrollFactory` 与 `LocalIndication`，
   确认外层 `ComposeView` 未被覆盖。
 
 **验收**
 
-- [ ] 首页：搜索栏、筛选、下拉刷新、加载中、空态、同步状态条均为 Miuix 样式。
-- [ ] 附件页、个人页、地图页首屏视觉一致；四个 tab 切换动画无卡顿。
-- [ ] Android 手势返回 / 滚动 / 下拉刷新交互无回归。
-- [ ] MD 模式四页截图与改造前一致。
+- [x] 首页：搜索栏、筛选胶囊、下拉刷新、加载中已为 Miuix 样式。
+- [ ] 首页空态与同步状态条仍为 Material，留待下一轮。
+- [ ] 附件页、个人页、地图页首屏视觉一致；四个 tab 切换动画无卡顿（首屏已看，地图未动）。
+- [x] Android 手势返回 / 滚动 / 下拉刷新交互无回归（真机验证）。
+- [x] MD 模式首页截图与改造前一致（`md-*.png` 基线）。
 
 #### 可选增强：顶栏 / 底栏毛玻璃（`miuix-blur`）
 
@@ -410,6 +420,8 @@ AppTopBar(
 | `TextButton` 无 slot 重载 | **已解决（P1）**：新增 `AppTextButton(text: String, …)`；需要自定义内容的按钮继续用 Material（并在 P3 逐个收敛）。 |
 | `VisualTransformation` 已废弃 | 该 Compose 版本要求改用 `OutputTransformation`；`AppTextField` 因此不暴露密码变换参数。密码框现状是 `OutlinedSecureTextField`，P4 再设计 `AppSecureTextField`。 |
 | `SnackbarHostState` 类型不兼容 | Miuix `SnackbarHostState` 与 Material 的不是同一类型，而调用方用 `showSnackbar` 协程等待显示完成；直接替换会让协程挂起。桥接方案（双 State 或适配器）放 P3。 |
+| Miuix `SearchBar` 内容无背景 | 展开时 `content` 是透明的，必须自己铺不透明底（否则下层列表透出）。已在 `MemoSearchBar` 内用 `Box(fillMaxSize().background(surface))` 处理；其它复用点要注意同样问题。 |
+| Miuix `PullToRefresh` 指示器位置 | 指示器从滚动内容顶部开始，若页面有自定义 header，需要 `contentPadding` 或把 header 移出滚动区，否则会被 header 遮住。首页当前可接受，附件/通知页接入时再调。 |
 | Glance 小组件 | 使用 `glance-material3`，**不在改造范围**；仅确认主题切换不影响其渲染。 |
 | 第三方视图（MapLibre、ExoPlayer 控件、Coil） | 不做组件替换，只做颜色/形状适配。 |
 | `miuix-blur` | 顶栏/底栏毛玻璃，依赖声明 **minSdk 33**（本 App minSdk 24）：需 `tools:overrideLibrary` + 运行时双重降级判断。设计见 P2「可选增强」，实现放 P6 或独立 PR。 |

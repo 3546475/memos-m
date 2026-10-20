@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,6 +52,7 @@ import org.example.memosm.ui.component.item.media.LocalAccountMediaIdentity
 import org.example.memosm.ui.component.item.media.attachmentOrigin
 import org.example.memosm.ui.component.item.media.FullScreenAttachmentViewer
 import org.example.memosm.ui.component.rememberScrollContext
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.viewmodel.MemosViewModel
 import java.time.LocalDate
 import java.time.ZoneId
@@ -228,7 +228,7 @@ fun AttachmentsScreen(
                 if (shouldLoadMore) viewModel.loadMoreAttachments()
             }
             if (uiState.attachmentList.list.items.isEmpty() && uiState.attachmentList.list.isLoading && !uiState.isRefreshing) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                AppCircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (uiState.attachmentList.list.items.isEmpty() && !uiState.attachmentList.list.isLoading) {
                 if (uiState.attachmentList.list.errorMessage != null || uiState.error != null) {
                     ErrorView(
@@ -325,7 +325,7 @@ fun AttachmentsScreen(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                AppCircularProgressIndicator()
                             }
                         }
                     } else if (!uiState.attachmentList.list.isLoading && uiState.attachmentList.list.nextPageToken.isNullOrBlank() && uiState.attachmentList.list.items.isNotEmpty()) {
