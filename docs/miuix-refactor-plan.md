@@ -88,7 +88,7 @@
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
 | **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第四轮完成（17 处弹窗 + 2 个弹层 + 3 处菜单 + Snackbar） |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ✅ 完成（三批） |
-| **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
+| **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | 🔄 第一轮完成（详情页、编辑器容器、草稿卡） |
 | **P6 收尾验收** | 深色/字体/动画一致性、a11y、性能、回归清单、文档与截图 | ⬜ |
 
 > 每个阶段独立提交、独立可装机验证；P2 → P3 → P4 有依赖（弹层宿主由主 Scaffold 提供），
@@ -454,6 +454,18 @@ AppTopBar(
 ### P5 内容与媒体组件
 
 **目标**：内容区（笔记本身）观感统一；媒体控件保持自有实现但配色/圆角跟随主题。
+
+**进度：第一轮已完成**（详情页、编辑器容器、草稿卡）
+
+- 详情页：外层 `Surface` → `AppSurface`（圆角裁剪用 modifier），离线提示块同改；
+  「添加评论」的 `ExtendedFloatingActionButton` → `AppExtendedFloatingActionButton`
+  （Miuix 没有 extended FAB，MIUIX 下渲染为胶囊按钮，MD 保留展开动画）。
+- 编辑器：底部工具栏的 `Card` → `AppCard`（有内容时 16dp 圆角、空时 50dp 胶囊），
+  发布按钮的两个 FAB → `AppExtendedFloatingActionButton` / `AppFloatingActionButton`；
+  位置编辑弹窗 → `AppDialog` + 三个 `AppTextField`。
+- 草稿卡 `DraftsCard` → `AppCard`。
+- 已知待办：详情页顶栏仍是自定义 `TopAppBar`（标题居中逻辑特殊），
+  笔记卡片内部的操作行、reaction chip、Markdown 渲染与媒体查看器仍是 Material。
 
 **范围**
 
