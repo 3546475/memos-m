@@ -86,7 +86,7 @@
 | **P0 已完成** | 主题开关 + 偏好持久化 + 备份；调色板；适配层雏形；顶栏 / 导航 / 标签 / FAB / 卡片 / 设置行 / 开关 | ✅ `329d7bf`、`4b883ce` |
 | **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
-| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第二轮完成（11 处弹窗 + 弹层壳 + 菜单适配） |
+| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第三轮完成（15 处弹窗 + 2 个弹层 + 3 处菜单） |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
 | **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
 | **P6 收尾验收** | 深色/字体/动画一致性、a11y、性能、回归清单、文档与截图 | ⬜ |
@@ -286,7 +286,14 @@ AppTopBar(
 
 **目标**：所有「浮起来的东西」统一为 HyperOS 弹层：对话框、底部弹层、下拉菜单、Snackbar。
 
-**进度：第二轮已完成**（表单弹窗、账号切换弹层、下拉菜单适配）
+**进度：第三轮已完成**（菜单、表情弹层、内容类弹窗）
+
+本轮新增：
+- 表情选择 `ReactionPickerDialog` → `ActionSheet`（`WindowBottomSheet`）。
+- 内容类弹窗 → `AppDialog`：`MemoItem` 原文查看（`heightIn(max = 420.dp)`）、
+  `AttachmentActionsButton` 下载确认、`AccountsList` 移除账号确认、`SyncStatusWidget` 队列删除确认。
+- 菜单 → `AppDropdownMenu`：地图视图切换、视频倍速。
+- 真机验证：账号切换弹层（`WindowBottomSheet` + Miuix 行）、排序菜单。
 
 本轮新增：
 - 表单弹窗：`ShortcutEditDialog`、`WebhookEditDialog` → `AppDialog` + `AppTextField`
@@ -305,9 +312,10 @@ AppTopBar(
 - 草稿：`DraftsScreen` 单条删除、`DraftsCard` 全部删除 / 全部发布
 - `ActionSheet` → `WindowBottomSheet`，`ActionSheetItem` → Miuix 行
 
-仍在用 Material 的（下一轮）：`MemoItem`、`AttachmentActionsButton`、`AccountsList`（内部弹窗）、
-`SyncStatusWidget`、`LocalNetworkPermission`、`ConflictDialog`、`RecoveryCard`、`MemoComposer`；
-`ReactionPickerDialog` 的底部弹层；其余 `DropdownMenu` / `ExposedDropdownMenu`；Snackbar 桥接。
+仍在用 Material 的（下一轮）：`LocalNetworkPermission`、`ConflictDialog`、`RecoveryCard`、`MemoComposer`；
+写作工具栏的两个菜单（`MemoComposerBottomBar`，依赖 `PopupProperties(focusable = false)`，
+`WindowListPopup` 没有对应参数，需要给适配层加配置）、离线设置的缓存上限可编辑下拉
+（`menuAnchor(PrimaryEditable)`）；Snackbar 桥接。
 
 **范围（按数量）**
 

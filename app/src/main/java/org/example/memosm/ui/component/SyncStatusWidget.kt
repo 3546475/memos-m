@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.api.GsonProvider
 import org.example.memosm.data.sync.PendingOp
 import org.example.memosm.data.sync.PendingOpType
@@ -344,27 +346,26 @@ private fun PendingOperationItem(op: PendingOp, onDelete: () -> Unit) {
     }
 
     if (confirmDelete) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.sync_queue_delete_title),
+            summary = stringResource(R.string.sync_queue_delete_message),
             onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.sync_queue_delete_title)) },
-            text = { Text(stringResource(R.string.sync_queue_delete_message)) },
-            confirmButton = {
-                TextButton(
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { confirmDelete = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.offline_sync_delete_op),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
                     onClick = {
                         confirmDelete = false
                         onDelete()
-                    },
-                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text(stringResource(R.string.offline_sync_delete_op))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+                    }
+                )
             }
         )
     }

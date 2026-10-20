@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.component.ActionSheet
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -33,8 +34,7 @@ fun ReactionPickerDialog(
         )
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss, dragHandle = { BottomSheetDefaults.DragHandle() }) {
+    ActionSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

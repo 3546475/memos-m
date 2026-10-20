@@ -49,6 +49,8 @@ import kotlinx.coroutines.launch
 import org.example.memosm.ui.component.map.MemoMapController
 import org.example.memosm.ui.component.map.NativeMemoMap
 import org.example.memosm.ui.component.map.mapPinLabelColor
+import org.example.memosm.ui.theme.AppDropdownMenu
+import org.example.memosm.ui.theme.AppDropdownMenuItem
 import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.viewmodel.MemosViewModel
 
@@ -225,12 +227,12 @@ fun MapScreen(
                                 Box(Modifier.padding(horizontal = 16.dp)) {
                                     AppFilterChip(selected = map.savedView != null, onClick = { showViews = true },
                                         content = { Text(map.savedView?.title ?: stringResource(R.string.map_all_views)) })
-                                    DropdownMenu(expanded = showViews, onDismissRequest = { showViews = false }) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.map_all_views)) }, onClick = {
+                                    AppDropdownMenu(expanded = showViews, onDismissRequest = { showViews = false }) {
+                                        AppDropdownMenuItem(text = stringResource(R.string.map_all_views), onClick = {
                                             showViews = false; viewModel.memoMapManager.selectView(null)
                                         })
                                         ui.userMemoList.shortcuts.forEach { view ->
-                                            DropdownMenuItem(text = { Text(view.title.orEmpty()) }, onClick = {
+                                            AppDropdownMenuItem(text = view.title.orEmpty(), onClick = {
                                                 showViews = false; viewModel.memoMapManager.selectView(view)
                                             })
                                         }

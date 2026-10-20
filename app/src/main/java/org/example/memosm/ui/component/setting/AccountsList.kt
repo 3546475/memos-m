@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.model.Account
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -85,33 +87,31 @@ fun AccountsList(
     LocalDensity.current
 
     if (accountToRemove != null) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.profile_remove_account_title),
+            summary = stringResource(
+                R.string.profile_remove_account_confirm,
+                accountToRemove?.name ?: stringResource(R.string.memo_unknown_user)
+            ),
             onDismissRequest = { accountToRemove = null },
-            title = { Text(stringResource(R.string.profile_remove_account_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.profile_remove_account_confirm,
-                        accountToRemove?.name ?: stringResource(R.string.memo_unknown_user)
-                    )
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { accountToRemove = null }
                 )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    accountToRemove?.let { onLogoutAccount(it) }
-                    accountToRemove = null
-                }) {
-                    Text(
-                        stringResource(R.string.common_remove),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { accountToRemove = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+                AppTextButton(
+                    text = stringResource(R.string.common_remove),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
+                    onClick = {
+                        accountToRemove?.let { onLogoutAccount(it) }
+                        accountToRemove = null
+                    }
+                )
+            }
+        )
     }
 
     Column(modifier = modifier.padding(16.dp)) {

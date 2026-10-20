@@ -32,6 +32,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.model.Attachment
 import org.example.memosm.ui.component.ActionSheet
 import org.example.memosm.ui.component.ActionSheetItem
@@ -157,25 +159,29 @@ internal fun AttachmentActionsButton(
     }
 
     if (showDownloadDialog) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.attachments_download_dialog_title),
+            summary = stringResource(R.string.attachments_download_dialog_confirm, filename),
             onDismissRequest = { showDownloadDialog = false },
-            title = { Text(stringResource(R.string.attachments_download_dialog_title)) },
-            text = { Text(stringResource(R.string.attachments_download_dialog_confirm, filename)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (attachment != null) downloadAttachmentFile(
-                        context, attachment, token, hostUrl
-                    )
-                    showDownloadDialog = false
-                }) {
-                    Text(stringResource(R.string.attachments_download_button))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDownloadDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showDownloadDialog = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.attachments_download_button),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (attachment != null) downloadAttachmentFile(
+                            context, attachment, token, hostUrl
+                        )
+                        showDownloadDialog = false
+                    }
+                )
+            }
+        )
     }
 
 }

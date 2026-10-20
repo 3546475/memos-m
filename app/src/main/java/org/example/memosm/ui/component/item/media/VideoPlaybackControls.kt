@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import kotlinx.coroutines.delay
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDropdownMenu
+import org.example.memosm.ui.theme.AppDropdownMenuItem
 
 /** Video gestures transform the picture; sibling playback controls stay fixed to the viewport. */
 @Composable
@@ -199,10 +201,13 @@ internal fun VideoPlaybackControls(
                                 ) {
                                     Text(stringResource(R.string.video_speed_value, state.speed.toString().removeSuffix(".0")), color = LocalContentColor.current)
                                 }
-                                DropdownMenu(expanded = speedMenuOpen, onDismissRequest = { speedMenuOpen = false; interaction++ }) {
+                                AppDropdownMenu(
+                                    expanded = speedMenuOpen,
+                                    onDismissRequest = { speedMenuOpen = false; interaction++ }
+                                ) {
                                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f).forEach { speed ->
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.video_speed_value, speed.toString().removeSuffix(".0"))) },
+                                        AppDropdownMenuItem(
+                                            text = stringResource(R.string.video_speed_value, speed.toString().removeSuffix(".0")),
                                             onClick = { interact { onChangeSpeed(speed); speedMenuOpen = false } }
                                         )
                                     }

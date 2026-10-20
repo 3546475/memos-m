@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item
 
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.flatCardElevation
 import android.content.Intent
 import android.net.Uri
@@ -678,24 +680,28 @@ fun MemoItem(
     }
 
     if (showRawTextDialog) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.memo_dialog_raw_title),
             onDismissRequest = { showRawTextDialog = false },
-            title = { Text(stringResource(R.string.memo_dialog_raw_title)) },
-            text = {
-                SelectionContainer {
-                    Text(
-                        text = memo.content,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showRawTextDialog = false }) {
-                    Text(stringResource(R.string.common_close))
-                }
-            })
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_close),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showRawTextDialog = false }
+                )
+            }
+        ) {
+            SelectionContainer {
+                Text(
+                    text = memo.content,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                )
+            }
+        }
     }
 
     if (showFullScreenViewer) {
