@@ -455,6 +455,18 @@ AppTopBar(
 
 **目标**：内容区（笔记本身）观感统一；媒体控件保持自有实现但配色/圆角跟随主题。
 
+**进度：第六轮已完成**（详情页、编辑器、Markdown 容器、媒体滑条、reaction 胶囊、附件卡）
+
+- 新增 `AppReactionChip`：MIUIX 下「我点过」= 主色胶囊 + onPrimary 文字，否则灰胶囊；
+  文字颜色由胶囊统一提供，调用方不再各自算对比色。
+- `AttachmentCard` 外层 → `AppCard`（画廊模式 `cornerRadius = 0.dp` 保持方角，
+  点击/长按仍挂在 modifier 上）；`AttachmentInfoSheet` 早前已走 `ActionSheet`。
+- LaTeX 错误卡、音频播放器容器 → `AppCard`。
+- `AppExtendedFloatingActionButton` 改用 `buttonColorsPrimary()`——Miuix 默认的次级灰
+  让「添加评论」看起来像禁用态，真机已确认改成主色胶囊。
+- Markdown 链接预览卡 → `AppCard` + `clickable`；代码块/表格分隔线 → `AppDivider`；
+  音频/视频进度条 → `AppSlider`（补 `enabled` 与 `onValueChangeFinished`）。
+
 **进度：第一轮已完成**（详情页、编辑器容器、草稿卡）
 
 - 详情页：外层 `Surface` → `AppSurface`（圆角裁剪用 modifier），离线提示块同改；
