@@ -467,6 +467,14 @@ AppTopBar(
 - 已知待办：详情页顶栏仍是自定义 `TopAppBar`（标题居中逻辑特殊），
   笔记卡片内部的操作行、reaction chip、Markdown 渲染与媒体查看器仍是 Material。
 
+**进度：第二轮已完成**（Markdown 容器、分隔线、媒体滑条）
+
+- `AppDivider` 支持 `thickness` / `color` 透传，代码块与表格的分隔线已切换。
+- Markdown 链接预览卡 → `AppCard` + `clickable`（去掉 Material 描边，更接近 HyperOS 卡片）。
+- 音频/视频进度条 → `AppSlider` 的 `SliderState` 重载，并补上 `enabled` /
+  `onValueChangeFinished`，拖动结束提交 seek 的行为与原来一致。
+- 真机：安装成功、首页与卡片渲染正常；详情页因盲目点击未命中，下轮用 UI dump 精确定位后再验。
+
 **范围**
 
 - `MemoItem`（卡片已换，剩余：操作按钮、reaction chip、时间与可见性图标、展开/收起动画）
