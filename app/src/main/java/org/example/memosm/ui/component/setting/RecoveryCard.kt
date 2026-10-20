@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppSwitch
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.api.GsonProvider
 import org.example.memosm.data.DataStoreManager
@@ -376,7 +377,7 @@ fun BackupTransferScreen(
 private fun SelectionRow(label: String, checked: Boolean, enabled: Boolean, onChecked: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChecked).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f).padding(end = 16.dp))
-        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        AppSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 

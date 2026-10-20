@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import org.example.memosm.BuildConfig
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppListItem
 
 private data class KaomojiMessage(val text: String, val kaomoji: String)
 
@@ -84,10 +85,9 @@ fun AboutAppCard(onOpenLicenses: () -> Unit, onOpenLogs: () -> Unit, onShowSetup
     }
 
     SettingsGroup {
-        ListItem(
-            content = { Text(stringResource(R.string.profile_about_version)) },
-            supportingContent = { Text(versionName) },
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        AppListItem(
+            title = stringResource(R.string.profile_about_version),
+            summary = versionName,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
                 .combinedClickable(onClick = {
@@ -117,45 +117,40 @@ fun AboutAppCard(onOpenLicenses: () -> Unit, onOpenLogs: () -> Unit, onShowSetup
                 })
         )
 
-        ListItem(
-            content = { Text(stringResource(R.string.profile_about_git_hash)) },
-            supportingContent = { Text(BuildConfig.GIT_HASH) },
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        AppListItem(
+            title = stringResource(R.string.profile_about_git_hash),
+            summary = BuildConfig.GIT_HASH
         )
 
         val repoUrl = stringResource(R.string.profile_about_repo_url)
         val issuesUrl = stringResource(R.string.profile_about_issues_url)
 
-        ListItem(
-            content = { Text(stringResource(R.string.profile_about_repo)) },
-            leadingContent = { Icon(Icons.Outlined.Code, contentDescription = null) },
-            trailingContent = {
+        AppListItem(
+            title = stringResource(R.string.profile_about_repo),
+            leading = { Icon(Icons.Outlined.Code, contentDescription = null) },
+            trailing = {
                 Icon(
                     Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null
                 )
             },
-            modifier = Modifier.clip(RoundedCornerShape(4.dp)).combinedClickable(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, repoUrl.toUri())
-                    context.startActivity(intent)
-                }),
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, repoUrl.toUri())
+                context.startActivity(intent)
+            }
         )
 
-        ListItem(
-            content = { Text(stringResource(R.string.profile_about_issues)) },
-            leadingContent = { Icon(Icons.Outlined.BugReport, contentDescription = null) },
-            trailingContent = {
+        AppListItem(
+            title = stringResource(R.string.profile_about_issues),
+            leading = { Icon(Icons.Outlined.BugReport, contentDescription = null) },
+            trailing = {
                 Icon(
                     Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null
                 )
             },
-            modifier = Modifier.clip(RoundedCornerShape(4.dp)).combinedClickable(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, issuesUrl.toUri())
-                    context.startActivity(intent)
-                }),
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, issuesUrl.toUri())
+                context.startActivity(intent)
+            }
         )
 
         SettingsNavigationRow(
@@ -170,12 +165,10 @@ fun AboutAppCard(onOpenLicenses: () -> Unit, onOpenLogs: () -> Unit, onShowSetup
             onClick = onOpenLogs
         )
 
-        ListItem(
-            content = { Text(stringResource(R.string.profile_about_licenses)) },
-            leadingContent = { Icon(Icons.Outlined.Balance, contentDescription = null) },
-            modifier = Modifier.clip(RoundedCornerShape(4.dp)).combinedClickable(
-                onClick = onOpenLicenses),
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        AppListItem(
+            title = stringResource(R.string.profile_about_licenses),
+            leading = { Icon(Icons.Outlined.Balance, contentDescription = null) },
+            onClick = onOpenLicenses
         )
     }
 

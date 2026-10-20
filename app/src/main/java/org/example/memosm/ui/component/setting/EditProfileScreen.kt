@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -149,54 +150,54 @@ fun EditProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                AppTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text(stringResource(R.string.profile_username)) },
+                    label = stringResource(R.string.profile_username),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
+                AppTextField(
                     value = displayName,
                     onValueChange = { displayName = it },
-                    label = { Text(stringResource(R.string.profile_display_name)) },
+                    label = stringResource(R.string.profile_display_name),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
+                AppTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.profile_email)) },
+                    label = stringResource(R.string.profile_email),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
+                AppTextField(
                     value = avatarUrl,
                     onValueChange = { avatarUrl = it },
-                    label = { Text(stringResource(R.string.profile_avatar_url)) },
+                    label = stringResource(R.string.profile_avatar_url),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
+                AppTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text(stringResource(R.string.profile_description)) },
+                    label = stringResource(R.string.profile_description),
                     minLines = 2,
                     maxLines = 4,
                     modifier = Modifier.fillMaxWidth(),

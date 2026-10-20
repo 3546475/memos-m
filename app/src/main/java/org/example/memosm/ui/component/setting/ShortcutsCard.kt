@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.ui.theme.AppLinearProgressIndicator
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTextField
@@ -71,11 +72,11 @@ fun ShortcutsCard(
         } else {
             SettingsGroup {
                 shortcuts.forEach { shortcut ->
-                    ListItem(
-                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { showEditDialog = shortcut },
-                        content = { Text(shortcut.title ?: "") },
-                        supportingContent = { Text(shortcut.filter ?: "", maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                        trailingContent = {
+                    AppListItem(
+                        title = shortcut.title ?: "",
+                        summary = shortcut.filter ?: "",
+                        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                        trailing = {
                             IconButton(onClick = { showDeleteConfirm = shortcut }) {
                                 Icon(
                                     Icons.Outlined.Delete,
@@ -84,7 +85,7 @@ fun ShortcutsCard(
                                 )
                             }
                         },
-                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                        onClick = { showEditDialog = shortcut }
                     )
                 }
             }

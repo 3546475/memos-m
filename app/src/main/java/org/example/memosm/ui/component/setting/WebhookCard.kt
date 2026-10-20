@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.ui.theme.AppLinearProgressIndicator
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTextField
@@ -67,11 +68,11 @@ fun WebhooksCard(
         } else {
             SettingsGroup {
                 webhooks.forEach { webhook ->
-                    ListItem(
-                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { showEditDialog = webhook },
-                        content = { Text(webhook.displayName ?: "") },
-                        supportingContent = { Text(webhook.url, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                        trailingContent = {
+                    AppListItem(
+                        title = webhook.displayName ?: "",
+                        summary = webhook.url,
+                        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                        trailing = {
                             IconButton(onClick = { showDeleteConfirm = webhook }) {
                                 Icon(
                                     Icons.Outlined.Delete,
@@ -80,7 +81,7 @@ fun WebhooksCard(
                                 )
                             }
                         },
-                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                        onClick = { showEditDialog = webhook }
                     )
                 }
             }

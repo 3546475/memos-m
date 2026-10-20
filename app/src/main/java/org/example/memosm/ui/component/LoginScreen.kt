@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.api.MemosApiFactory
 import org.example.memosm.api.SsoFailure
 import org.example.memosm.api.SsoTransaction
@@ -408,12 +409,12 @@ fun LoginContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
+        AppTextField(
             value = hostUrl,
             onValueChange = { hostUrl = it; errorMessage = null },
-            label = { Text(stringResource(R.string.login_host_url)) },
+            label = stringResource(R.string.login_host_url),
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.login_host_url_placeholder)) },
+            placeholder = stringResource(R.string.login_host_url_placeholder),
             enabled = !busy,
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -467,10 +468,10 @@ fun LoginContent(
                 }
             }
             LoginMode.TOKEN -> {
-                OutlinedTextField(
+                AppTextField(
                     value = token,
                     onValueChange = { token = it },
-                    label = { Text(stringResource(R.string.login_token)) },
+                    label = stringResource(R.string.login_token),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !busy,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -480,10 +481,10 @@ fun LoginContent(
 
             LoginMode.PASSWORD -> {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
+                    AppTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text(stringResource(R.string.login_username)) },
+                        label = stringResource(R.string.login_username),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !busy,
                         singleLine = true,
