@@ -12,7 +12,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Text
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -49,8 +50,8 @@ fun MemoComposerScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
+            AppTopBar(
+                title = title,
                 navigationIcon = {
                     ProfileBackButton(onClick = onDismiss)
                 }

@@ -32,6 +32,7 @@ import org.example.memosm.model.InstanceProfile
 import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.ui.component.ProfileBackButton
 import org.example.memosm.ui.component.setting.*
+import org.example.memosm.ui.theme.AppTopBar
 import org.example.memosm.viewmodel.MemosViewModel
 
 @Composable
@@ -209,18 +210,12 @@ internal fun SettingsPageScaffold(
             scrollBehavior?.let { Modifier.nestedScroll(it.nestedScrollConnection) } ?: Modifier
         ),
         topBar = {
-            if (scrollBehavior != null) {
-                LargeTopAppBar(
-                    title = { Text(title) },
-                    navigationIcon = { ProfileBackButton(onClick = onBack) },
-                    scrollBehavior = scrollBehavior
-                )
-            } else {
-                TopAppBar(
-                    title = { Text(title) },
-                    navigationIcon = { ProfileBackButton(onClick = onBack) }
-                )
-            }
+            AppTopBar(
+                title = title,
+                large = scrollBehavior != null,
+                navigationIcon = { ProfileBackButton(onClick = onBack) },
+                scrollBehavior = scrollBehavior
+            )
         },
         content = content
     )

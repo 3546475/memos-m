@@ -14,6 +14,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.launch
 import org.example.memosm.R
+import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.LocalThemeStyle
+import top.yukonga.miuix.kmp.basic.TabRow as MiuixTabRow
 
 enum class MemoFeed(val labelRes: Int) {
     MEMOS(R.string.nav_memos),
@@ -24,6 +27,18 @@ enum class MemoFeed(val labelRes: Int) {
 internal fun MemoFeedTabs(pagerState: PagerState, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+        MiuixTabRow(
+            tabs = MemoFeed.entries.map { stringResource(it.labelRes) },
+            selectedTabIndex = pagerState.currentPage,
+            onTabSelected = { index ->
+                focusManager.clearFocus()
+                scope.launch { pagerState.animateScrollToPage(index) }
+            },
+            modifier = modifier
+        )
+        return
+    }
     PrimaryTabRow(
         selectedTabIndex = pagerState.currentPage,
         modifier = modifier,

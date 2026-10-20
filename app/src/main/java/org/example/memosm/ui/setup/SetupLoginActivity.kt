@@ -23,7 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TopAppBar
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,8 +66,8 @@ class SetupLoginActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalNetworkPermission provides permission) {
                     Scaffold(
                         topBar = {
-                            TopAppBar(
-                                title = {},
+                            AppTopBar(
+                                title = "",
                                 navigationIcon = {
                                     IconButton(enabled = !saving, onClick = { onBackPressedDispatcher.onBackPressed() }) {
                                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.backup_back))

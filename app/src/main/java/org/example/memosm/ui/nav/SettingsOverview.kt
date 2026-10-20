@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import org.example.memosm.R
 import org.example.memosm.ui.component.setting.SettingsGroup
+import org.example.memosm.ui.theme.AppListItem
 
 enum class SettingsSection(
     @StringRes val titleRes: Int,
@@ -71,11 +72,11 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
                 Box(Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
                     SettingsGroup {
                         group.forEach { section ->
-                            ListItem(
-                                modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onOpenSection(section) },
-                                content = { Text(stringResource(section.titleRes)) },
-                                supportingContent = section.summaryRes?.let { { Text(stringResource(it)) } },
-                                leadingContent = {
+                            AppListItem(
+                                title = stringResource(section.titleRes),
+                                summary = section.summaryRes?.let { stringResource(it) },
+                                modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                                leading = {
                                     Surface(
                                         modifier = Modifier.size(40.dp),
                                         shape = CircleShape,
@@ -87,7 +88,7 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
                                         }
                                     }
                                 },
-                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                                onClick = { onOpenSection(section) }
                             )
                         }
                     }

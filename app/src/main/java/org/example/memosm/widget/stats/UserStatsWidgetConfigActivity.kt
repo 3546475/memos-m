@@ -22,7 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -72,7 +72,7 @@ class UserStatsWidgetConfigActivity : ComponentActivity() {
             SavedMemosMTheme(dataStoreManager) {
                 Scaffold(
                     topBar = {
-                        TopAppBar(title = { Text(stringResource(R.string.widget_stats_select_account)) })
+                        AppTopBar(title = stringResource(R.string.widget_stats_select_account))
                     }) { padding ->
                     val accounts = produceState<List<Account>>(initialValue = emptyList()) {
                         value = dataStoreManager.getAccounts()

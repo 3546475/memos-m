@@ -36,6 +36,7 @@ import org.example.memosm.R
 import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.model.Visibility
 import org.example.memosm.ui.getVisibilityLabel
+import org.example.memosm.ui.theme.AppListItem
 
 private val LANGUAGE_NAMES = mapOf(
     "ar" to "العربية",
@@ -104,18 +105,12 @@ private fun SettingsSelectionItem(
 ) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
 
-    ListItem(
-        content = { Text(label) },
-        supportingContent = {
-            Text(
-                text = labelProvider(currentValue),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-        modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { showDialog = true },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    AppListItem(
+        title = label,
+        summary = labelProvider(currentValue),
+        trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+        onClick = { showDialog = true }
     )
 
     if (showDialog) {

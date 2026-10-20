@@ -74,6 +74,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import org.example.memosm.ui.theme.AppCard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -147,9 +148,10 @@ fun MemoItem(
 
 
 
-    Card(
-        elevation = flatCardElevation(),
-        modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, colors = colors
+    AppCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = colors.containerColor,
+        cornerRadius = 16.dp
     ) {
         Column(
             modifier = Modifier

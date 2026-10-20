@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppListItem
 
 enum class AppSettingsCategory { GENERAL, APPEARANCE, LINK_PREVIEWS, NETWORK }
 
@@ -65,45 +66,37 @@ fun AppSettingsCard(
         }
 
         if (category == AppSettingsCategory.NETWORK && Build.VERSION.SDK_INT >= 37) {
-                ListItem(
-                    content = { Text(stringResource(R.string.local_network_permission_title)) },
-                    supportingContent = {
-                        Text(stringResource(
-                            if (networkPermission.granted) R.string.local_network_permission_allowed
-                            else R.string.local_network_permission_description
-                        ))
-                    },
-                    trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                    modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable {
+                AppListItem(
+                    title = stringResource(R.string.local_network_permission_title),
+                    summary = stringResource(
+                        if (networkPermission.granted) R.string.local_network_permission_allowed
+                        else R.string.local_network_permission_description
+                    ),
+                    trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                    modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                    onClick = {
                         if (networkPermission.granted) networkPermission.openSettings()
                         else scope.launch { networkPermission.requestAccess() }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    }
                 )
             }
 
         if (category == AppSettingsCategory.GENERAL) {
-            ListItem(
-                content = { Text(stringResource(R.string.profile_app_settings_page_size)) },
-                supportingContent = {
-                    Text(
-                        text = pageSize.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { showPageSizeDialog = true },
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+            AppListItem(
+                title = stringResource(R.string.profile_app_settings_page_size),
+                summary = pageSize.toString(),
+                trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                onClick = { showPageSizeDialog = true }
             )
 
         }
 
         if (category == AppSettingsCategory.APPEARANCE) {
-            ListItem(
+            AppListItem(
+                title = stringResource(R.string.profile_app_settings_header_scale),
                 modifier = Modifier.clip(RoundedCornerShape(4.dp)),
-                content = { Text(stringResource(R.string.profile_app_settings_header_scale)) },
-                supportingContent = {
+                supporting = {
                     Column {
                         Text(
                             text = String.format(
@@ -117,8 +110,7 @@ fun AppSettingsCard(
                         LaunchedEffect(headerScale) { sliderState.value = headerScale }
                         Slider(state = sliderState, onValueChange = onHeaderScaleChange)
                     }
-                },
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                }
             )
         }
     }

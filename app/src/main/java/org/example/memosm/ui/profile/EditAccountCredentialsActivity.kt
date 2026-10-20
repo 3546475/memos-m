@@ -17,7 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,8 +64,8 @@ class EditAccountCredentialsActivity : ComponentActivity() {
                         Scaffold(
                             modifier = Modifier.fillMaxSize().imePadding(),
                             topBar = {
-                                TopAppBar(
-                                    title = { Text(stringResource(R.string.profile_edit_credentials)) },
+                                AppTopBar(
+                                    title = stringResource(R.string.profile_edit_credentials),
                                     navigationIcon = {
                                         ProfileBackButton(onClick = { onBackPressedDispatcher.onBackPressed() })
                                     }

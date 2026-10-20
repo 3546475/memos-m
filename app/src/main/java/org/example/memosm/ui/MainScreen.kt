@@ -43,6 +43,13 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
+import androidx.compose.ui.graphics.vector.ImageVector
+import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.LocalThemeStyle
+import top.yukonga.miuix.kmp.basic.NavigationBar as MiuixNavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem as MiuixNavigationBarItem
+import top.yukonga.miuix.kmp.basic.NavigationRail as MiuixNavigationRail
+import top.yukonga.miuix.kmp.basic.NavigationRailItem as MiuixNavigationRailItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
@@ -296,25 +303,42 @@ private fun MainScreenContent(
             Row(Modifier.fillMaxSize()) {
                 // Navigation Rail for tablets/desktops
                 if (!isMobile) {
-                    NavigationRail(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = contentColorFor(MaterialTheme.colorScheme.surfaceContainer)
-                    ) {
-                        Spacer(Modifier.height(12.dp))
-                        // Items
-                        visibleDestinations.forEach { destination ->
-                            if (destination == MainDestination.PROFILE) {
-                                Spacer(Modifier.weight(1f))
+                    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                        MiuixNavigationRail {
+                            Spacer(Modifier.height(12.dp))
+                            visibleDestinations.forEach { destination ->
+                                if (destination == MainDestination.PROFILE) {
+                                    Spacer(Modifier.weight(1f))
+                                }
+                                MiuixNavigationRailItem(
+                                    selected = currentDestination == destination,
+                                    onClick = { handleDestinationClick(destination) },
+                                    icon = destination.navIcon(currentDestination == destination),
+                                    label = stringResource(destination.labelRes)
+                                )
                             }
-                            NavigationRailItem(
-                                selected = currentDestination == destination,
-                                onClick = { handleDestinationClick(destination) },
-                                icon = {
-                                    NavigationIcon(
-                                        destination, currentDestination == destination
-                                    )
-                                },
-                                label = { Text(stringResource(destination.labelRes)) })
+                        }
+                    } else {
+                        NavigationRail(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            contentColor = contentColorFor(MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            Spacer(Modifier.height(12.dp))
+                            // Items
+                            visibleDestinations.forEach { destination ->
+                                if (destination == MainDestination.PROFILE) {
+                                    Spacer(Modifier.weight(1f))
+                                }
+                                NavigationRailItem(
+                                    selected = currentDestination == destination,
+                                    onClick = { handleDestinationClick(destination) },
+                                    icon = {
+                                        NavigationIcon(
+                                            destination, currentDestination == destination
+                                        )
+                                    },
+                                    label = { Text(stringResource(destination.labelRes)) })
+                            }
                         }
                     }
                 }
@@ -381,20 +405,33 @@ private fun MainScreenContent(
                         enter = slideInVertically(initialOffsetY = { it }),
                         exit = slideOutVertically(targetOffsetY = { it })
                     ) {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            contentColor = contentColorFor(MaterialTheme.colorScheme.surfaceContainer)
-                        ) {
-                            visibleDestinations.forEach { destination ->
-                                NavigationBarItem(
-                                    selected = currentDestination == destination,
-                                    onClick = { handleDestinationClick(destination) },
-                                    icon = {
-                                        NavigationIcon(
-                                            destination, currentDestination == destination
-                                        )
-                                    },
-                                    label = { Text(stringResource(destination.labelRes)) })
+                        if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                            MiuixNavigationBar {
+                                visibleDestinations.forEach { destination ->
+                                    MiuixNavigationBarItem(
+                                        selected = currentDestination == destination,
+                                        onClick = { handleDestinationClick(destination) },
+                                        icon = destination.navIcon(currentDestination == destination),
+                                        label = stringResource(destination.labelRes)
+                                    )
+                                }
+                            }
+                        } else {
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                contentColor = contentColorFor(MaterialTheme.colorScheme.surfaceContainer)
+                            ) {
+                                visibleDestinations.forEach { destination ->
+                                    NavigationBarItem(
+                                        selected = currentDestination == destination,
+                                        onClick = { handleDestinationClick(destination) },
+                                        icon = {
+                                            NavigationIcon(
+                                                destination, currentDestination == destination
+                                            )
+                                        },
+                                        label = { Text(stringResource(destination.labelRes)) })
+                                }
                             }
                         }
                     }
@@ -414,4 +451,13 @@ private fun MainScreenContent(
         )
     }
 
+}
+
+/** Miuix navigation items take a vector icon, so the avatar stays on the profile page itself. */
+private fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this) {
+    MainDestination.MAP -> if (selected) Icons.Filled.Map else Icons.Outlined.Map
+    MainDestination.MEMOS ->
+        if (selected) Icons.AutoMirrored.Filled.LibraryBooks else Icons.AutoMirrored.Outlined.LibraryBooks
+    MainDestination.ATTACHMENTS -> if (selected) Icons.Filled.Attachment else Icons.Outlined.Attachment
+    MainDestination.PROFILE -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
 }

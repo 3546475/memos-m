@@ -61,6 +61,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.LocalThemeStyle
+import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
 import org.example.memosm.data.sync.PreDownloadState
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
@@ -250,7 +253,27 @@ fun MemosScreen(
                     label = "fabBottomPadding"
                 )
 
-                ExtendedFloatingActionButton(
+                if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                    MiuixFloatingActionButton(
+                        onClick = {
+                            if (uiState.draft.drafts.isNotEmpty()) {
+                                showDraftPrompt = true
+                            } else {
+                                composeNew()
+                            }
+                        },
+                        modifier = Modifier
+                            .testTag("memo_feed_compose")
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = fabBottomPadding)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = stringResource(R.string.memo_composer_fab_new_memo)
+                        )
+                    }
+                } else {
+                    ExtendedFloatingActionButton(
                     onClick = {
                         // If drafts exist, show prompt; otherwise show composer directly
                         if (uiState.draft.drafts.isNotEmpty()) {
@@ -277,7 +300,8 @@ fun MemosScreen(
                         .testTag("memo_feed_compose")
                         .align(Alignment.BottomEnd)
                         .padding(end = 16.dp, bottom = fabBottomPadding)
-                )
+                    )
+                }
             }
         })
 

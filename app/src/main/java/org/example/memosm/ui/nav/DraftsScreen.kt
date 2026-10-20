@@ -18,7 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +52,7 @@ fun DraftsScreen(
     var draftToDelete by remember { mutableStateOf<Draft?>(null) }
 
     Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
-        TopAppBar(title = { Text(stringResource(R.string.drafts_title)) }, navigationIcon = {
+        AppTopBar(title = stringResource(R.string.drafts_title), navigationIcon = {
             ProfileBackButton(onClick = onBack)
         })
     }) { padding ->

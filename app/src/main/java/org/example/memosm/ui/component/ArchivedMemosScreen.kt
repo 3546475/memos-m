@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,10 +40,8 @@ fun ArchivedMemosScreen(
             isNavBarVisible = false,
             topBar = { isDetailVisible, isDualPane ->
                 if (!isDetailVisible || isDualPane) {
-                    TopAppBar(
-                        title = {
-                            Text(stringResource(R.string.profile_archived))
-                        },
+                    AppTopBar(
+                        title = stringResource(R.string.profile_archived),
                         navigationIcon = {
                             ProfileBackButton(onClick = onBack)
                         },

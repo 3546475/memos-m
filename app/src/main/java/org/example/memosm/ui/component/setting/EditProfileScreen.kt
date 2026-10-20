@@ -23,7 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,8 +75,8 @@ fun EditProfileScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize().imePadding(),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.profile_edit_account)) },
+            AppTopBar(
+                title = stringResource(R.string.profile_edit_account),
                 navigationIcon = {
                     ProfileBackButton(onClick = { if (!isSaving) onBack() })
                 },

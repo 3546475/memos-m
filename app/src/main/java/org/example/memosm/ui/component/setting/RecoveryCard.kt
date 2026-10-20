@@ -37,6 +37,7 @@ import org.example.memosm.data.backup.*
 import org.example.memosm.model.Draft
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.formatBytes
+import org.example.memosm.ui.theme.AppTopBar
 import org.koin.core.context.GlobalContext
 
 @Composable
@@ -252,7 +253,7 @@ fun BackupTransferScreen(
     }
 
     Scaffold(topBar = {
-        TopAppBar(title = { Text(stringResource(if (exporting) R.string.backup_choose_export else R.string.backup_choose_restore)) },
+        AppTopBar(title = stringResource(if (exporting) R.string.backup_choose_export else R.string.backup_choose_restore),
             navigationIcon = { IconButton(enabled = !busy, onClick = onClose) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.backup_back))
             } })

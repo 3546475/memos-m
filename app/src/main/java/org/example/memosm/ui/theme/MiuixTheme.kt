@@ -84,8 +84,9 @@ fun MiuixStyledSwitch(checked: Boolean) {
 
 /** Device colors, neutral palettes, the source-backed Memos colors, or the user's hue. */
 @Composable
-private fun miuixColorsFor(appearance: AppearancePreferences, isDark: Boolean): MiuixColors =
-    when (appearance.colorTheme) {
+private fun miuixColorsFor(appearance: AppearancePreferences, isDark: Boolean): MiuixColors {
+    val base = if (isDark) miuixDarkColorScheme() else miuixLightColorScheme()
+    val accent = when (appearance.colorTheme) {
         // Miuix reads the system palette itself and falls back to its own seed below Android 12.
         ColorTheme.SYSTEM -> platformDynamicColors(dark = isDark)
         ColorTheme.MONOCHROME -> miuixColorsFromSeed(
@@ -104,8 +105,28 @@ private fun miuixColorsFor(appearance: AppearancePreferences, isDark: Boolean): 
                 paletteStyle = ThemePaletteStyle.TonalSpot,
                 isDark = isDark
             )
-        } ?: if (isDark) miuixDarkColorScheme() else miuixLightColorScheme()
+        } ?: base
     }
+    // HyperOS keeps its own flat neutral scale: white cards on a grey page (black / #242424 when
+    // dark). Only the accent family follows the selected color source, so MIUIX never collapses
+    // into a Material You palette.
+    return base.copy(
+        primary = accent.primary,
+        onPrimary = accent.onPrimary,
+        primaryVariant = accent.primaryVariant,
+        onPrimaryVariant = accent.onPrimaryVariant,
+        primaryContainer = accent.primaryContainer,
+        onPrimaryContainer = accent.onPrimaryContainer,
+        disabledPrimary = accent.disabledPrimary,
+        disabledOnPrimary = accent.disabledOnPrimary,
+        disabledPrimaryButton = accent.disabledPrimaryButton,
+        disabledOnPrimaryButton = accent.disabledOnPrimaryButton,
+        disabledPrimarySlider = accent.disabledPrimarySlider,
+        tertiaryContainer = accent.tertiaryContainer,
+        onTertiaryContainer = accent.onTertiaryContainer,
+        tertiaryContainerVariant = accent.tertiaryContainerVariant
+    )
+}
 
 @Composable
 private fun miuixColorsFromSeed(
@@ -157,13 +178,13 @@ private fun MiuixColors.toMaterialColorScheme(isDark: Boolean): ColorScheme {
         outline = outline,
         outlineVariant = dividerLine,
         scrim = windowDimming,
-        surfaceBright = surfaceContainerHighest,
+        surfaceBright = surfaceContainer,
         surfaceDim = surface,
-        surfaceContainerLowest = surfaceContainer,
-        surfaceContainerLow = surfaceContainer,
+        surfaceContainerLowest = surface,
+        surfaceContainerLow = surface,
         surfaceContainer = surfaceContainer,
         surfaceContainerHigh = surfaceContainer,
-        surfaceContainerHighest = surfaceContainerHighest
+        surfaceContainerHighest = surfaceContainer
     )
 }
 
