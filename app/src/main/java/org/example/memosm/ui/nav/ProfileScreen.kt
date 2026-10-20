@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import org.example.memosm.ui.component.ActionSheet
 import org.example.memosm.ui.component.LocalNetworkPermission
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -73,6 +74,7 @@ import org.example.memosm.ui.component.setting.SettingsGroup
 import org.example.memosm.ui.component.setting.SettingsNavigationRow
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppListItem
+import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
 import org.koin.compose.koinInject
@@ -182,13 +184,7 @@ private fun ProfileListPane(
     val activeAccount = accounts.find { it.isActive }
 
     if (showAccountSwitcher) {
-        ModalBottomSheet(
-            onDismissRequest = { showAccountSwitcher = false },
-            sheetState = rememberBottomSheetState(
-                initialValue = SheetValue.Hidden,
-                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-            )
-        ) {
+        ActionSheet(onDismissRequest = { showAccountSwitcher = false }) {
             AccountsList(
                 accounts = accounts,
                 onSwitchAccount = { account ->
@@ -212,7 +208,7 @@ private fun ProfileListPane(
         }
     }
 
-    PullToRefreshBox(
+    AppPullToRefresh(
         isRefreshing = uiState.isRefreshing, onRefresh = {
             viewModel.fetchUserMemos(refresh = true)
             viewModel.userDelegate.refreshInstanceSettings()

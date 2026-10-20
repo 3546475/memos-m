@@ -86,7 +86,7 @@
 | **P0 已完成** | 主题开关 + 偏好持久化 + 备份；调色板；适配层雏形；顶栏 / 导航 / 标签 / FAB / 卡片 / 设置行 / 开关 | ✅ `329d7bf`、`4b883ce` |
 | **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
-| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第一轮完成（ActionSheet + 9 处对话框） |
+| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第二轮完成（11 处弹窗 + 弹层壳 + 菜单适配） |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
 | **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
 | **P6 收尾验收** | 深色/字体/动画一致性、a11y、性能、回归清单、文档与截图 | ⬜ |
@@ -286,7 +286,17 @@ AppTopBar(
 
 **目标**：所有「浮起来的东西」统一为 HyperOS 弹层：对话框、底部弹层、下拉菜单、Snackbar。
 
-**进度：第一轮已完成**（`ActionSheet` 壳 + 9 处对话框）
+**进度：第二轮已完成**（表单弹窗、账号切换弹层、下拉菜单适配）
+
+本轮新增：
+- 表单弹窗：`ShortcutEditDialog`、`WebhookEditDialog` → `AppDialog` + `AppTextField`
+  + `AppLinearProgressIndicator`（保存中状态、错误文案、帮助链接图标都保留）。
+- 账号切换：`ProfileScreen` 的 `ModalBottomSheet` 改走 `ActionSheet`（即 `WindowBottomSheet`），
+  账号列表与逻辑不变；该页自己的下拉刷新也换成 `AppPullToRefresh`。
+- 下拉菜单：新增 `AppDropdownMenu`（`WindowListPopup` + `ListPopupColumn`）与
+  `AppDropdownMenuItem`（支持 leadingIcon / destructive），首个迁移点是搜索排序菜单。
+  ⚠️ 菜单其余 5 个文件（写作工具栏、地图、离线设置、搜索页其余菜单、视频控制）仍是
+  `DropdownMenu` / `ExposedDropdownMenu`，下一轮逐个替换。
 
 已迁移到 `AppDialog`（`WindowDialog`）：
 - 设置：语言/可见性选择（`SettingsCard`）、分页大小（`AppSettingsCard`，含 `AppTextField`）、
@@ -295,10 +305,9 @@ AppTopBar(
 - 草稿：`DraftsScreen` 单条删除、`DraftsCard` 全部删除 / 全部发布
 - `ActionSheet` → `WindowBottomSheet`，`ActionSheetItem` → Miuix 行
 
-仍在用 Material 的（下一轮）：`ShortcutsCard`/`WebhookCard` 的**新建/编辑**弹窗（含表单校验）、
-`MemoItem`、`AttachmentActionsButton`、`AccountsList`、`SyncStatusWidget`、`LocalNetworkPermission`、
-`ConflictDialog`、`RecoveryCard`、`MemoComposer`；`ModalBottomSheet` 的账号切换与表情选择；
-全部 `DropdownMenu`；Snackbar 桥接。
+仍在用 Material 的（下一轮）：`MemoItem`、`AttachmentActionsButton`、`AccountsList`（内部弹窗）、
+`SyncStatusWidget`、`LocalNetworkPermission`、`ConflictDialog`、`RecoveryCard`、`MemoComposer`；
+`ReactionPickerDialog` 的底部弹层；其余 `DropdownMenu` / `ExposedDropdownMenu`；Snackbar 桥接。
 
 **范围（按数量）**
 

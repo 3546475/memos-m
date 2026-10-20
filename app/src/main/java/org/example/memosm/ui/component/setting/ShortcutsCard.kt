@@ -36,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppLinearProgressIndicator
 import org.example.memosm.ui.theme.AppTextButton
+import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.model.Shortcut
 
 @Composable
@@ -153,60 +155,21 @@ fun ShortcutEditDialog(
     val context = LocalContext.current
     val helpUrl = stringResource(R.string.profile_shortcuts_help_url)
 
-    AlertDialog(
+    AppDialog(
+        show = true,
+        title = title,
         onDismissRequest = if (isSaving) ({}) else onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (errorMessageRes != null) {
-                    Text(
-                        text = stringResource(errorMessageRes ?: R.string.profile_shortcuts_error_save),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-                OutlinedTextField(
-                    value = titleText,
-                    onValueChange = {
-                        titleText = it
-                        errorMessageRes = null
-                    },
-                    label = { Text(stringResource(R.string.profile_shortcuts_title)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !isSaving
-                )
-                OutlinedTextField(
-                    value = filterText,
-                    onValueChange = {
-                        filterText = it
-                        errorMessageRes = null
-                    },
-                    label = { Text(stringResource(R.string.profile_shortcuts_filter)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("\"work\" in tags && has_task_list") },
-                    enabled = !isSaving,
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, helpUrl.toUri())
-                            context.startActivity(intent)
-                        }) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.HelpOutline,
-                                contentDescription = stringResource(R.string.profile_shortcuts_help)
-                            )
-                        }
-                    }
-                )
-
-                if (isSaving) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                enabled = !isSaving,
+                onClick = onDismiss
+            )
+            AppTextButton(
+                text = stringResource(R.string.common_save),
+                modifier = Modifier.weight(1f),
+                enabled = titleText.isNotBlank() && filterText.isNotBlank() && !isSaving,
                 onClick = {
                     isSaving = true
                     errorMessageRes = null
@@ -222,16 +185,56 @@ fun ShortcutEditDialog(
                             errorMessageRes = errorRes
                         }
                     )
-                },
-                enabled = titleText.isNotBlank() && filterText.isNotBlank() && !isSaving
-            ) {
-                Text(stringResource(R.string.common_save))
+                }
+            )
+        }
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (errorMessageRes != null) {
+                Text(
+                    text = stringResource(errorMessageRes ?: R.string.profile_shortcuts_error_save),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSaving) {
-                Text(stringResource(R.string.common_cancel))
+            AppTextField(
+                value = titleText,
+                onValueChange = {
+                    titleText = it
+                    errorMessageRes = null
+                },
+                label = stringResource(R.string.profile_shortcuts_title),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSaving
+            )
+            AppTextField(
+                value = filterText,
+                onValueChange = {
+                    filterText = it
+                    errorMessageRes = null
+                },
+                label = stringResource(R.string.profile_shortcuts_filter),
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = "\"work\" in tags && has_task_list",
+                enabled = !isSaving,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, helpUrl.toUri())
+                        context.startActivity(intent)
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.HelpOutline,
+                            contentDescription = stringResource(R.string.profile_shortcuts_help)
+                        )
+                    }
+                }
+            )
+
+            if (isSaving) {
+                AppLinearProgressIndicator(progress = null, modifier = Modifier.fillMaxWidth())
             }
         }
-    )
+    }
 }

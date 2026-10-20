@@ -32,7 +32,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppLinearProgressIndicator
 import org.example.memosm.ui.theme.AppTextButton
+import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.model.UserWebhook
 
 @Composable
@@ -146,50 +148,21 @@ fun WebhookEditDialog(
     var isSaving by remember { mutableStateOf(false) }
     var errorMessageRes by remember { mutableStateOf<Int?>(null) }
 
-    AlertDialog(
+    AppDialog(
+        show = true,
+        title = title,
         onDismissRequest = if (isSaving) ({}) else onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (errorMessageRes != null) {
-                    Text(
-                        text = stringResource(errorMessageRes ?: R.string.profile_webhooks_error_save),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-                OutlinedTextField(
-                    value = displayNameText,
-                    onValueChange = {
-                        displayNameText = it
-                        errorMessageRes = null
-                    },
-                    label = { Text(stringResource(R.string.profile_webhooks_display_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !isSaving
-                )
-                OutlinedTextField(
-                    value = urlText,
-                    onValueChange = {
-                        urlText = it
-                        errorMessageRes = null
-                    },
-                    label = { Text(stringResource(R.string.profile_webhooks_url)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("https://example.com/webhook") },
-                    enabled = !isSaving,
-                    singleLine = true
-                )
-
-                if (isSaving) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                enabled = !isSaving,
+                onClick = onDismiss
+            )
+            AppTextButton(
+                text = stringResource(R.string.common_save),
+                modifier = Modifier.weight(1f),
+                enabled = displayNameText.isNotBlank() && urlText.isNotBlank() && !isSaving,
                 onClick = {
                     isSaving = true
                     errorMessageRes = null
@@ -205,16 +178,46 @@ fun WebhookEditDialog(
                             errorMessageRes = errorRes
                         }
                     )
-                },
-                enabled = displayNameText.isNotBlank() && urlText.isNotBlank() && !isSaving
-            ) {
-                Text(stringResource(R.string.common_save))
+                }
+            )
+        }
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (errorMessageRes != null) {
+                Text(
+                    text = stringResource(errorMessageRes ?: R.string.profile_webhooks_error_save),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSaving) {
-                Text(stringResource(R.string.common_cancel))
+            AppTextField(
+                value = displayNameText,
+                onValueChange = {
+                    displayNameText = it
+                    errorMessageRes = null
+                },
+                label = stringResource(R.string.profile_webhooks_display_name),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSaving
+            )
+            AppTextField(
+                value = urlText,
+                onValueChange = {
+                    urlText = it
+                    errorMessageRes = null
+                },
+                label = stringResource(R.string.profile_webhooks_url),
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = "https://example.com/webhook",
+                enabled = !isSaving,
+                singleLine = true
+            )
+
+            if (isSaving) {
+                AppLinearProgressIndicator(progress = null, modifier = Modifier.fillMaxWidth())
             }
         }
-    )
+    }
 }

@@ -1,6 +1,8 @@
 package org.example.memosm.ui.component
 
 import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.AppDropdownMenu
+import org.example.memosm.ui.theme.AppDropdownMenuItem
 import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.LocalThemeStyle
 import org.example.memosm.ui.theme.flatCardElevation
@@ -640,36 +642,27 @@ private fun SearchResultContent(
                         }
                     }
 
-                    ExposedDropdownMenu(
+                    AppDropdownMenu(
                         expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(R.string.search_sort_newest),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }, leadingIcon = {
+                        AppDropdownMenuItem(
+                            text = stringResource(R.string.search_sort_newest),
+                            leadingIcon = {
                                 Icon(
                                     Icons.Outlined.ArrowDownward, null, Modifier.size(18.dp)
                                 )
-                            }, onClick = {
-                                onOrderByChange(MemoOrderBy.NEWEST); showSortMenu = false
-                            }, contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(R.string.search_sort_oldest),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
                             },
+                            onClick = {
+                                onOrderByChange(MemoOrderBy.NEWEST); showSortMenu = false
+                            }
+                        )
+                        AppDropdownMenuItem(
+                            text = stringResource(R.string.search_sort_oldest),
                             leadingIcon = {
                                 Icon(
                                     Icons.Outlined.ArrowUpward, null, Modifier.size(18.dp)
                                 )
                             },
-                            onClick = { onOrderByChange(MemoOrderBy.OLDEST); showSortMenu = false },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            onClick = { onOrderByChange(MemoOrderBy.OLDEST); showSortMenu = false }
                         )
                     }
                 }

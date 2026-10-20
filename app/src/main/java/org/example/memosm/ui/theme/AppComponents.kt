@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +18,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -29,6 +33,7 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -41,6 +46,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -62,6 +68,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator as MiuixCircularPro
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFab
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixDivider
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator as MiuixLinearProgressIndicator
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PullToRefresh as MiuixPullToRefresh
 import top.yukonga.miuix.kmp.basic.RadioButton as MiuixRadioButton
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar as MiuixSmallTopAppBar
@@ -72,6 +79,7 @@ import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
 import top.yukonga.miuix.kmp.window.WindowDialog as MiuixWindowDialog
+import top.yukonga.miuix.kmp.window.WindowListPopup as MiuixWindowListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -610,5 +618,82 @@ fun AppPullToRefresh(
         ) {
             content()
         }
+    }
+}
+
+/**
+ * An anchored menu. Miuix renders a window-level list popup (so no popup host is required);
+ * MD keeps the familiar [DropdownMenu].
+ */
+@Composable
+fun AppDropdownMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (usesMiuix) {
+        MiuixWindowListPopup(
+            show = expanded,
+            popupModifier = modifier,
+            onDismissRequest = onDismissRequest
+        ) {
+            ListPopupColumn {
+                Column(Modifier.padding(vertical = 6.dp)) { content() }
+            }
+        }
+    } else {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            modifier = modifier
+        ) {
+            content()
+        }
+    }
+}
+
+/** A row inside [AppDropdownMenu]. */
+@Composable
+fun AppDropdownMenuItem(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+    leadingIcon: (@Composable () -> Unit)? = null
+) {
+    if (usesMiuix) {
+        val contentColor = when {
+            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            destructive -> MiuixTheme.colorScheme.error
+            else -> MiuixTheme.colorScheme.onSurface
+        }
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            Row(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = enabled, onClick = onClick)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                leadingIcon?.let {
+                    CompositionLocalProvider(LocalContentColor provides contentColor) { it() }
+                    Spacer(Modifier.width(12.dp))
+                }
+                Text(
+                    text = text,
+                    color = contentColor,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+    } else {
+        DropdownMenuItem(
+            text = { Text(text) },
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled
+        )
     }
 }
