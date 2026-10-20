@@ -1,7 +1,9 @@
 package org.example.memosm.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
@@ -43,9 +45,30 @@ class MiuixColorMappingTest {
 
         assertEquals(colors.primary, scheme.primary)
         assertEquals(colors.onPrimary, scheme.onPrimary)
-        assertEquals(colors.tertiaryContainer, scheme.primaryContainer)
-        assertEquals(colors.onTertiaryContainer, scheme.onPrimaryContainer)
         assertEquals(colors.onSurfaceSecondary, scheme.onSurfaceVariant)
         assertEquals(colors.dividerLine, scheme.outlineVariant)
+    }
+
+    @Test
+    fun `containers are a pale wash of the accent, not the purple tertiary family`() {
+        val colors = lightColorScheme()
+        val scheme = colors.toMaterialColorScheme(isDark = false)
+
+        // Miuix's tertiaryContainer is a purple-family container; Material You would read that as
+        // lavender in group icons and selected rows, so the container is derived from the accent.
+        val expected = colors.primary.copy(alpha = 0.12f).compositeOver(colors.surface)
+        assertEquals(expected, scheme.primaryContainer)
+        assertEquals(colors.primary, scheme.onPrimaryContainer)
+        assertNotEquals(colors.tertiaryContainer, scheme.primaryContainer)
+    }
+
+    @Test
+    fun `dark containers wash the accent over the dark surface`() {
+        val colors = darkColorScheme()
+        val scheme = colors.toMaterialColorScheme(isDark = true)
+
+        val expected = colors.primary.copy(alpha = 0.12f).compositeOver(colors.surface)
+        assertEquals(expected, scheme.primaryContainer)
+        assertEquals(colors.primary, scheme.onPrimaryContainer)
     }
 }
