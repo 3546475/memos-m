@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item
 
+import org.example.memosm.ui.theme.AppCard
+
 import org.example.memosm.ui.theme.flatCardElevation
 import android.net.Uri
 import org.example.memosm.ui.component.item.media.LocalAccountMediaIdentity
@@ -472,7 +474,7 @@ fun AttachmentCard(
                 content()
             }
         }
-    } else Card(
+    } else AppCard(
         modifier = modifier.then(
             if (gallery) Modifier.combinedClickable(
                 onClick = onClick ?: {
@@ -482,8 +484,7 @@ fun AttachmentCard(
                 onLongClickLabel = moreLabel
             ) else Modifier
         ),
-        shape = if (gallery) RectangleShape else MaterialTheme.shapes.medium,
-        elevation = flatCardElevation()
+        cornerRadius = if (gallery) 0.dp else 12.dp
     ) { content() }
 
     if (gallery && showInfo && showActions) {
