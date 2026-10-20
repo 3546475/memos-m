@@ -505,6 +505,18 @@ AppTopBar(
 
 ### P6 收尾与验收
 
+**进度：`miuix-blur` 基础设施已接入（第一轮）**
+
+- 依赖：`top.yukonga.miuix.kmp:miuix-blur:0.9.4`（其 `minSdk = 33`）。
+- 清单：`<uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur" />` 放行低版本设备安装；
+  运行时由 `ui/theme/MiuixBlur.kt` 的 `miuixBlurSupported()` 统一把关
+  （MIUIX + API 33），`drawBackdrop` 自身还会在无 RuntimeShader 时自动降级。
+- 首页：列表包进 `Modifier.layerBackdrop()`，浮层 header 用 `drawBackdrop(shape = Rectangle, effects = { blur(24f) })` 取景。
+- **实测限制**：首页 header 在向下滚动时会整体隐藏（滚动策略），所以毛玻璃只在
+  「header 半隐半现」的过渡态可见，静止时看不出来。要想效果明显，下一步应把 backdrop 铺到
+  **底部导航栏**（内容确实从导航栏下方穿过），并把导航栏背景改成半透明。
+- MD 分支完全不启用（`LocalThemeStyle == MD` 时直接走原路径），保证 MD 零变化。
+
 - **一致性检查**：圆角、间距、分隔线、图标尺寸、按压反馈四项全 App 扫描（可写 grep 脚本，
   禁止在 MIUIX 分支新增 `dp` 字面量、禁止直接使用 `androidx.compose.material3.*`）。
 - **lint 规则（可选）**：自定义 lint 或 CI grep，限制 `ui/` 下直接 import Material 组件
