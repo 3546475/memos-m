@@ -903,3 +903,55 @@ fun AppExtendedFloatingActionButton(
         )
     }
 }
+
+/** A small reaction pill: Miuix renders an accent capsule when the user reacted, grey otherwise. */
+@Composable
+fun AppReactionChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
+    if (usesMiuix) {
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            val background = if (selected) {
+                MiuixTheme.colorScheme.primary
+            } else {
+                MiuixTheme.colorScheme.secondaryContainer
+            }
+            val contentColor = if (selected) {
+                MiuixTheme.colorScheme.onPrimary
+            } else {
+                MiuixTheme.colorScheme.onSecondaryContainer
+            }
+            CompositionLocalProvider(LocalContentColor provides contentColor) {
+                Row(
+                    modifier = modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(background)
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = content
+                )
+            }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            },
+            onClick = onClick,
+            modifier = modifier
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = content
+            )
+        }
+    }
+}

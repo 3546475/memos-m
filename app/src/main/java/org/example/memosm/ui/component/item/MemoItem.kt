@@ -1,6 +1,7 @@
 package org.example.memosm.ui.component.item
 
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppReactionChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.flatCardElevation
 import android.content.Intent
@@ -506,42 +507,27 @@ fun MemoItem(
                     ) {
                         groupedReactions.forEach { (type, reactionList) ->
                             val myReaction = reactionList.find { it.creator == currentUser?.name }
-                            Surface(
-                                shape = RoundedCornerShape(12.dp), color = if (myReaction != null) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                }, border = if (myReaction != null) {
-                                    null
-                                } else {
-                                    null
-                                }, onClick = {
+                            AppReactionChip(
+                                selected = myReaction != null,
+                                onClick = {
                                     if (myReaction != null) {
                                         // Pass the emoji type or the reaction name to the viewmodel
                                         onDeleteReaction?.invoke(myReaction)
                                     } else {
                                         onUpsertReaction?.invoke(type)
                                     }
-                                }) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                },
+                                content = {
                                     Text(
                                         text = type, style = MaterialTheme.typography.labelMedium
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = reactionList.size.toString(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (myReaction != null) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
-                            }
+                            )
                         }
                     }
                 }
