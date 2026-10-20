@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,6 +38,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.MaterialTheme
 import kotlinx.coroutines.delay
 import androidx.compose.material3.SnackbarHostState
@@ -472,6 +476,26 @@ fun AppTextField(
  * A slider driven by plain values. Miuix sliders are continuous, so a stepped Material slider is
  * emulated by snapping the reported value to the nearest step.
  */
+/** State-based slider, mirroring Material's [Slider] overload that takes a [SliderState]. */
+@Composable
+fun AppSlider(
+    state: SliderState,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f
+) {
+    AppSlider(
+        value = state.value,
+        onValueChange = { newValue ->
+            state.value = newValue
+            onValueChange(newValue)
+        },
+        modifier = modifier,
+        valueRange = valueRange,
+        steps = state.steps
+    )
+}
+
 @Composable
 fun AppSlider(
     value: Float,
@@ -764,5 +788,57 @@ fun AppSnackbarHost(
                 }
             }
         }
+    }
+}
+
+/** A password field. Miuix masks through the same [PasswordVisualTransformation] the value-based field takes. */
+// Miuix's value-based TextField only exposes VisualTransformation for masking; the newer
+// BasicSecureTextField would have to be re-skinned by hand, so keep the deprecated route.
+@Suppress("DEPRECATION")
+@Composable
+fun AppSecureTextField(
+    state: TextFieldState,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    supportingText: String? = null,
+    onDone: (() -> Unit)? = null
+) {
+    if (usesMiuix) {
+        Column(modifier = modifier) {
+            MiuixTheme(colors = LocalMiuixColors.current) {
+                MiuixTextField(
+                    value = state.text.toString(),
+                    onValueChange = { state.setTextAndPlaceCursorAtEnd(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = label,
+                    enabled = enabled,
+                    keyboardOptions = keyboardOptions,
+                    keyboardActions = KeyboardActions(
+                        onDone = onDone?.let { action -> { action() } } ?: {}
+                    ),
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+            supportingText?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
+        }
+    } else {
+        OutlinedSecureTextField(
+            state = state,
+            label = { Text(label) },
+            modifier = modifier,
+            enabled = enabled,
+            keyboardOptions = keyboardOptions,
+            supportingText = supportingText?.let { { Text(it) } },
+            onKeyboardAction = onDone?.let { action -> { action() } }
+        )
     }
 }

@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppSecureTextField
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppSwitch
 import org.example.memosm.ui.theme.AppTextButton
@@ -315,8 +316,8 @@ fun BackupTransferScreen(
                     if (!importing) {
                         SelectionRow(stringResource(R.string.backup_password_protection), encrypted, !busy) { encrypted = it }
                         if (encrypted) {
-                            OutlinedSecureTextField(state = passwordState, enabled = !busy, label = { Text(stringResource(R.string.backup_password)) })
-                            OutlinedSecureTextField(state = repeatPasswordState, enabled = !busy, label = { Text(stringResource(R.string.backup_repeat_password)) })
+                            AppSecureTextField(state = passwordState, enabled = !busy, label = stringResource(R.string.backup_password))
+                            AppSecureTextField(state = repeatPasswordState, enabled = !busy, label = stringResource(R.string.backup_repeat_password))
                         }
                     }
                 }
@@ -347,7 +348,7 @@ fun BackupTransferScreen(
         }
     }
     if (askPassword) AlertDialog(onDismissRequest = { if (!busy) { closeImport(); onClose() } }, title = { Text(stringResource(R.string.backup_password)) },
-        text = { OutlinedSecureTextField(state = passwordState, enabled = !busy) },
+        text = { AppSecureTextField(state = passwordState, label = stringResource(R.string.backup_password), enabled = !busy) },
         confirmButton = { TextButton(enabled = !busy && password.isNotEmpty(), onClick = { importSource?.let { inspect(it, password.toCharArray()) } }) { Text(stringResource(R.string.recovery_import)) } },
         dismissButton = { TextButton(enabled = !busy, onClick = { closeImport(); onClose() }) { Text(stringResource(R.string.common_cancel)) } })
     if (confirmRestore) AlertDialog(onDismissRequest = { confirmRestore = false }, title = { Text(stringResource(R.string.backup_replace_title)) },

@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppSecureTextField
 import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.api.MemosApiFactory
 import org.example.memosm.api.SsoFailure
@@ -491,13 +492,13 @@ fun LoginContent(
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedSecureTextField(
+                    AppSecureTextField(
                         state = passwordState,
-                        label = { Text(stringResource(R.string.login_password)) },
+                        label = stringResource(R.string.login_password),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !busy,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        onKeyboardAction = { performLogin() }
+                        onDone = { performLogin() }
                     )
                 }
             }

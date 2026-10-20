@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import org.example.memosm.ui.theme.AppSecureTextField
 import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
@@ -206,14 +207,12 @@ fun EditProfileScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedSecureTextField(
+                AppSecureTextField(
                     state = passwordState,
-                    label = { Text(stringResource(R.string.profile_new_password)) },
+                    label = stringResource(R.string.profile_new_password),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving,
-                    supportingText = {
-                        Text(stringResource(R.string.profile_password_hint))
-                    }
+                    supportingText = stringResource(R.string.profile_password_hint)
                 )
             }
         }

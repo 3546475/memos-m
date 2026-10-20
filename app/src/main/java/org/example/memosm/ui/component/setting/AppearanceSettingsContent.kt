@@ -65,6 +65,7 @@ import org.example.memosm.model.Memo
 import org.example.memosm.model.ThemeMode
 import org.example.memosm.ui.component.item.MemoItem
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppSlider
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.MemosMTheme
 import org.example.memosm.ui.theme.appearanceColorScheme
@@ -243,7 +244,7 @@ internal fun AppearanceSettingsContent(
                     Text(stringResource(R.string.appearance_color_hint))
                     val sliderState = remember { SliderState(value = hue, trackRange = 0f..360f) }
                     LaunchedEffect(hue) { sliderState.value = hue }
-                    Slider(state = sliderState, onValueChange = { hue = it })
+                    AppSlider(state = sliderState, onValueChange = { hue = it }, valueRange = 0f..360f)
                 }
             }
         }

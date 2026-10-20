@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppSlider
 import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTextField
@@ -111,7 +112,7 @@ fun AppSettingsCard(
                         )
                         val sliderState = remember { SliderState(value = headerScale, steps = 14, trackRange = 0.5f..2.0f) }
                         LaunchedEffect(headerScale) { sliderState.value = headerScale }
-                        Slider(state = sliderState, onValueChange = onHeaderScaleChange)
+                        AppSlider(state = sliderState, onValueChange = onHeaderScaleChange, valueRange = 0.5f..2.0f)
                     }
                 }
             )
