@@ -14,10 +14,14 @@ enum class ColorTheme { SYSTEM, MONOCHROME, MEMOS, CUSTOM }
 
 enum class AppFont { SYSTEM, SANS_SERIF, SERIF, MONOSPACE }
 
+/** The design language the app is drawn with: the original Material Design styling or Miuix. */
+enum class ThemeStyle { MD, MIUIX }
+
 /** Device preferences, shared by every account and activity. */
 data class AppearancePreferences(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val colorTheme: ColorTheme = ColorTheme.SYSTEM,
     val customHue: Float? = null,
-    val font: AppFont = AppFont.SYSTEM
+    val font: AppFont = AppFont.SYSTEM,
+    val themeStyle: ThemeStyle = ThemeStyle.MD
 )

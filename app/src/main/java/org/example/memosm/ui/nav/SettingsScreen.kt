@@ -76,6 +76,7 @@ fun SettingsScreen(
                 when (section) {
                     SettingsSection.GENERAL -> settingsItem {
                         SettingsGroup {
+                            ThemeStyleRow()
                             SettingsCard(
                                 settings = uiState.session.userSettings ?: UserGeneralSetting(),
                                 onUpdate = { locale, visibility ->

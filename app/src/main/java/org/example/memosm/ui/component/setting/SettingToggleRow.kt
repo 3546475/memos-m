@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.LocalThemeStyle
+import org.example.memosm.ui.theme.MiuixStyledSwitch
 
 /** The row owns the switch semantics so its label and state are announced together. */
 @Composable
@@ -35,13 +38,17 @@ internal fun SettingToggleRow(
         supportingContent = description?.let { { Text(it) } },
         leadingContent = icon?.let { { Icon(it, contentDescription = null) } },
         trailingContent = {
-            Switch(
-                checked = checked,
-                onCheckedChange = null,
-                thumbContent = if (checked) {
-                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
-                } else null
-            )
+            if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                MiuixStyledSwitch(checked = checked)
+            } else {
+                Switch(
+                    checked = checked,
+                    onCheckedChange = null,
+                    thumbContent = if (checked) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+                    } else null
+                )
+            }
         },
         colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = containerColor)
     )

@@ -379,6 +379,9 @@
     <string name="appearance_preview_memo"># 标题\n\n## 小标题\n\n### 次级标题\n\n一个小想法也能变成**精彩的创意**。\n\n- 记下想法\n- 留待日后回顾</string>
     <string name="appearance_save_error">无法保存外观设置，请重试。</string>
     <string name="appearance_theme_mode">主题模式</string>
+    <string name="settings_theme_style">主题风格</string>
+    <string name="settings_theme_style_md">MD · Material Design</string>
+    <string name="settings_theme_style_miuix">Miuix · 澎湃风格</string>
     <string name="attachments_unknown_filename">文件</string>
     <string name="common_no_active_account">未找到当前账户</string>
     <string name="common_operation_failed">无法完成操作，请重试。</string>

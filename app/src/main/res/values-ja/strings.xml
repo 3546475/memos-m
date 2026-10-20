@@ -249,6 +249,9 @@
     <string name="appearance_preview_memo"># タイトル\n\n## 見出し\n\n### 小見出し\n\n小さな思いつきが**すばらしいアイデア**になることも。\n\n- アイデアをメモする\n- 後で振り返る</string>
     <string name="appearance_save_error">外観を保存できませんでした。もう一度お試しください。</string>
     <string name="appearance_theme_mode">テーマのモード</string>
+    <string name="settings_theme_style">テーマのスタイル</string>
+    <string name="settings_theme_style_md">MD · Material Design</string>
+    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">ファイル</string>
     <string name="audit_log_account">アカウント: %1$s</string>
     <string name="audit_log_empty">ログはまだ記録されていません。</string>

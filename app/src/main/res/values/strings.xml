@@ -410,6 +410,9 @@
     <string name="appearance_font_serif">Serif</string>
     <string name="appearance_font_mono">Monospace</string>
     <string name="appearance_save_error">Could not save appearance. Try again.</string>
+    <string name="settings_theme_style">Theme style</string>
+    <string name="settings_theme_style_md">MD · Material Design</string>
+    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <!-- Hidden About-screen game. -->
     <string name="memo_catch_title">Memo Catch</string>
     <string name="memo_catch_instruction">Drag the tray to catch the falling memos.</string>

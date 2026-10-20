@@ -165,6 +165,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.material.kolor)
+    // Miuix (HyperOS design language) for the optional MIUIX theme style.
+    // Source: F:\AI code\miuix-ref; publish that checkout with
+    // `./gradlew :miuix-ui:publishToMavenLocal` to build against unreleased local changes.
+    implementation(libs.miuix.ui)
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material3.adaptive.layout)
     implementation(libs.androidx.compose.material3.adaptive.navigation)

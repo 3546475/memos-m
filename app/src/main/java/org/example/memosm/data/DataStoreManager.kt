@@ -16,6 +16,7 @@ import org.example.memosm.model.AppearancePreferences
 import org.example.memosm.model.ThemeMode
 import org.example.memosm.model.ColorTheme
 import org.example.memosm.model.AppFont
+import org.example.memosm.model.ThemeStyle
 import org.example.memosm.model.Account
 import org.example.memosm.model.User
 import org.example.memosm.model.toUserSnapshot
@@ -32,6 +33,7 @@ class DataStoreManager(
         val APPEARANCE_COLOR_THEME = stringPreferencesKey("appearance_color_theme")
         val APPEARANCE_CUSTOM_HUE = androidx.datastore.preferences.core.floatPreferencesKey("appearance_custom_hue")
         val APPEARANCE_FONT = stringPreferencesKey("appearance_font")
+        val APPEARANCE_THEME_STYLE = stringPreferencesKey("appearance_theme_style")
         val ACCOUNTS_JSON = stringPreferencesKey("accounts_json")
         val SETUP_COMPLETED = androidx.datastore.preferences.core.booleanPreferencesKey("setup_completed")
         val PAGE_SIZE = intPreferencesKey("page_size")
@@ -241,7 +243,9 @@ class DataStoreManager(
                 ?: ThemeMode.SYSTEM,
             colorTheme = if (colorTheme == ColorTheme.CUSTOM && hue == null) ColorTheme.SYSTEM else colorTheme,
             customHue = hue?.rem(360f),
-            font = AppFont.entries.firstOrNull { it.name == preferences[APPEARANCE_FONT] } ?: AppFont.SYSTEM
+            font = AppFont.entries.firstOrNull { it.name == preferences[APPEARANCE_FONT] } ?: AppFont.SYSTEM,
+            themeStyle = ThemeStyle.entries.firstOrNull { it.name == preferences[APPEARANCE_THEME_STYLE] }
+                ?: ThemeStyle.MD
         )
     }.distinctUntilChanged()
 
@@ -261,6 +265,10 @@ class DataStoreManager(
 
     suspend fun saveFont(font: AppFont) {
         dataStore.edit { it[APPEARANCE_FONT] = font.name }
+    }
+
+    suspend fun saveThemeStyle(style: ThemeStyle) {
+        dataStore.edit { it[APPEARANCE_THEME_STYLE] = style.name }
     }
 
     val pageSize: Flow<Int> = dataStore.data.map { preferences ->
@@ -465,6 +473,7 @@ class DataStoreManager(
 
     private val portableKeys: List<Preferences.Key<*>> get() = listOf(
         APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_CUSTOM_HUE, APPEARANCE_FONT,
+        APPEARANCE_THEME_STYLE,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
         PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB
     )
@@ -487,6 +496,7 @@ class DataStoreManager(
                 APPEARANCE_THEME_MODE.name -> org.example.memosm.model.ThemeMode.valueOf(value.asString)
                 APPEARANCE_COLOR_THEME.name -> org.example.memosm.model.ColorTheme.valueOf(value.asString)
                 APPEARANCE_FONT.name -> org.example.memosm.model.AppFont.valueOf(value.asString)
+                APPEARANCE_THEME_STYLE.name -> ThemeStyle.valueOf(value.asString)
                 APPEARANCE_CUSTOM_HUE.name, HEADER_SCALE.name -> require(value.asJsonPrimitive.isNumber && value.asFloat.isFinite())
                 PAGE_SIZE.name ->
                     require(value.asJsonPrimitive.isNumber && value.asBigDecimal.stripTrailingZeros().scale() <= 0 && value.asLong in 1..Int.MAX_VALUE.toLong())
@@ -508,7 +518,7 @@ class DataStoreManager(
                     prefs.remove(key)
                     val value = values.get(key.name) ?: return@forEach
                     when (key) {
-                        APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_FONT -> prefs[stringPreferencesKey(key.name)] = value.asString
+                        APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_FONT, APPEARANCE_THEME_STYLE -> prefs[stringPreferencesKey(key.name)] = value.asString
                         APPEARANCE_CUSTOM_HUE, HEADER_SCALE -> prefs[androidx.datastore.preferences.core.floatPreferencesKey(key.name)] = value.asFloat
                         PAGE_SIZE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB -> prefs[intPreferencesKey(key.name)] = value.asInt
                         else -> prefs[androidx.datastore.preferences.core.booleanPreferencesKey(key.name)] = value.asBoolean

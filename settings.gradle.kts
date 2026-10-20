@@ -17,6 +17,9 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // Lets a local Miuix checkout (F:\AI code\miuix-ref) shadow the published artifacts:
+        // `./gradlew :miuix-ui:publishToMavenLocal` there, then build the app here.
+        mavenLocal()
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }

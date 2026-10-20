@@ -27,6 +27,7 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.model.AppearancePreferences
 import org.example.memosm.model.ColorTheme
+import org.example.memosm.model.ThemeStyle
 
 @Composable
 fun systemColorScheme(isDark: Boolean, dynamicColor: Boolean = true): ColorScheme {
@@ -77,6 +78,10 @@ fun MemosMTheme(
     content: @Composable () -> Unit
 ) {
     val isDark = darkTheme ?: appearance.themeMode.isDark(isSystemInDarkTheme())
+    if (appearance.themeStyle == ThemeStyle.MIUIX) {
+        MiuixMemosMTheme(appearance = appearance, isDark = isDark, content = content)
+        return
+    }
     val systemColors = systemColorScheme(isDark, dynamicColor)
     val colors = remember(appearance.colorTheme, appearance.customHue, systemColors, isDark) {
         appearanceColorScheme(appearance, systemColors, isDark)
