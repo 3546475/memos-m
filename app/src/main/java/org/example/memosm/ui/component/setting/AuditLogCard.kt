@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +33,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppCard
 import org.example.memosm.ui.theme.AppFilterChip
+import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.data.audit.SyncAuditEntry
 import org.example.memosm.data.audit.SyncAuditLogger
 import org.koin.core.context.GlobalContext
@@ -74,11 +78,8 @@ fun AuditLogContent(modifier: Modifier = Modifier) {
             item(key = "empty") {
                 Box(Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
                     SettingsGroup {
-                        ListItem(
-                            content = { Text(stringResource(R.string.audit_log_empty)) },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                            )
+                        AppListItem(
+                            title = stringResource(R.string.audit_log_empty)
                         )
                     }
                 }
@@ -107,29 +108,49 @@ fun AuditLogContent(modifier: Modifier = Modifier) {
 
 @Composable
 private fun AuditLogItem(entry: SyncAuditEntry, modifier: Modifier = Modifier) {
-    ListItem(
-        modifier = modifier,
-        content = { Text("${entry.event} · ${entry.outcome}") },
-        supportingContent = {
-            Column {
-                Text(formatAuditTime(entry.occurredAt))
-                if (!entry.operation.isNullOrBlank() || !entry.detailCode.isNullOrBlank()) {
-                    Text(
-                        listOfNotNull(entry.operation, entry.detailCode)
-                            .filter { it.isNotBlank() }
-                            .joinToString(" · ")
-                    )
-                }
-                if (entry.accountHash.isNotBlank()) {
-                    Text(stringResource(R.string.audit_log_account, entry.accountHash))
-                }
-                if (!entry.targetHash.isNullOrBlank()) {
-                    Text(stringResource(R.string.audit_log_target, entry.targetHash))
-                }
+    // The row carries several detail lines, so it uses a card with a column body rather than
+    // AppListItem's single summary line.
+    AppCard(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = "${entry.event} · ${entry.outcome}",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = formatAuditTime(entry.occurredAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!entry.operation.isNullOrBlank() || !entry.detailCode.isNullOrBlank()) {
+                Text(
+                    text = listOfNotNull(entry.operation, entry.detailCode)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    )
+            if (entry.accountHash.isNotBlank()) {
+                Text(
+                    text = stringResource(R.string.audit_log_account, entry.accountHash),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (!entry.targetHash.isNullOrBlank()) {
+                Text(
+                    text = stringResource(R.string.audit_log_target, entry.targetHash),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 private fun formatAuditTime(timestamp: Long): String =

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import org.example.memosm.ui.theme.AppSurface
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
@@ -23,10 +24,9 @@ fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 fun SettingsSurface(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    AppSurface(
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Column(content = content)
     }

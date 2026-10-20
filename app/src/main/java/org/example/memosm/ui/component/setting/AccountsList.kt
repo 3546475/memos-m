@@ -13,11 +13,13 @@ import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -361,43 +363,52 @@ fun AccountsList(
                                 "${account.hostUrl.trimEnd('/')}$avatarUrl"
                             } else avatarUrl
 
-                        ListItem(
-                            content = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = fullAvatarUrl,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
                                 val displayName = account.displayName
                                 val name = account.name
-                                val text = when {
+                                val titleText = when {
                                     !displayName.isNullOrBlank() -> displayName
                                     !name.isNullOrBlank() -> "@$name"
                                     else -> stringResource(R.string.memo_unknown_user)
                                 }
                                 Text(
-                                    text,
-                                    fontWeight = if (account.isActive) FontWeight.Bold else FontWeight.Normal
+                                    text = titleText,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (account.isActive) {
+                                        FontWeight.Bold
+                                    } else {
+                                        FontWeight.Normal
+                                    }
                                 )
-                            },
-                            supportingContent = {
-                                val name = account.name
-                                val text =
+                                val summaryText =
                                     if (!account.displayName.isNullOrBlank() && !name.isNullOrBlank()) {
                                         "@$name • ${account.hostUrl}"
                                     } else {
                                         account.hostUrl
                                     }
-                                Text(text)
-                            },
-                            leadingContent = {
-                                AsyncImage(
-                                    model = fullAvatarUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surface),
-                                    contentScale = ContentScale.Crop
+                                Text(
+                                    text = summaryText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                        )
+                            }
+                        }
                     }
                 }
             }

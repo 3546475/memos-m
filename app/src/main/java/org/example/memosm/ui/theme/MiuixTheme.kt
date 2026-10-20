@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -143,8 +144,11 @@ internal fun MiuixColors.toMaterialColorScheme(isDark: Boolean): ColorScheme {
     return base.copy(
         primary = primary,
         onPrimary = onPrimary,
-        primaryContainer = tertiaryContainer,
-        onPrimaryContainer = onTertiaryContainer,
+        // HyperOS highlights are a pale wash of the accent over the page, not a separate hue.
+        // Miuix's tertiaryContainer is a purple-family container, which read as Material You's
+        // lavender in settings group icons and selected rows.
+        primaryContainer = primary.copy(alpha = 0.12f).compositeOver(surface),
+        onPrimaryContainer = primary,
         inversePrimary = primaryVariant,
         secondary = secondaryVariant,
         onSecondary = onSecondaryVariant,
@@ -210,3 +214,4 @@ private fun TextStyle.adopting(source: TextStyle, family: FontFamily): TextStyle
     fontWeight = source.fontWeight ?: fontWeight,
     letterSpacing = if (source.letterSpacing.isSpecified) source.letterSpacing else letterSpacing
 )
+

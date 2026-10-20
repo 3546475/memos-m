@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import org.example.memosm.ui.theme.AppSurface
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -31,7 +32,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppSecureTextField
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.ui.theme.AppSwitch
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.api.GsonProvider
@@ -81,9 +84,30 @@ fun RecoveryCard(importOnly: Boolean = false) {
             Text(stringResource(R.string.recovery_archives_title), style = MaterialTheme.typography.titleSmall)
             if (archives.isEmpty()) Text(stringResource(R.string.recovery_archives_empty), style = MaterialTheme.typography.bodySmall)
             archives.forEach { archive ->
-                ListItem(content = { Text(archive.name) }, supportingContent = { Text(formatBytes(archive.length())) },
-                    leadingContent = { TextButton(enabled = !busy, onClick = { context.startActivity(org.example.memosm.ui.backup.BackupTransferActivity.importIntent(context, archive.absolutePath)) }) { Text(stringResource(R.string.recovery_import)) } },
-                    trailingContent = { TextButton(enabled = !busy, onClick = { deleteArchive = archive }) { Text(stringResource(R.string.common_delete)) } })
+                AppListItem(
+                    title = archive.name,
+                    summary = formatBytes(archive.length()),
+                    leading = {
+                        AppTextButton(
+                            text = stringResource(R.string.recovery_import),
+                            enabled = !busy,
+                            onClick = {
+                                context.startActivity(
+                                    org.example.memosm.ui.backup.BackupTransferActivity.importIntent(
+                                        context, archive.absolutePath
+                                    )
+                                )
+                            }
+                        )
+                    },
+                    trailing = {
+                        AppTextButton(
+                            text = stringResource(R.string.common_delete),
+                            enabled = !busy,
+                            onClick = { deleteArchive = archive }
+                        )
+                    }
+                )
             }
             if (reviews.size() > 0) {
                 Text(stringResource(R.string.backup_edit_review_title), style = MaterialTheme.typography.titleMedium)
@@ -92,26 +116,42 @@ fun RecoveryCard(importOnly: Boolean = false) {
                     val edit = value.asJsonObject
                     val payload = edit.getAsJsonObject("payload")
                     val canDraft = edit.get("type").asString in setOf("CREATE", "UPDATE", "COMMENT_CREATE") && payload != null
-                    ListItem(content = { Text("${edit.get("type").asString} · ${edit.get("memoName")?.takeUnless { it.isJsonNull }?.asString.orEmpty()}") },
-                        supportingContent = { Text(payload?.get("content")?.takeUnless { it.isJsonNull }?.asString ?: edit.get("parentName")?.takeUnless { it.isJsonNull }?.asString.orEmpty()) },
-                        trailingContent = { Column {
-                            if (canDraft) TextButton(enabled = !busy, onClick = {
-                                val accountId = activeId ?: return@TextButton
-                                busy = true
-                                scope.launch {
-                                    try {
-                                        val memo = GsonProvider.gson.fromJson(payload, Memo::class.java)
-                                        val draftId = "restored-${edit.get("id").asString}"
-                                        drafts.replaceDrafts(accountId, drafts.getDrafts(accountId).filterNot { it.id == draftId } + Draft(id = draftId, content = memo.content,
-                                            visibility = memo.visibility, attachments = memo.attachments.orEmpty(), location = memo.location))
-                                        settings.dismissRestoredEdit(accountId, edit.get("id").asString)
-                                        message = savedDraft
-                                    } catch (error: Exception) { message = error.message }
-                                    finally { busy = false }
-                                }
-                            }) { Text(stringResource(R.string.backup_save_as_draft)) }
-                            TextButton(enabled = !busy, onClick = { val accountId = activeId ?: return@TextButton; scope.launch { settings.dismissRestoredEdit(accountId, edit.get("id").asString) } }) { Text(stringResource(R.string.common_delete)) }
-                        } })
+                    AppListItem(
+                        title = "${edit.get("type").asString} · ${edit.get("memoName")?.takeUnless { it.isJsonNull }?.asString.orEmpty()}",
+                        summary = payload?.get("content")?.takeUnless { it.isJsonNull }?.asString
+                            ?: edit.get("parentName")?.takeUnless { it.isJsonNull }?.asString.orEmpty(),
+                        trailing = {
+                            Column {
+                                if (canDraft) AppTextButton(
+                                    text = stringResource(R.string.backup_save_as_draft),
+                                    enabled = !busy,
+                                    onClick = {
+                                        val accountId = activeId ?: return@AppTextButton
+                                        busy = true
+                                        scope.launch {
+                                            try {
+                                                val memo = GsonProvider.gson.fromJson(payload, Memo::class.java)
+                                                val draftId = "restored-${edit.get("id").asString}"
+                                                drafts.replaceDrafts(accountId, drafts.getDrafts(accountId).filterNot { it.id == draftId } + Draft(id = draftId, content = memo.content,
+                                                    visibility = memo.visibility, attachments = memo.attachments.orEmpty(), location = memo.location))
+                                                settings.dismissRestoredEdit(accountId, edit.get("id").asString)
+                                                message = savedDraft
+                                            } catch (error: Exception) { message = error.message }
+                                            finally { busy = false }
+                                        }
+                                    }
+                                )
+                                AppTextButton(
+                                    text = stringResource(R.string.common_delete),
+                                    enabled = !busy,
+                                    onClick = {
+                                        val accountId = activeId ?: return@AppTextButton
+                                        scope.launch { settings.dismissRestoredEdit(accountId, edit.get("id").asString) }
+                                    }
+                                )
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -343,35 +383,89 @@ fun BackupTransferScreen(
             }
         } else {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                if (busy) CircularProgressIndicator()
+                if (busy) AppCircularProgressIndicator()
             }
         }
     }
-    if (askPassword) AlertDialog(onDismissRequest = { if (!busy) { closeImport(); onClose() } }, title = { Text(stringResource(R.string.backup_password)) },
-        text = { AppSecureTextField(state = passwordState, label = stringResource(R.string.backup_password), enabled = !busy) },
-        confirmButton = { TextButton(enabled = !busy && password.isNotEmpty(), onClick = { importSource?.let { inspect(it, password.toCharArray()) } }) { Text(stringResource(R.string.recovery_import)) } },
-        dismissButton = { TextButton(enabled = !busy, onClick = { closeImport(); onClose() }) { Text(stringResource(R.string.common_cancel)) } })
-    if (confirmRestore) AlertDialog(onDismissRequest = { confirmRestore = false }, title = { Text(stringResource(R.string.backup_replace_title)) },
-        text = { Column { Text(stringResource(R.string.backup_replace_description)); chosenCategories.forEach { Text(stringResource(categoryLabel(it))) } } },
-        confirmButton = { TextButton(onClick = {
-            confirmRestore = false; busy = true
-            val backup = prepared ?: return@TextButton
-            scope.launch {
-                try {
-                    withContext(NonCancellable) {
-                        service.restore(backup, RestoreSelection(chosenAccounts, chosenCategories)).fold(onSuccess = {
-                            val resultText = summary.format(it.accountCount, it.memoCount, it.draftCount, it.mediaCount)
-                            android.widget.Toast.makeText(context.applicationContext, resultText, android.widget.Toast.LENGTH_LONG).show()
-                            closeImport(); onRestoreSuccess(); onClose()
-                        }, onFailure = { message = it.message })
-                    }
-                } finally { busy = false }
+    if (askPassword) {
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.backup_password),
+            onDismissRequest = { if (!busy) { closeImport(); onClose() } },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    enabled = !busy,
+                    onClick = { closeImport(); onClose() }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.recovery_import),
+                    modifier = Modifier.weight(1f),
+                    enabled = !busy && password.isNotEmpty(),
+                    onClick = { importSource?.let { inspect(it, password.toCharArray()) } }
+                )
             }
-        }) { Text(stringResource(R.string.recovery_import)) } },
-        dismissButton = { TextButton(onClick = { confirmRestore = false }) { Text(stringResource(R.string.common_cancel)) } })
-    message?.let { text -> AlertDialog(onDismissRequest = { message = null }, text = { Text(text) }, confirmButton = {
-        TextButton(onClick = { message = null; if (prepared == null && !exportPage && !askPassword) onClose() }) { Text(stringResource(R.string.common_close)) }
-    }) }
+        ) {
+            AppSecureTextField(
+                state = passwordState,
+                label = stringResource(R.string.backup_password),
+                enabled = !busy
+            )
+        }
+    }
+    if (confirmRestore) {
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.backup_replace_title),
+            onDismissRequest = { confirmRestore = false },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { confirmRestore = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.recovery_import),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        confirmRestore = false; busy = true
+                        val backup = prepared ?: return@AppTextButton
+                        scope.launch {
+                            try {
+                                withContext(NonCancellable) {
+                                    service.restore(backup, RestoreSelection(chosenAccounts, chosenCategories)).fold(onSuccess = {
+                                        val resultText = summary.format(it.accountCount, it.memoCount, it.draftCount, it.mediaCount)
+                                        android.widget.Toast.makeText(context.applicationContext, resultText, android.widget.Toast.LENGTH_LONG).show()
+                                        closeImport(); onRestoreSuccess(); onClose()
+                                    }, onFailure = { message = it.message })
+                                }
+                            } finally { busy = false }
+                        }
+                    }
+                )
+            }
+        ) {
+            Column {
+                Text(stringResource(R.string.backup_replace_description))
+                chosenCategories.forEach { Text(stringResource(categoryLabel(it))) }
+            }
+        }
+    }
+    message?.let { text ->
+        AppDialog(
+            show = true,
+            summary = text,
+            onDismissRequest = { message = null },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_close),
+                    modifier = Modifier.weight(1f),
+                    onClick = { message = null; if (prepared == null && !exportPage && !askPassword) onClose() }
+                )
+            }
+        )
+    }
 }
 
 @Composable

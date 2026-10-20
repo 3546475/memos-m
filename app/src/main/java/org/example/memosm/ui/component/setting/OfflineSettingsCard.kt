@@ -15,11 +15,13 @@ import kotlinx.coroutines.withContext
 import org.example.memosm.ui.component.item.media.MediaCache
 import org.example.memosm.ui.formatBytes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -40,6 +42,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +56,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppLinearProgressIndicator
+import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.data.media.AttachmentCacheManager
 import org.example.memosm.ui.component.CacheCleanupDialog
 import org.example.memosm.data.sync.PreDownloadState
@@ -111,15 +116,12 @@ fun OfflineSettingsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (fileLimitBytes != null && fileBytes != null) {
-                LinearProgressIndicator(
-                    progress = { (fileBytes.toFloat() / fileLimitBytes).coerceIn(0f, 1f) },
+                AppLinearProgressIndicator(
+                    progress = (fileBytes.toFloat() / fileLimitBytes).coerceIn(0f, 1f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(32.dp)
-                        .clip(RoundedCornerShape(percent = 50)),
-                    strokeCap = StrokeCap.Butt,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {}
+                        .clip(RoundedCornerShape(percent = 50))
                 )
                 Text(
                     text = stringResource(R.string.settings_cache_files_limit, formatBytes(fileLimitBytes)),
@@ -142,9 +144,9 @@ fun OfflineSettingsCard(
                 enabled = caching == null,
                 supportingContent = if (caching != null) {
                     {
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        AppLinearProgressIndicator(
+                            progress = null,
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                         )
                     }
                 } else null,
@@ -175,11 +177,10 @@ fun OfflineSettingsCard(
                 bytes = mediaBytes,
                 limitMb = themeCacheMaxMb
             )
-            ListItem(
-                modifier = Modifier.clip(RoundedCornerShape(4.dp)),
-                content = { Text(stringResource(R.string.cache_cleanup_text)) },
-                supportingContent = { Text(pluralStringResource(R.plurals.cached_memo_count, textCacheCount, textCacheCount)) },
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+            AppListItem(
+                title = stringResource(R.string.cache_cleanup_text),
+                summary = pluralStringResource(R.plurals.cached_memo_count, textCacheCount, textCacheCount),
+                modifier = Modifier.clip(RoundedCornerShape(4.dp))
             )
         }
         SettingsLabel(stringResource(R.string.settings_cache_downloads))
@@ -292,20 +293,37 @@ private fun SettingsLabel(label: String) {
 
 @Composable
 private fun CacheUsageRow(label: String, bytes: Long?, limitMb: Int) {
-    ListItem(
-        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
-        content = { Text(label) },
-        trailingContent = { Text(bytes?.let(::formatBytes) ?: "…") },
-        supportingContent = if (limitMb > 0 && bytes != null) {
-            {
-                LinearProgressIndicator(
-                    progress = { (bytes.toFloat() / (limitMb.toLong() * 1024L * 1024L)).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                )
-            }
-        } else null,
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    )
+    // The row carries a usage bar under its text, which AppListItem's single summary line cannot
+    // express, so it is a styled column that still follows the Miuix row metrics.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = bytes?.let(::formatBytes) ?: "…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (limitMb > 0 && bytes != null) {
+            AppLinearProgressIndicator(
+                progress = (bytes.toFloat() / (limitMb.toLong() * 1024L * 1024L)).coerceIn(0f, 1f),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+        }
+    }
 }
 
 @Composable
