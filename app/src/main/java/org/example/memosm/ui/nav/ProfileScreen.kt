@@ -72,6 +72,7 @@ import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.ui.component.setting.SettingsGroup
 import org.example.memosm.ui.component.setting.SettingsNavigationRow
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
+import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
 import org.koin.compose.koinInject
@@ -382,11 +383,10 @@ fun InstanceCard(instance: InstanceProfile) {
             stringResource(R.string.profile_instance_mode) to mode,
             stringResource(R.string.profile_instance_url) to (instance.instanceUrl?.takeIf { it.isNotBlank() } ?: unknown)
         ).forEach { (label, value) ->
-            ListItem(
-                modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)),
-                content = { Text(label) },
-                supportingContent = { Text(value) },
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+            AppListItem(
+                title = label,
+                summary = value,
+                modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
             )
         }
     }

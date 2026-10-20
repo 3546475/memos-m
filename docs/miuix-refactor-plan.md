@@ -203,7 +203,7 @@
 | `ui/component/MemosCommon.kt` | 共用 `SearchBar` 封装 |
 | 全局 | `SnackbarHost`（4 处/4 文件）、`CircularProgressIndicator`（约 26 文件）、`PullToRefresh`、滚动条 |
 
-**进度：第一轮已完成**（首页搜索栏、筛选胶囊、下拉刷新、加载指示已切到 Miuix）
+**进度：两轮已完成**（首页搜索栏、筛选胶囊、下拉刷新、加载指示、错误重试、附件/通知下拉刷新、通知卡片、个人页信息行、主容器）
 
 **做法**
 
@@ -220,14 +220,19 @@
 - 进度指示：`AppCircularProgressIndicator` / `AppLinearProgressIndicator` 已替换
   `MemosCommon`、`MemosScreen`、`AttachmentsScreen`、`ProfileScreen`、`SearchScreen`。
   带自定义尺寸/描边的场景（地图草稿指示、同步面板）暂留 Material。
+- 第二轮补齐：`ErrorView` 的重试按钮改 `AppButton`；`AttachmentsScreen`、`NotificationsScreen`
+  的 `PullToRefreshBox` 改 `AppPullToRefresh`；通知卡片改 `AppCard`；个人页「实例信息」行改
+  `AppListItem`；`MainScreen` 最外层 `Surface` 改 `AppSurface`。
 - overscroll / 按压反馈：`MiuixTheme` 已提供 `LocalOverscrollFactory` 与 `LocalIndication`，
   确认外层 `ComposeView` 未被覆盖。
 
 **验收**
 
 - [x] 首页：搜索栏、筛选胶囊、下拉刷新、加载中已为 Miuix 样式。
-- [ ] 首页空态与同步状态条仍为 Material，留待下一轮。
-- [ ] 附件页、个人页、地图页首屏视觉一致；四个 tab 切换动画无卡顿（首屏已看，地图未动）。
+- [x] 错误态/空态的重试按钮、附件页与通知页的下拉刷新、通知卡片、个人页信息行已切换。
+- [ ] 首页同步状态条仍是纯图标+文字的 Material 排版（颜色已随主题，暂不改结构）。
+- [ ] 地图页的操作栏与地图内浮层未动（地图本体由 MapLibre 渲染）。
+- [x] 四个 tab 首屏视觉一致；切换动画无卡顿（平板侧栏细节留待 P6）。
 - [x] Android 手势返回 / 滚动 / 下拉刷新交互无回归（真机验证）。
 - [x] MD 模式首页截图与改造前一致（`md-*.png` 基线）。
 

@@ -45,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.AppSurface
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.NavigationBar as MiuixNavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem as MiuixNavigationBarItem
@@ -296,8 +297,8 @@ private fun MainScreenContent(
         lastTapTime = currentTime
     }
 
-    Surface(
-        modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+    AppSurface(
+        modifier = modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background
     ) {
         Box(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxSize()) {

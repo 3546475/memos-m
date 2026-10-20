@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppButton
 
 @Composable
 fun ErrorView(
@@ -70,13 +71,7 @@ fun ErrorView(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
+        AppButton(onClick = onRetry) {
             Text(stringResource(R.string.profile_retry))
         }
     }

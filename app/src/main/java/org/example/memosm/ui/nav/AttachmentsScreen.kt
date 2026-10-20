@@ -53,6 +53,7 @@ import org.example.memosm.ui.component.item.media.attachmentOrigin
 import org.example.memosm.ui.component.item.media.FullScreenAttachmentViewer
 import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
+import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.viewmodel.MemosViewModel
 import java.time.LocalDate
 import java.time.ZoneId
@@ -168,7 +169,7 @@ fun AttachmentsScreen(
         lastProcessedTrigger = uiState.refreshTrigger
     }
 
-    PullToRefreshBox(
+    AppPullToRefresh(
         isRefreshing = uiState.isRefreshing, onRefresh = {
             viewModel.fetchAttachments(refresh = true)
         }, modifier = Modifier

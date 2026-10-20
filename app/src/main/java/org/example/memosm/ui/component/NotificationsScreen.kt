@@ -24,6 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import org.example.memosm.ui.theme.AppCard
+import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -114,7 +116,7 @@ fun NotificationsScreen(
             )
         }
     ) { innerPadding ->
-        PullToRefreshBox(
+        AppPullToRefresh(
             isRefreshing = isRefreshing,
             onRefresh = {
                 scope.launch {
@@ -213,7 +215,7 @@ fun NotificationsScreen(
 
 @Composable
 private fun NotificationCard(notification: UserNotification) {
-    Card(elevation = flatCardElevation(), modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         ListItem(
             content = {
                 Text(
