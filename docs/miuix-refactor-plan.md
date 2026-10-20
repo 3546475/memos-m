@@ -86,7 +86,7 @@
 | **P0 已完成** | 主题开关 + 偏好持久化 + 备份；调色板；适配层雏形；顶栏 / 导航 / 标签 / FAB / 卡片 / 设置行 / 开关 | ✅ `329d7bf`、`4b883ce` |
 | **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
-| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第三轮完成（15 处弹窗 + 2 个弹层 + 3 处菜单） |
+| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第四轮完成（17 处弹窗 + 2 个弹层 + 3 处菜单 + Snackbar） |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
 | **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
 | **P6 收尾验收** | 深色/字体/动画一致性、a11y、性能、回归清单、文档与截图 | ⬜ |
@@ -286,7 +286,16 @@ AppTopBar(
 
 **目标**：所有「浮起来的东西」统一为 HyperOS 弹层：对话框、底部弹层、下拉菜单、Snackbar。
 
-**进度：第三轮已完成**（菜单、表情弹层、内容类弹窗）
+**进度：第四轮已完成**（权限弹窗、备份弹窗、Snackbar 桥接）
+
+本轮新增：
+- `LocalNetworkPermission` 的拒绝提示、`RecoveryCard` 的删除确认与消息提示 → `AppDialog`；
+  `AppDialog` 的 `title` 改为可选（无标题弹窗给 `WindowDialog` 传 null）。
+- **Snackbar 桥接**：新增 `AppSnackbarHost(hostState)` —— Miuix 的 `SnackbarHost` 只接受自己的
+  `SnackbarHostState`，无法直接喂 Material 的 state；做法是 MIUIX 下用 Material state 的
+  `currentSnackbarData` 驱动一个 Miuix 胶囊，并按 `SnackbarDuration` 自行 `dismiss()`，
+  保证调用方 `showSnackbar` 的协程能正常返回。登录页已接入。
+- 真机验证：应用启动、首页渲染正常（本轮未逐屏验证每个弹窗）。
 
 本轮新增：
 - 表情选择 `ReactionPickerDialog` → `ActionSheet`（`WindowBottomSheet`）。
@@ -312,10 +321,11 @@ AppTopBar(
 - 草稿：`DraftsScreen` 单条删除、`DraftsCard` 全部删除 / 全部发布
 - `ActionSheet` → `WindowBottomSheet`，`ActionSheetItem` → Miuix 行
 
-仍在用 Material 的（下一轮）：`LocalNetworkPermission`、`ConflictDialog`、`RecoveryCard`、`MemoComposer`；
+仍在用 Material 的（下一轮）：`ConflictDialog`（三态切换 + diff + 合并编辑）、`MemoComposer`；
+`RecoveryCard` 的密码输入与恢复确认弹窗（需要 `AppSecureTextField`，随 P4 一起做）；
 写作工具栏的两个菜单（`MemoComposerBottomBar`，依赖 `PopupProperties(focusable = false)`，
 `WindowListPopup` 没有对应参数，需要给适配层加配置）、离线设置的缓存上限可编辑下拉
-（`menuAnchor(PrimaryEditable)`）；Snackbar 桥接。
+（`menuAnchor(PrimaryEditable)`）。
 
 **范围（按数量）**
 

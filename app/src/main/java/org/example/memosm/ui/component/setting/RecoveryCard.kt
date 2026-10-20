@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.api.GsonProvider
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.data.DraftManager
@@ -113,13 +115,44 @@ fun RecoveryCard(importOnly: Boolean = false) {
         }
     }
 
-    deleteArchive?.let { archive -> AlertDialog(onDismissRequest = { deleteArchive = null }, title = { Text(stringResource(R.string.recovery_delete_title)) },
-        text = { Text(stringResource(R.string.recovery_delete_message, archive.name)) },
-        confirmButton = { TextButton(onClick = { deleteArchive = null; scope.launch(Dispatchers.IO) { archive.delete(); refresh() } }) { Text(stringResource(R.string.common_delete)) } },
-        dismissButton = { TextButton(onClick = { deleteArchive = null }) { Text(stringResource(R.string.common_cancel)) } }) }
-    message?.let { text -> AlertDialog(onDismissRequest = { message = null }, text = { Text(text) }, confirmButton = {
-        TextButton(onClick = { message = null }) { Text(stringResource(R.string.common_close)) }
-    }) }
+    deleteArchive?.let { archive ->
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.recovery_delete_title),
+            summary = stringResource(R.string.recovery_delete_message, archive.name),
+            onDismissRequest = { deleteArchive = null },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { deleteArchive = null }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
+                    onClick = {
+                        deleteArchive = null
+                        scope.launch(Dispatchers.IO) { archive.delete(); refresh() }
+                    }
+                )
+            }
+        )
+    }
+    message?.let { text ->
+        AppDialog(
+            show = true,
+            summary = text,
+            onDismissRequest = { message = null },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_close),
+                    modifier = Modifier.weight(1f),
+                    onClick = { message = null }
+                )
+            }
+        )
+    }
 }
 
 /** Full-screen Import/Export selection; the Settings backup page stays in place. */

@@ -11,6 +11,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -27,6 +28,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.CompletableDeferred
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.network.hasLocalNetworkPermission
 import org.example.memosm.network.serverNeedsLocalNetworkPermission
 import org.example.memosm.widget.stats.UserStatsWidget
@@ -129,19 +132,22 @@ fun rememberLocalNetworkPermission(): LocalNetworkPermissionState {
         previouslyGranted = state.granted
     }
     if (state.showDeniedDialog) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.local_network_permission_title),
+            summary = stringResource(R.string.local_network_permission_denied),
             onDismissRequest = { state.showDeniedDialog = false },
-            title = { Text(stringResource(R.string.local_network_permission_title)) },
-            text = { Text(stringResource(R.string.local_network_permission_denied)) },
-            confirmButton = {
-                TextButton(onClick = state::openSettings) {
-                    Text(stringResource(R.string.local_network_open_settings))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { state.showDeniedDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { state.showDeniedDialog = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.local_network_open_settings),
+                    modifier = Modifier.weight(1f),
+                    onClick = state::openSettings
+                )
             }
         )
     }

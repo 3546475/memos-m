@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import org.example.memosm.ui.theme.AppSnackbarHost
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -83,7 +84,7 @@ class SetupLoginActivity : ComponentActivity() {
                                 }
                             )
                         },
-                        snackbarHost = { SnackbarHost(snackbar) }
+                        snackbarHost = { AppSnackbarHost(snackbar) }
                     ) { padding ->
                         Box(Modifier.fillMaxSize().padding(padding).imePadding(), contentAlignment = Alignment.TopCenter) {
                             if (!ready || saving) {

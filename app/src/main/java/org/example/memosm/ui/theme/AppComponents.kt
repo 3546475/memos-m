@@ -3,6 +3,7 @@ package org.example.memosm.ui.theme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import kotlinx.coroutines.delay
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
@@ -326,7 +331,7 @@ fun AppRadioButton(
 @Composable
 fun AppDialog(
     show: Boolean,
-    title: String,
+    title: String? = null,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     summary: String? = null,
@@ -354,7 +359,7 @@ fun AppDialog(
         AlertDialog(
             onDismissRequest = onDismissRequest,
             modifier = modifier,
-            title = { Text(title) },
+            title = title?.takeIf { it.isNotBlank() }?.let { text -> { Text(text) } },
             text = {
                 Column {
                     summary?.let { Text(it) }
@@ -695,5 +700,63 @@ fun AppDropdownMenuItem(
             modifier = modifier,
             enabled = enabled
         )
+    }
+}
+
+/**
+ * Snackbar host. Miuix ships its own SnackbarHostState type, so a Miuix host cannot be fed the
+ * Material state callers already hold; MIUIX therefore renders a Miuix-styled pill driven by the
+ * Material state and dismisses it itself, keeping `showSnackbar` coroutines completing normally.
+ */
+@Composable
+fun AppSnackbarHost(
+    hostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
+    if (!usesMiuix) {
+        SnackbarHost(hostState = hostState, modifier = modifier)
+        return
+    }
+    val data = hostState.currentSnackbarData ?: return
+    LaunchedEffect(data) {
+        val durationMs = when (data.visuals.duration) {
+            SnackbarDuration.Short -> 4_000L
+            SnackbarDuration.Long -> 10_000L
+            SnackbarDuration.Indefinite -> Long.MAX_VALUE
+        }
+        if (durationMs != Long.MAX_VALUE) {
+            delay(durationMs)
+            data.dismiss()
+        }
+    }
+    Box(
+        modifier = modifier.fillMaxWidth().padding(16.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            MiuixSurface(
+                shape = RoundedCornerShape(24.dp),
+                color = MiuixTheme.colorScheme.surfaceContainerHighest
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = data.visuals.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    data.visuals.actionLabel?.let { label ->
+                        Spacer(Modifier.width(12.dp))
+                        AppTextButton(
+                            text = label,
+                            onClick = { data.performAction() }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
