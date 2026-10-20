@@ -2,47 +2,70 @@ package org.example.memosm.ui.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import org.example.memosm.model.ThemeStyle
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.CardDefaults as MiuixCardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox as MiuixCheckbox
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator as MiuixCircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFab
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixDivider
+import top.yukonga.miuix.kmp.basic.LinearProgressIndicator as MiuixLinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.RadioButton as MiuixRadioButton
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar as MiuixSmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Slider as MiuixSlider
 import top.yukonga.miuix.kmp.basic.Surface as MiuixSurface
 import top.yukonga.miuix.kmp.basic.Switch as MiuixSwitch
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 import top.yukonga.miuix.kmp.basic.TopAppBar as MiuixTopAppBar
+import top.yukonga.miuix.kmp.window.WindowDialog as MiuixWindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -97,7 +120,7 @@ fun AppTopBar(
 fun AppCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    cornerRadius: Dp = 16.dp,
+    cornerRadius: Dp = MiuixTokens.CardCornerRadius,
     content: @Composable ColumnScope.() -> Unit
 ) {
     if (usesMiuix) {
@@ -191,7 +214,7 @@ fun AppListItem(
     }
     if (usesMiuix) {
         BasicComponent(
-            modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(containerColor),
+            modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(MiuixTokens.RowCornerRadius)).background(containerColor),
             title = title,
             summary = summary,
             startAction = leading,
@@ -282,6 +305,236 @@ fun AppRadioButton(
         MiuixRadioButton(selected = selected, onClick = onClick, modifier = modifier, enabled = enabled)
     } else {
         RadioButton(selected = selected, onClick = onClick, modifier = modifier, enabled = enabled)
+    }
+}
+
+/** A dialog that renders Miuix's window dialog or a Material 3 [AlertDialog]. */
+@Composable
+fun AppDialog(
+    show: Boolean,
+    title: String,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    summary: String? = null,
+    buttons: @Composable RowScope.() -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit = {}
+) {
+    if (usesMiuix) {
+        MiuixWindowDialog(
+            show = show,
+            modifier = modifier,
+            title = title,
+            summary = summary,
+            onDismissRequest = onDismissRequest
+        ) {
+            Column(Modifier.fillMaxWidth()) {
+                content()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = MiuixTokens.RowVerticalPadding),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    content = buttons
+                )
+            }
+        }
+    } else if (show) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            title = { Text(title) },
+            text = {
+                Column {
+                    summary?.let { Text(it) }
+                    content()
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = buttons)
+            }
+        )
+    }
+}
+
+/** A Miuix text button; the Material branch keeps the familiar [TextButton]. */
+@Composable
+fun AppTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    if (usesMiuix) {
+        MiuixTextButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled)
+    } else {
+        TextButton(onClick = onClick, modifier = modifier, enabled = enabled) { Text(text) }
+    }
+}
+
+/** A text field; Miuix has no outlined variant, so MIUIX uses its filled field. */
+@Composable
+fun AppTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "",
+    placeholder: String = "",
+    enabled: Boolean = true,
+    singleLine: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    isError: Boolean = false,
+    supportingText: String? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null
+) {
+    if (usesMiuix) {
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            MiuixTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = modifier,
+                label = label.ifEmpty { placeholder },
+                useLabelAsPlaceholder = label.isEmpty() && placeholder.isNotEmpty(),
+                enabled = enabled,
+                singleLine = singleLine,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                leadingIcon = leadingIcon,
+                trailingIcon = trailingIcon
+            )
+        }
+    } else {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = modifier,
+            enabled = enabled,
+            singleLine = singleLine,
+            label = label.takeIf { it.isNotEmpty() }?.let { { Text(it) } },
+            placeholder = placeholder.takeIf { it.isNotEmpty() }?.let { { Text(it) } },
+            keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
+            isError = isError,
+            supportingText = supportingText?.let { { Text(it) } },
+            leadingIcon = leadingIcon,
+            trailingIcon = trailingIcon
+        )
+    }
+}
+
+/**
+ * A slider driven by plain values. Miuix sliders are continuous, so a stepped Material slider is
+ * emulated by snapping the reported value to the nearest step.
+ */
+@Composable
+fun AppSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null
+) {
+    if (usesMiuix) {
+        val snap = { raw: Float ->
+            if (steps > 0) {
+                val step = (valueRange.endInclusive - valueRange.start) / (steps + 1)
+                valueRange.start + ((raw - valueRange.start) / step).roundToInt() * step
+            } else {
+                raw
+            }
+        }
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            MiuixSlider(
+                value = value,
+                onValueChange = { onValueChange(snap(it)) },
+                modifier = modifier,
+                enabled = enabled,
+                valueRange = valueRange,
+                onValueChangeFinished = onValueChangeFinished
+            )
+        }
+    } else {
+        val sliderState = remember(value, valueRange, steps) {
+            SliderState(value = value, steps = steps, trackRange = valueRange)
+        }
+        LaunchedEffect(value) { sliderState.value = value }
+        Slider(
+            state = sliderState,
+            onValueChange = onValueChange,
+            modifier = modifier,
+            enabled = enabled,
+            onValueChangeFinished = onValueChangeFinished
+        )
+    }
+}
+
+@Composable
+fun AppLinearProgressIndicator(
+    progress: Float?,
+    modifier: Modifier = Modifier
+) {
+    if (usesMiuix) {
+        MiuixLinearProgressIndicator(progress = progress, modifier = modifier)
+    } else if (progress == null) {
+        LinearProgressIndicator(modifier = modifier)
+    } else {
+        LinearProgressIndicator(progress = { progress }, modifier = modifier)
+    }
+}
+
+@Composable
+fun AppCircularProgressIndicator(
+    modifier: Modifier = Modifier,
+    progress: Float? = null
+) {
+    if (usesMiuix) {
+        MiuixCircularProgressIndicator(modifier = modifier, progress = progress)
+    } else if (progress == null) {
+        CircularProgressIndicator(modifier = modifier)
+    } else {
+        CircularProgressIndicator(progress = { progress }, modifier = modifier)
+    }
+}
+
+/** A single-select capsule used for filters; Miuix has no chip component. */
+@Composable
+fun AppFilterChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    if (usesMiuix) {
+        val shape = RoundedCornerShape(MiuixTokens.PillCornerRadius)
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            MiuixSurface(
+                modifier = modifier
+                    .clip(shape)
+                    .clickable(enabled = enabled, onClick = onClick),
+                shape = shape,
+                color = if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh,
+                contentColor = if (selected) {
+                    MiuixTheme.colorScheme.onPrimary
+                } else {
+                    MiuixTheme.colorScheme.onSurfaceContainer
+                }
+            ) {
+                Text(
+                    text = label,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+            }
+        }
+    } else {
+        FilterChip(
+            selected = selected,
+            onClick = onClick,
+            label = { Text(label) },
+            modifier = modifier,
+            enabled = enabled
+        )
     }
 }
 

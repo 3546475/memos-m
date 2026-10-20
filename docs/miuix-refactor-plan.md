@@ -61,20 +61,21 @@
 | `Checkbox` | `Checkbox` | 已接入（`AppCheckbox`），待推广 |
 | `RadioButton` | `RadioButton` | 已接入（`AppRadioButton`），待推广 |
 | `HorizontalDivider` | `HorizontalDivider` | 已接入（`AppDivider`） |
-| `Button` | `Button` | 适配层已有，待推广 |
-| `TextButton` | `TextButton(text:)`（无 slot 重载） | 待设计（需处理自定义 `Text` 内容） |
-| `OutlinedTextField` | `TextField`（`TextFieldState` / `TextFieldValue` 两种 API） | 待迁移（P4） |
-| `AlertDialog` | `OverlayDialog`（需 popup host）/ `WindowDialog`（独立窗口） | 待迁移（P3） |
+| `Button` | `Button` | 已接入（`AppButton`） |
+| `TextButton` | `TextButton(text:)`（无 slot 重载） | 已接入（`AppTextButton(text)`）；调用点需传入纯文本 |
+| `OutlinedTextField` | `TextField`（`TextFieldState` / `TextFieldValue` / `String` 三种 API） | 已接入（`AppTextField`，String 版）；密码框见 §6 |
+| `AlertDialog` | `OverlayDialog`（需 popup host）/ `WindowDialog`（独立窗口） | 已接入（`AppDialog` → `WindowDialog`），待推广（P3） |
 | `ModalBottomSheet` | `OverlayBottomSheet` / `WindowBottomSheet` | 待迁移（P3） |
 | `DropdownMenu` | `Dropdown` / `ListPopup` / `miuix-preference` 的 `*DropdownPreference` | 待迁移（P3） |
-| `SnackbarHost` | `SnackbarHost` + `Scaffold` 的 `snackbarHost` | 待迁移（P2/P3） |
-| `SearchBar` | `SearchBar` | 待迁移（P2） |
-| `FilterChip` | `TabRow`/`Button` 自组合 或 自绘胶囊 | 待设计（P2） |
-| `Slider`（含 `SliderState`） | `Slider(value, onValueChange, …)` | 待迁移（P4） |
-| `LinearProgressIndicator` / `CircularProgressIndicator` | `ProgressIndicator` / `CircularProgressIndicator` | 待迁移（P2） |
+| `SnackbarHost` | `SnackbarHost`（自有 `SnackbarHostState` 类型，需要桥接） | 待迁移（P3，见 §6） |
+| `SearchBar` | `SearchBar`（`InputField` 组合） | 待迁移（P2） |
+| `FilterChip` | 无 chip 组件 | 已接入（`AppFilterChip`，自绘胶囊） |
+| `Slider`（含 `SliderState`） | `Slider(value, onValueChange, …)`（连续，无 steps） | 已接入（`AppSlider`，按步长吸附模拟 steps） |
+| `LinearProgressIndicator` / `CircularProgressIndicator` | `LinearProgressIndicator` / `CircularProgressIndicator` | 已接入（`AppLinearProgressIndicator` / `AppCircularProgressIndicator`） |
 | `PullToRefreshBox` | `PullToRefresh` | 待迁移（P2） |
 | `Badge` | `Badge` | 待迁移（P2） |
-| `MaterialExpressiveTheme`（`ProfileTheme`） | 无直接对应 | 需决策（P1） |
+| `MaterialExpressiveTheme`（`ProfileTheme`） | 无直接对应 | 已决策：MIUIX 下保留但只用于动效（P1） |
+| 顶栏/底栏毛玻璃 | `miuix-blur`：`rememberLayerBackdrop` + `Modifier.drawBackdrop { blur(…) }` | 可选增强（P2 备注，minSdk 33） |
 
 ---
 
@@ -83,7 +84,7 @@
 | 阶段 | 内容 | 状态 |
 | --- | --- | --- |
 | **P0 已完成** | 主题开关 + 偏好持久化 + 备份；调色板；适配层雏形；顶栏 / 导航 / 标签 / FAB / 卡片 / 设置行 / 开关 | ✅ `329d7bf`、`4b883ce` |
-| **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ⏳ 下一步 |
+| **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | ⬜ |
 | **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | ⬜ |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
@@ -128,41 +129,56 @@
 
 ### P1 主题底座（地基，先做能少返工）
 
-**目标**：把所有「视觉决策」收敛到一处，后续阶段只搬组件、不反复调色。
+**状态：已完成**（`4b883ce` 之后的未提交改动合并进来后单独提交）
+
+**已交付**
+
+- `ui/theme/MiuixTokens.kt`：页边距、分组/行间距、圆角（行 4 / 卡片 16 / 弹层 28 / 胶囊 50）、
+  行内边距、图标尺寸、分隔线粗细，以及 MIUIX 下使用的 Material `Shapes`。
+- 适配层新增：`AppDialog`（`WindowDialog` 方案）、`AppTextButton`、`AppTextField`（String 版）、
+  `AppSlider`（按步长吸附模拟 steps）、`AppLinearProgressIndicator`、`AppCircularProgressIndicator`、
+  `AppFilterChip`（自绘胶囊）；`AppCard` / `AppListItem` 改用令牌。
+- 弹层宿主定案：**方案 B（`WindowDialog`）**，不改主 `Scaffold`。`AppDialog` 已按此实现，
+  并在首页「草稿提示」弹窗上做了首个冒烟迁移（真机验证：底部圆角卡片 + 双胶囊按钮）。
+- 单测：`MiuixColorMappingTest` 断言 MIUIX 的中性色结构（白卡片/灰页面、深色黑页面、
+  强调色与文本角色映射）。
+- 截图基线：`app/build/screens/`（本地，不提交）：`miuix-*.png` / `md-*.png`。
 
 **范围**
 
 1. **令牌收口** `ui/theme/`：
-   - `MiuixTokens.kt`（新增）：间距（行高、页边距、分组间距）、圆角（8/12/16/24/28）、
+   - `MiuixTokens.kt`：间距（行高、页边距、分组间距）、圆角（8/12/16/24/28）、
      分隔线粗细、图标尺寸、按下态。
    - `MiuixShapes` / 字阶映射改为引用令牌，不再散落 `dp` 字面量。
    - 明确「哪些 Material 角色由 Miuix 决定、哪些继承配色来源」，写进映射函数注释。
-2. **适配层补齐**（本阶段只加组件，不改调用点）：
-   - `AppTextField`（先支持 `TextFieldValue` 版本，Compose 新版 `TextFieldState` 版本随后）
-   - `AppSlider`（`value/onValueChange/range/steps`）
-   - `AppProgressIndicator`（linear / circular）
-   - `AppSnackbarHost`
-   - `AppDialog`（**先定宿主方案**，见下）
-   - `AppChip`（筛选/标签胶囊）
-   - `AppSearchBar`
+2. **适配层补齐**（本阶段只加组件，不改调用点；已完成的见上）：
+   - ✅ `AppTextField`（String 版；`TextFieldState` 版留给密码/富文本场景）
+   - ✅ `AppSlider`（`value/onValueChange/range/steps`）
+   - ✅ `AppProgressIndicator`（linear / circular）
+   - ✅ `AppDialog`（宿主方案已定）
+   - ✅ `AppChip`（筛选/标签胶囊）
+   - ⏸ `AppSnackbarHost`：Miuix 的 `SnackbarHostState` 是自有类型，无法直接兼容调用方的
+     `showSnackbar` 协程；桥接放到 P3（见 §6）。
+   - ➡ `AppSearchBar`：Miuix `SearchBar` 需要 `InputField` 组合且交互模型不同，与调用点一起改
+     更省事，移到 P2。
 3. **弹层宿主决策**（阻塞 P3，必须在 P1 定案）：
    - 方案 A：主页面 `Scaffold` 换成 Miuix `Scaffold`，提供 `MiuixPopupHost`，弹层用 `OverlayDialog` /
      `OverlayBottomSheet`（与 HyperOS 视觉最接近，但 Scaffold/insets 需要整体回归）。
    - 方案 B：弹层用 `WindowDialog` / `WindowBottomSheet`（独立窗口，不动主 Scaffold，改动最小）。
-   - 倾向：**B 先行**，需要弹层内嵌套 `Scaffold` 的场景再评估 A。
+   - **决策：B 先行**，需要弹层内嵌套 `Scaffold` 的场景再评估 A。
 4. **字体与排版**：确认 Miuix 字阶在中文、日文、韩文下的行长与断行；`AppFont` 四种字体逐一截图。
 5. **深色与动态色**：深色（黑页面 + `#242424` 卡片）、跟随系统取色、黑白、Memos、自定义色相
    五种组合 × 深浅色各一张基线截图。
 6. **测试**：
-   - 单测：`MiuixTheme.toMaterialColorScheme` 映射的关键角色断言（纯函数，无需 Robolectric）。
-   - 截图基线：暂用真机 `adb exec-out screencap`，文件名 `docs/screens/miuix/<screen>-<theme>.png`。
+   - 单测：`MiuixTheme.toMaterialColorScheme` 映射的关键角色断言（纯函数，无需 Robolectric）✅
+   - 截图基线：真机 `adb exec-out screencap`，保存在 `app/build/screens/`（构建产物目录，不提交）。
 
 **验收**
 
-- [ ] 组件对照表中「已接入」的组件在 MIUIX 下无 Material 默认色泄漏（如残留紫色/默认灰）。
-- [ ] MD 模式关键页面（首页、我的、设置、外观）与 `4b883ce` 截图逐像素一致。
-- [ ] 五种配色 × 深浅色截图齐全，无明显对比度问题。
-- [ ] 新增的 `App*` 组件均有 KDoc，说明两侧分支行为。
+- [x] 组件对照表中「已接入」的组件在 MIUIX 下无 Material 默认色泄漏（残留在待迁移组件里）。
+- [x] MD 模式关键页面（首页、设置）与修改前截图一致（`md-*.png` 基线）。
+- [ ] 五种配色 × 深浅色截图齐全，无明显对比度问题（当前只覆盖浅色 + 跟随系统）。
+- [x] 新增的 `App*` 组件均有 KDoc，说明两侧分支行为。
 
 **风险**：字阶差异会让部分页面行高变化（尤其设置页），需要逐页看；`MaterialExpressiveTheme`
 可能与 Miuix 的字阶/动效冲突。
@@ -204,6 +220,50 @@
 - [ ] 附件页、个人页、地图页首屏视觉一致；四个 tab 切换动画无卡顿。
 - [ ] Android 手势返回 / 滚动 / 下拉刷新交互无回归。
 - [ ] MD 模式四页截图与改造前一致。
+
+#### 可选增强：顶栏 / 底栏毛玻璃（`miuix-blur`）
+
+HyperOS 的顶栏、底栏和悬浮工具栏在滚动内容上方是半透明模糊的。Miuix 把这项能力拆在
+`miuix-blur` 模块里，本阶段只做设计与评估，实现放在 P6（或独立小 PR）。
+
+**API 形态**
+
+```kotlin
+val backdrop = rememberLayerBackdrop()
+// 内容层：把需要被模糊的内容记录进 backdrop
+Box(Modifier.layerBackdrop(backdrop)) { content() }
+// 顶栏：绘制模糊后的背景
+AppTopBar(
+    modifier = Modifier.drawBackdrop(backdrop) {
+        blur(radiusX = 24f)
+        // 可选：progressiveBlur(...) 让顶部更模糊
+    }
+)
+```
+
+**接入代价与约束**
+
+1. 依赖 `top.yukonga.miuix.kmp:miuix-blur:0.9.4`，其 Android 变体声明 **minSdk 33**，而本 App 的
+   minSdk 是 24 —— 直接加依赖会在 manifest 合并阶段失败。方案：
+   - 在 `AndroidManifest.xml` 的 `<application>` 上加
+     `tools:overrideLibrary="top.yukonga.miuix.kmp.blur,top.yukonga.miuix.kmp.shader"`；
+   - 所有调用点用 `Build.VERSION.SDK_INT >= 33 && isRuntimeShaderSupported()` 双重判断，
+     低版本退化成现在的纯色顶栏（不透明）。
+   - 需要单独验证：minSdk 24 真机启动不崩、类加载不提前触发。
+2. `renderEffect` / `RuntimeShader` 在部分机型（尤其 MIUI 的省电模式、分屏）可能不可用，
+   必须提供无模糊的降级路径。
+3. 性能：`LayerBackdrop` 会额外渲染一层内容层。首页列表滚动时要测帧率，必要时只在
+   `LazyColumn` 静止时采样或降低模糊半径。
+4. 视觉：模糊层要配合 `surface` 的 alpha（HyperOS 顶栏背景约 0.7 透明度 + 0.5dp 分隔线），
+   需要与 `MiuixTokens` 里的颜色一起调。
+5. 该能力**仅 MIUIX** 使用，MD 分支不引入任何模糊代码路径（避免 MD 回归与性能负担）。
+
+**验收**
+
+- [ ] API 33+ 真机：首页滚动时顶栏/底栏呈毛玻璃，内容从下方穿过。
+- [ ] API 24–32 真机或模拟器：启动正常，顶栏为纯色，无崩溃、无类加载异常。
+- [ ] 帧率与内存对比基线无明显回退。
+- [ ] MD 主题下完全不启用（代码路径与视觉都不变）。
 
 ---
 
@@ -345,12 +405,15 @@
 | 问题 | 现状 / 决策 |
 | --- | --- |
 | 个人页 tab 头像 | Miuix `NavigationBarItem` 只接受 `ImageVector`；当前退化为 `Person` 图标，头像保留在个人主页。P2 决策：接受，或自绘支持 slot 的导航项。 |
-| `ProfileTheme` 使用 `MaterialExpressiveTheme` | 会把 `surface`/`background` 覆盖为 `surfaceContainerLow`（已对齐页面色）。P1 决定 MIUIX 下是否绕开它。 |
-| 弹层宿主 | P1 定案，倾向 `WindowDialog`/`WindowBottomSheet`（方案 B），不改主 `Scaffold`。 |
-| `TextButton` 无 slot 重载 | Miuix `TextButton` 只接受 `text: String`；P3 需要统一调用形态或在适配层用 `Button` + 透明底色模拟。 |
+| `ProfileTheme` 使用 `MaterialExpressiveTheme` | 会把 `surface`/`background` 覆盖为 `surfaceContainerLow`（已对齐页面色）。**已决策**：MIUIX 下保留（只影响动效），不绕开。 |
+| 弹层宿主 | **已决策（P1）：方案 B** —— `AppDialog` 用 `WindowDialog`，不回填 popup host，不动主 `Scaffold`。若后续需要 `OverlayBottomSheet` 的遮罩/layer 行为再评估方案 A。 |
+| `TextButton` 无 slot 重载 | **已解决（P1）**：新增 `AppTextButton(text: String, …)`；需要自定义内容的按钮继续用 Material（并在 P3 逐个收敛）。 |
+| `VisualTransformation` 已废弃 | 该 Compose 版本要求改用 `OutputTransformation`；`AppTextField` 因此不暴露密码变换参数。密码框现状是 `OutlinedSecureTextField`，P4 再设计 `AppSecureTextField`。 |
+| `SnackbarHostState` 类型不兼容 | Miuix `SnackbarHostState` 与 Material 的不是同一类型，而调用方用 `showSnackbar` 协程等待显示完成；直接替换会让协程挂起。桥接方案（双 State 或适配器）放 P3。 |
 | Glance 小组件 | 使用 `glance-material3`，**不在改造范围**；仅确认主题切换不影响其渲染。 |
 | 第三方视图（MapLibre、ExoPlayer 控件、Coil） | 不做组件替换，只做颜色/形状适配。 |
-| `miuix-blur` | 可做顶栏/底栏模糊，`minSdk 33`；作为 P6 可选增强，需单独评估包体与性能。 |
+| `miuix-blur` | 顶栏/底栏毛玻璃，依赖声明 **minSdk 33**（本 App minSdk 24）：需 `tools:overrideLibrary` + 运行时双重降级判断。设计见 P2「可选增强」，实现放 P6 或独立 PR。 |
+| 截图基线 | 保存在 `app/build/screens/`（构建产物目录，**不提交**）；需要长期比对时再挑关键页放进 `docs/screens/` 并允许二进制入库。 |
 | 本地验证环境 | 本机 `gradle/gradle-daemon-jvm.properties` 要求 JetBrains JDK 21（会自动下载并卡住）；离线验证时临时移开该文件，用 `JAVA_HOME=<JDK21>` + 本地 Gradle 9.7.1 构建，验证完必须恢复，不要提交。 |
 | 单测环境 | Windows 上 DataStore 二次写入会因文件重命名失败（`SetupSettingsTest` 同因失败），涉及 DataStore 的用例请在 Linux/CI 跑。 |
 

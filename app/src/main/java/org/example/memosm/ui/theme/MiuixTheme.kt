@@ -67,18 +67,10 @@ fun MiuixMemosMTheme(
             MaterialTheme(
                 colorScheme = colors.toMaterialColorScheme(isDark),
                 typography = typography,
-                shapes = MiuixShapes,
+                shapes = MiuixTokens.Shapes,
                 content = content
             )
         }
-    }
-}
-
-/** A Miuix switch for rows that own the toggle semantics themselves. */
-@Composable
-fun MiuixStyledSwitch(checked: Boolean) {
-    MiuixTheme(colors = LocalMiuixColors.current) {
-        MiuixSwitch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -146,7 +138,7 @@ private fun miuixColorsFromSeed(
 }
 
 /** Cards sit on the page color; dividers and secondary text keep Miuix's own contrast pairs. */
-private fun MiuixColors.toMaterialColorScheme(isDark: Boolean): ColorScheme {
+internal fun MiuixColors.toMaterialColorScheme(isDark: Boolean): ColorScheme {
     val base = if (isDark) darkColorScheme() else lightColorScheme()
     return base.copy(
         primary = primary,
@@ -187,15 +179,6 @@ private fun MiuixColors.toMaterialColorScheme(isDark: Boolean): ColorScheme {
         surfaceContainerHighest = surfaceContainer
     )
 }
-
-/** Miuix cards use 16 dp corners and its dialogs and sheets a little more. */
-private val MiuixShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(28.dp)
-)
 
 /** Miuix's type scale, keeping Material's weights and line heights where Miuix leaves them open. */
 private fun miuixTypography(font: AppFont, styles: MiuixTextStyles): Typography {

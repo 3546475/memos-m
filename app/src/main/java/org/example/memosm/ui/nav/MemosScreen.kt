@@ -62,6 +62,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
 import org.example.memosm.data.sync.PreDownloadState
@@ -306,37 +308,37 @@ fun MemosScreen(
         })
 
     // Draft prompt dialog
-    if (showDraftPrompt) {
-        AlertDialog(
-            onDismissRequest = { showDraftPrompt = false },
-            title = { Text(stringResource(R.string.drafts_prompt_title)) },
-            text = { Text(stringResource(R.string.drafts_prompt_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDraftPrompt = false
-                        // Load latest draft
-                        val latestDraft = viewModel.draftDelegate.getLatestDraft()
-                        val account = uiState.accounts.firstOrNull { it.isActive }
-                        if (latestDraft != null && account != null) {
-                            openEditor(EditorRequest(account.id, titleRes = R.string.memo_composer_fab_new_memo,
-                                draft = latestDraft))
-                        } else composeNew()
-                    }) {
-                    Text(stringResource(R.string.drafts_prompt_continue))
+    AppDialog(
+        show = showDraftPrompt,
+        title = stringResource(R.string.drafts_prompt_title),
+        summary = stringResource(R.string.drafts_prompt_message),
+        onDismissRequest = { showDraftPrompt = false },
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.drafts_prompt_continue),
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    showDraftPrompt = false
+                    // Load latest draft
+                    val latestDraft = viewModel.draftDelegate.getLatestDraft()
+                    val account = uiState.accounts.firstOrNull { it.isActive }
+                    if (latestDraft != null && account != null) {
+                        openEditor(EditorRequest(account.id, titleRes = R.string.memo_composer_fab_new_memo,
+                            draft = latestDraft))
+                    } else composeNew()
                 }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDraftPrompt = false
-                        // Start fresh with a new draft session ID
-                        composeNew()
-                    }) {
-                    Text(stringResource(R.string.drafts_prompt_start_fresh))
+            )
+            AppTextButton(
+                text = stringResource(R.string.drafts_prompt_start_fresh),
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    showDraftPrompt = false
+                    // Start fresh with a new draft session ID
+                    composeNew()
                 }
-            })
-    }
+            )
+        }
+    )
 
 }
 
