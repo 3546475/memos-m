@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppCard
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.viewmodel.MemosViewModel
@@ -55,15 +56,11 @@ fun DraftsCard(
     var showPublishAllDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    Card(
-        elevation = flatCardElevation(),
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
+        containerColor = MaterialTheme.colorScheme.secondaryContainer
     ) {
         // Top: Draft info (clickable to open drafts screen)
         Row(
@@ -190,3 +187,4 @@ fun DraftsCard(
         )
     }
 }
+

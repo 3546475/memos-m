@@ -31,6 +31,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LargeTopAppBar
@@ -839,6 +840,47 @@ fun AppSecureTextField(
             keyboardOptions = keyboardOptions,
             supportingText = supportingText?.let { { Text(it) } },
             onKeyboardAction = onDone?.let { action -> { action() } }
+        )
+    }
+}
+
+/**
+ * A labelled primary action. Miuix has no extended FAB, so MIUIX renders a pill button while MD
+ * keeps the extended FAB (including its expand/collapse animation).
+ */
+@Composable
+fun AppExtendedFloatingActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    expanded: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    icon: @Composable () -> Unit,
+    text: @Composable () -> Unit
+) {
+    if (usesMiuix) {
+        MiuixTheme(colors = LocalMiuixColors.current) {
+            MiuixButton(
+                onClick = onClick,
+                modifier = modifier,
+                content = {
+                    CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onPrimary) {
+                        icon()
+                        Spacer(Modifier.width(8.dp))
+                        text()
+                    }
+                }
+            )
+        }
+    } else {
+        ExtendedFloatingActionButton(
+            onClick = onClick,
+            modifier = modifier,
+            expanded = expanded,
+            icon = icon,
+            text = text,
+            containerColor = containerColor,
+            contentColor = contentColor
         )
     }
 }

@@ -37,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -51,11 +50,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppExtendedFloatingActionButton
+import org.example.memosm.ui.theme.AppSurface
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.composer.MemoComposerScreen
 import org.example.memosm.ui.component.item.MemoItem
@@ -105,13 +107,13 @@ fun MemoDetailView(
         memo.creator == uiState.session.currUser?.name
     }
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        shape = MaterialTheme.shapes.large.copy(
-            bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp)
+    AppSurface(
+        modifier = modifier.fillMaxSize().clip(
+            MaterialTheme.shapes.large.copy(
+                bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp)
+            )
         ),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = {
@@ -143,9 +145,11 @@ fun MemoDetailView(
                 )
             }, floatingActionButton = {
                 if (uiState.session.currUser != null) {
-                    ExtendedFloatingActionButton(
+                    AppExtendedFloatingActionButton(
                         onClick = { onCommentMemo(memo) },
                         expanded = isFabExpanded,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Add, contentDescription = null
@@ -153,9 +157,7 @@ fun MemoDetailView(
                         },
                         text = {
                             Text(text = stringResource(R.string.memo_detail_add_comment))
-                        },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        }
                     )
                 }
             }, containerColor = Color.Transparent, modifier = Modifier.fillMaxSize()
@@ -242,11 +244,11 @@ fun MemoDetailView(
                     // Cached comments hint (offline: showing local cache)
                     if (comments.isOffline && !comments.isLoading) {
                         item(key = "comments_cached_hint") {
-                            Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            AppSurface(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.medium)
                                     .padding(top = 8.dp)
                             ) {
                                 Text(

@@ -39,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
+import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.data.base64ToTempUri
 import org.example.memosm.data.uriToBase64Attachment
 import org.example.memosm.model.Attachment
@@ -341,52 +344,55 @@ fun MemoComposer(
         var tempLatitude by remember { mutableStateOf(location?.latitude?.toString() ?: "") }
         var tempLongitude by remember { mutableStateOf(location?.longitude?.toString() ?: "") }
 
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.memo_composer_edit_location),
             onDismissRequest = { showLocationEditDialog = false },
-            title = { Text(stringResource(R.string.memo_composer_edit_location)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = tempPlaceholder,
-                        onValueChange = { tempPlaceholder = it },
-                        label = { Text(stringResource(R.string.memo_composer_location_name)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = tempLatitude,
-                        onValueChange = { tempLatitude = it },
-                        label = { Text(stringResource(R.string.memo_composer_location_latitude)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = tempLongitude,
-                        onValueChange = { tempLongitude = it },
-                        label = { Text(stringResource(R.string.memo_composer_location_longitude)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    location = location?.copy(
-                        placeholder = tempPlaceholder,
-                        latitude = tempLatitude.toDoubleOrNull(),
-                        longitude = tempLongitude.toDoubleOrNull()
-                    )
-                    showLocationEditDialog = false
-                }) {
-                    Text(stringResource(R.string.common_save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLocationEditDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showLocationEditDialog = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_save),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        location = location?.copy(
+                            placeholder = tempPlaceholder,
+                            latitude = tempLatitude.toDoubleOrNull(),
+                            longitude = tempLongitude.toDoubleOrNull()
+                        )
+                        showLocationEditDialog = false
+                    }
+                )
+            }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppTextField(
+                    value = tempPlaceholder,
+                    onValueChange = { tempPlaceholder = it },
+                    label = stringResource(R.string.memo_composer_location_name),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                AppTextField(
+                    value = tempLatitude,
+                    onValueChange = { tempLatitude = it },
+                    label = stringResource(R.string.memo_composer_location_latitude),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                AppTextField(
+                    value = tempLongitude,
+                    onValueChange = { tempLongitude = it },
+                    label = stringResource(R.string.memo_composer_location_longitude),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }

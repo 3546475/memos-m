@@ -65,6 +65,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppCard
+import org.example.memosm.ui.theme.AppExtendedFloatingActionButton
+import org.example.memosm.ui.theme.AppFloatingActionButton
+import org.example.memosm.ui.theme.MiuixTokens
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Location
 import org.example.memosm.model.Visibility
@@ -122,11 +126,10 @@ fun MemoComposerBottomBar(
         verticalAlignment = Alignment.CenterVertically) {
         // "Everything else" Card — pill when empty, rounded card when content is present
         val hasContent = draftAttachments.isNotEmpty() || location != null
-        val cardShape = if (hasContent) MaterialTheme.shapes.large else CircleShape
-        Card(
-            modifier = Modifier.weight(1f), shape = cardShape, colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ), elevation = flatCardElevation()
+        AppCard(
+            modifier = Modifier.weight(1f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            cornerRadius = if (hasContent) MiuixTokens.CardCornerRadius else MiuixTokens.PillCornerRadius
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                 // Attachments List
@@ -455,8 +458,11 @@ fun MemoComposerBottomBar(
 
 
         if (showPublishLabel) {
-            ExtendedFloatingActionButton(
+            AppExtendedFloatingActionButton(
                 onClick = onPublishClick,
+                expanded = true,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 icon = {
                     if (isPosting) {
                         CircularProgressIndicator(
@@ -472,22 +478,12 @@ fun MemoComposerBottomBar(
                         )
                     }
                 },
-                text = { Text(text = label) },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                expanded = true,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = defaultElevation, pressedElevation = pressedElevation
-                )
+                text = { Text(text = label) }
             )
         } else {
-            FloatingActionButton(
+            AppFloatingActionButton(
                 onClick = onPublishClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = defaultElevation, pressedElevation = pressedElevation
-                ),
                 modifier = Modifier
             ) {
                 if (isPosting) {
