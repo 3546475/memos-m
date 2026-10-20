@@ -1,5 +1,19 @@
 package org.example.memosm.ui
 
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+import org.example.memosm.ui.theme.miuixBlurSupported
+
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+
+import top.yukonga.miuix.kmp.blur.drawBackdrop
+
+import top.yukonga.miuix.kmp.blur.blur
+
+import androidx.compose.ui.graphics.RectangleShape
+
 
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -102,6 +116,8 @@ enum class MainDestination(
         R.string.nav_profile
     )
 }
+
+private const val NavBlurRadius = 24f
 
 @Composable
 fun MainScreen(
@@ -297,6 +313,10 @@ private fun MainScreenContent(
         lastTapTime = currentTime
     }
 
+    // Frost the content behind the bottom bar on API 33+ in MIUIX only.
+    val navBlurEnabled = miuixBlurSupported()
+    val navBackdrop = rememberLayerBackdrop()
+
     AppSurface(
         modifier = modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background
     ) {
@@ -348,6 +368,9 @@ private fun MainScreenContent(
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .then(
+                            if (navBlurEnabled) Modifier.layerBackdrop(navBackdrop) else Modifier
+                        )
                 ) {
                     // Content
                     AnimatedContent(
@@ -407,7 +430,24 @@ private fun MainScreenContent(
                         exit = slideOutVertically(targetOffsetY = { it })
                     ) {
                         if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-                            MiuixNavigationBar {
+                            MiuixNavigationBar(
+                                // A translucent bar lets the list frost through; without blur it
+                                // stays the plain opaque surface.
+                                color = if (navBlurEnabled) {
+                                    MiuixTheme.colorScheme.surface.copy(alpha = 0.72f)
+                                } else {
+                                    MiuixTheme.colorScheme.surface
+                                },
+                                modifier = if (navBlurEnabled) {
+                                    Modifier.drawBackdrop(
+                                        backdrop = navBackdrop,
+                                        shape = { RectangleShape },
+                                        effects = { blur(NavBlurRadius, NavBlurRadius) }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ) {
                                 visibleDestinations.forEach { destination ->
                                     MiuixNavigationBarItem(
                                         selected = currentDestination == destination,
