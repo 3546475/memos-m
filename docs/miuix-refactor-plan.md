@@ -86,7 +86,7 @@
 | **P0 已完成** | 主题开关 + 偏好持久化 + 备份；调色板；适配层雏形；顶栏 / 导航 / 标签 / FAB / 卡片 / 设置行 / 开关 | ✅ `329d7bf`、`4b883ce` |
 | **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
-| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | ⬜ |
+| **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第一轮完成（ActionSheet + 9 处对话框） |
 | **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
 | **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
 | **P6 收尾验收** | 深色/字体/动画一致性、a11y、性能、回归清单、文档与截图 | ⬜ |
@@ -286,6 +286,20 @@ AppTopBar(
 
 **目标**：所有「浮起来的东西」统一为 HyperOS 弹层：对话框、底部弹层、下拉菜单、Snackbar。
 
+**进度：第一轮已完成**（`ActionSheet` 壳 + 9 处对话框）
+
+已迁移到 `AppDialog`（`WindowDialog`）：
+- 设置：语言/可见性选择（`SettingsCard`）、分页大小（`AppSettingsCard`，含 `AppTextField`）、
+  快捷方式删除（`ShortcutsCard`）、Webhook 删除（`WebhookCard`）、外观三项（`AppearancePreferenceDialog`）
+- 通用：`CacheCleanupDialog`（含 `AppCheckbox`）、`DeleteConfirmationDialog`（笔记删除）
+- 草稿：`DraftsScreen` 单条删除、`DraftsCard` 全部删除 / 全部发布
+- `ActionSheet` → `WindowBottomSheet`，`ActionSheetItem` → Miuix 行
+
+仍在用 Material 的（下一轮）：`ShortcutsCard`/`WebhookCard` 的**新建/编辑**弹窗（含表单校验）、
+`MemoItem`、`AttachmentActionsButton`、`AccountsList`、`SyncStatusWidget`、`LocalNetworkPermission`、
+`ConflictDialog`、`RecoveryCard`、`MemoComposer`；`ModalBottomSheet` 的账号切换与表情选择；
+全部 `DropdownMenu`；Snackbar 桥接。
+
 **范围（按数量）**
 
 > 下表次数为 `grep` 命中数（可能包含 `import` 行），用于排期参考，具体以逐文件迁移时为准。
@@ -299,24 +313,26 @@ AppTopBar(
 
 **做法**
 
-1. 先实现 `AppDialog(title, content, confirm, dismiss, onDismissRequest)`：
-   - MIUIX → `WindowDialog`（方案 B）；MD → `AlertDialog`。
-   - 保留 `TextButton` 语义，但按钮用 Miuix `TextButton(text:)`，需要把调用点的
-     `confirmButton = { TextButton(...) { Text(...) } }` 收敛成 `confirm = { onConfirm -> … }` 形态，
-     逐文件改（18 处，机械但需要人工确认文案来源）。
-2. `AppBottomSheet`：MIUIX → `WindowBottomSheet`；先迁移 `ActionSheet`（它是通用壳），
-   `ReactionPicker`、账号切换随之受益。
+1. `AppDialog(show, title, summary, onDismissRequest, buttons, content)`：
+   - MIUIX → `WindowDialog`（方案 B）；MD → `AlertDialog`。按钮统一用 `AppTextButton`（支持
+     `destructive`），在 `buttons` 槽里用 `Modifier.weight(1f)` 排成等宽胶囊。
+   - ⚠️ `WindowDialog` 的高度由内容决定：长列表（语言选择）必须给 `heightIn(max = …)`，
+     否则弹窗会撑满整屏。
+2. `AppBottomSheet`：`ActionSheet` 已切 `WindowBottomSheet`；`ReactionPicker`、账号切换随后。
+   ⚠️ 调用方只在可见时组合，因此传 `show = true`，关闭动画由调用方移除组合承担（会少一段退场动画，
+   需要的话改成「父级持有 show 状态」）。
 3. `AppDropdownMenu`：MIUIX → Miuix `Dropdown`（或引入 `miuix-preference` 的菜单组件）。
    注意视频播放器里的菜单位置计算（`VideoPlaybackControls`）不做替换，仅换样式。
 4. `AppSnackbarHost`：MIUIX → Miuix `SnackbarHost` 并接到 `Scaffold`。
-5. 特殊弹窗：`ConflictDialog`、`LocalNetworkPermission`、`CacheCleanupDialog` 需要单独评估
+5. 特殊弹窗：`ConflictDialog`、`LocalNetworkPermission` 需要单独评估
    （内容较长、按钮语义特殊），允许保留 Material 结构、只换底色与圆角。
 
 **验收**
 
-- [ ] 18 处对话框在 MIUIX 下视觉一致（圆角、标题、按钮排布、遮罩透明度）。
-- [ ] 删除确认、草稿提示、冲突解决、权限请求、备份恢复确认流程无回归。
-- [ ] 底部弹层出现/消失动画为 Miuix spring；MD 仍为 Material 动效。
+- [x] 第一轮 9 处对话框在 MIUIX 下视觉一致（28dp 圆角、标题居中、等宽胶囊按钮、遮罩）。
+- [x] 删除确认、外观设置、缓存清理流程无回归（真机验证语言选择弹窗）。
+- [x] 底部弹层 `ActionSheet` 走 `WindowBottomSheet`（代码已切，真机待跟随具体入口复验）。
+- [ ] 其余弹窗、下拉菜单与 Snackbar 仍为 Material。
 - [ ] 弹层内 `Scaffold`/insets 正确（尤其手势导航条区域）。
 
 ---

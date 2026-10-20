@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.model.UserWebhook
 
 @Composable
@@ -106,25 +108,26 @@ fun WebhooksCard(
     }
 
     showDeleteConfirm?.let { webhook ->
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.profile_webhooks_delete_title),
+            summary = stringResource(R.string.profile_webhooks_delete_confirm),
             onDismissRequest = { showDeleteConfirm = null },
-            title = { Text(stringResource(R.string.profile_webhooks_delete_title)) },
-            text = { Text(stringResource(R.string.profile_webhooks_delete_confirm)) },
-            confirmButton = {
-                TextButton(
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showDeleteConfirm = null }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
                     onClick = {
                         onDelete(webhook)
                         showDeleteConfirm = null
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+                    }
+                )
             }
         )
     }

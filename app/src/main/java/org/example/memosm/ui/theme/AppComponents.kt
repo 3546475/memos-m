@@ -54,6 +54,7 @@ import kotlin.math.roundToInt
 import org.example.memosm.model.ThemeStyle
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
+import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.CardDefaults as MiuixCardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox as MiuixCheckbox
@@ -365,12 +366,34 @@ fun AppTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    destructive: Boolean = false
 ) {
     if (usesMiuix) {
-        MiuixTextButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled)
+        MiuixTextButton(
+            text = text,
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled,
+            colors = if (destructive) {
+                MiuixButtonDefaults.textButtonColors(textColor = MiuixTheme.colorScheme.error)
+            } else {
+                MiuixButtonDefaults.textButtonColors()
+            }
+        )
     } else {
-        TextButton(onClick = onClick, modifier = modifier, enabled = enabled) { Text(text) }
+        TextButton(
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled,
+            colors = if (destructive) {
+                androidx.compose.material3.ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            } else {
+                androidx.compose.material3.ButtonDefaults.textButtonColors()
+            }
+        ) { Text(text) }
     }
 }
 

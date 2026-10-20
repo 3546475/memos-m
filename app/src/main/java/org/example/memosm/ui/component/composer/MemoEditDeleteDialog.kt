@@ -1,32 +1,33 @@
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import org.example.memosm.R
 import org.example.memosm.model.Memo
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 
 @Composable
 fun DeleteConfirmationDialog(
     memo: Memo, onDismiss: () -> Unit, onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    AppDialog(
+        show = true,
+        title = stringResource(R.string.memo_dialog_delete_title),
+        summary = stringResource(R.string.memo_dialog_delete_confirm),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.memo_dialog_delete_title)) },
-        text = { Text(stringResource(R.string.memo_dialog_delete_confirm)) },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(stringResource(R.string.memo_action_delete))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
-        })
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                onClick = onDismiss
+            )
+            AppTextButton(
+                text = stringResource(R.string.memo_action_delete),
+                modifier = Modifier.weight(1f),
+                destructive = true,
+                onClick = onConfirm
+            )
+        }
+    )
 }

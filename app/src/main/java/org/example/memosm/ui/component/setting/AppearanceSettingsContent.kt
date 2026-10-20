@@ -64,6 +64,8 @@ import org.example.memosm.model.ColorTheme
 import org.example.memosm.model.Memo
 import org.example.memosm.model.ThemeMode
 import org.example.memosm.ui.component.item.MemoItem
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.MemosMTheme
 import org.example.memosm.ui.theme.appearanceColorScheme
 import org.example.memosm.ui.theme.fontFamily
@@ -311,28 +313,38 @@ private fun AppearancePreferenceDialog(
     val scope = rememberCoroutineScope()
     var saving by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
-    AlertDialog(
+    AppDialog(
+        show = true,
+        title = title,
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(title) },
-        text = {
-            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                content()
-                if (failed) Text(stringResource(R.string.appearance_save_error), color = MaterialTheme.colorScheme.error)
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = !saving, onClick = {
-                saving = true
-                scope.launch {
-                    try { onSave(); onDismiss() }
-                    catch (cancelled: CancellationException) { throw cancelled }
-                    catch (_: Exception) { failed = true }
-                    finally { saving = false }
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                enabled = !saving,
+                onClick = onDismiss
+            )
+            AppTextButton(
+                text = stringResource(R.string.common_save),
+                modifier = Modifier.weight(1f),
+                enabled = !saving,
+                onClick = {
+                    saving = true
+                    scope.launch {
+                        try { onSave(); onDismiss() }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { failed = true }
+                        finally { saving = false }
+                    }
                 }
-            }) { Text(stringResource(R.string.common_save)) }
-        },
-        dismissButton = { TextButton(enabled = !saving, onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
-    )
+            )
+        }
+    ) {
+        Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            content()
+            if (failed) Text(stringResource(R.string.appearance_save_error), color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
 private enum class AppearanceDialog { MODE, FONT, COLOR }

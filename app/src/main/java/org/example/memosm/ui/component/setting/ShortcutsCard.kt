@@ -35,6 +35,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.model.Shortcut
 
 @Composable
@@ -110,25 +112,26 @@ fun ShortcutsCard(
     }
 
     showDeleteConfirm?.let { shortcut ->
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.profile_shortcuts_delete_title),
+            summary = stringResource(R.string.profile_shortcuts_delete_confirm),
             onDismissRequest = { showDeleteConfirm = null },
-            title = { Text(stringResource(R.string.profile_shortcuts_delete_title)) },
-            text = { Text(stringResource(R.string.profile_shortcuts_delete_confirm)) },
-            confirmButton = {
-                TextButton(
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showDeleteConfirm = null }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
                     onClick = {
                         onDelete(shortcut)
                         showDeleteConfirm = null
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+                    }
+                )
             }
         )
     }

@@ -7,11 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +28,9 @@ import kotlinx.coroutines.withContext
 import org.example.memosm.R
 import org.example.memosm.data.media.AttachmentCacheManager
 import org.example.memosm.ui.component.item.media.MediaCache
+import org.example.memosm.ui.theme.AppCheckbox
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.formatBytes
 
 /**
@@ -62,33 +62,20 @@ fun CacheCleanupDialog(
     var clearMedia by remember { mutableStateOf(false) }
     val anySelected = clearText || clearAttachments || clearMedia
 
-    AlertDialog(
+    AppDialog(
+        show = true,
+        title = stringResource(R.string.cache_cleanup_title),
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.cache_cleanup_title)) },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                CleanupCheckRow(
-                    label = stringResource(R.string.cache_cleanup_text),
-                    size = pluralStringResource(R.plurals.cached_memo_count, textCacheCount, textCacheCount),
-                    checked = clearText,
-                    onCheckedChange = { clearText = it }
-                )
-                CleanupCheckRow(
-                    label = stringResource(R.string.cache_cleanup_attachments),
-                    size = formatBytes(attachmentUsage.bytes),
-                    checked = clearAttachments,
-                    onCheckedChange = { clearAttachments = it }
-                )
-                CleanupCheckRow(
-                    label = stringResource(R.string.cache_cleanup_media),
-                    size = if (mediaCacheBytes >= 0) formatBytes(mediaCacheBytes) else "…",
-                    checked = clearMedia,
-                    onCheckedChange = { clearMedia = it }
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                onClick = onDismiss
+            )
+            AppTextButton(
+                text = stringResource(R.string.cache_cleanup_clear),
+                modifier = Modifier.weight(1f),
+                enabled = anySelected,
                 onClick = {
                     // Run every clear inside one coroutine and only dismiss on
                     // completion, so the dialog never leaves while its state is
@@ -107,18 +94,31 @@ fun CacheCleanupDialog(
                             onDismiss()
                         }
                     }
-                },
-                enabled = anySelected
-            ) {
-                Text(stringResource(R.string.cache_cleanup_clear))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
+                }
+            )
         }
-    )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            CleanupCheckRow(
+                label = stringResource(R.string.cache_cleanup_text),
+                size = pluralStringResource(R.plurals.cached_memo_count, textCacheCount, textCacheCount),
+                checked = clearText,
+                onCheckedChange = { clearText = it }
+            )
+            CleanupCheckRow(
+                label = stringResource(R.string.cache_cleanup_attachments),
+                size = formatBytes(attachmentUsage.bytes),
+                checked = clearAttachments,
+                onCheckedChange = { clearAttachments = it }
+            )
+            CleanupCheckRow(
+                label = stringResource(R.string.cache_cleanup_media),
+                size = if (mediaCacheBytes >= 0) formatBytes(mediaCacheBytes) else "…",
+                checked = clearMedia,
+                onCheckedChange = { clearMedia = it }
+            )
+        }
+    }
 }
 
 @Composable
@@ -135,7 +135,7 @@ private fun CleanupCheckRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Checkbox(checked = checked, onCheckedChange = null)
+        AppCheckbox(checked = checked, onCheckedChange = null)
         Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(

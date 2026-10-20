@@ -36,7 +36,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppListItem
+import org.example.memosm.ui.theme.AppTextButton
+import org.example.memosm.ui.theme.AppTextField
 
 enum class AppSettingsCategory { GENERAL, APPEARANCE, LINK_PREVIEWS, NETWORK }
 
@@ -115,47 +118,45 @@ fun AppSettingsCard(
         }
     }
 
-    if (showPageSizeDialog) {
-        var textValue by rememberSaveable { mutableStateOf(pageSize.toString()) }
-        var isError by rememberSaveable { mutableStateOf(false) }
+    var textValue by rememberSaveable { mutableStateOf(pageSize.toString()) }
+    var isError by rememberSaveable { mutableStateOf(false) }
 
-        AlertDialog(
-            onDismissRequest = { showPageSizeDialog = false },
-            title = { Text(stringResource(R.string.profile_app_settings_page_size)) },
-            text = {
-                OutlinedTextField(
-                    value = textValue,
-                    onValueChange = { newValue ->
-                        textValue = newValue
-                        val parsed = newValue.toIntOrNull()
-                        isError = parsed == null || parsed < 1
-                    },
-                    label = { Text(stringResource(R.string.profile_app_settings_page_size_hint)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    isError = isError,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val parsed = textValue.toIntOrNull()
-                        if (parsed != null && parsed >= 1) {
-                            onPageSizeChange(parsed)
-                            showPageSizeDialog = false
-                        }
-                    },
-                    enabled = !isError && textValue.isNotBlank()
-                ) {
-                    Text(stringResource(R.string.common_save))
+    AppDialog(
+        show = showPageSizeDialog,
+        title = stringResource(R.string.profile_app_settings_page_size),
+        onDismissRequest = { showPageSizeDialog = false },
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                onClick = { showPageSizeDialog = false }
+            )
+            AppTextButton(
+                text = stringResource(R.string.common_save),
+                modifier = Modifier.weight(1f),
+                enabled = !isError && textValue.isNotBlank(),
+                onClick = {
+                    val parsed = textValue.toIntOrNull()
+                    if (parsed != null && parsed >= 1) {
+                        onPageSizeChange(parsed)
+                        showPageSizeDialog = false
+                    }
                 }
+            )
+        }
+    ) {
+        AppTextField(
+            value = textValue,
+            onValueChange = { newValue ->
+                textValue = newValue
+                val parsed = newValue.toIntOrNull()
+                isError = parsed == null || parsed < 1
             },
-            dismissButton = {
-                TextButton(onClick = { showPageSizeDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
+            label = stringResource(R.string.profile_app_settings_page_size_hint),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            isError = isError,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

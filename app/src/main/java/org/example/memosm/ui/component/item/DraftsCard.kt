@@ -36,6 +36,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.viewmodel.MemosViewModel
 
 /**
@@ -127,44 +129,48 @@ fun DraftsCard(
 
     // Delete all confirmation dialog
     if (showDeleteAllDialog) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.drafts_delete_all_confirmation_title),
+            summary = stringResource(R.string.drafts_delete_all_confirmation_message),
             onDismissRequest = { showDeleteAllDialog = false },
-            title = { Text(stringResource(R.string.drafts_delete_all_confirmation_title)) },
-            text = { Text(stringResource(R.string.drafts_delete_all_confirmation_message)) },
-            confirmButton = {
-                TextButton(
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showDeleteAllDialog = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
                     onClick = {
                         viewModel.draftDelegate.deleteAllDrafts()
                         showDeleteAllDialog = false
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteAllDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+                    }
+                )
+            }
+        )
     }
 
     // Publish all confirmation dialog
     if (showPublishAllDialog) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.drafts_publish_all_confirmation_title),
+            summary = pluralStringResource(
+                R.plurals.drafts_publish_all_confirmation_message_plural, draftCount, draftCount
+            ),
             onDismissRequest = { showPublishAllDialog = false },
-            title = { Text(stringResource(R.string.drafts_publish_all_confirmation_title)) },
-            text = {
-                Text(
-                    pluralStringResource(
-                        R.plurals.drafts_publish_all_confirmation_message_plural, draftCount, draftCount
-                    )
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showPublishAllDialog = false }
                 )
-            },
-            confirmButton = {
-                TextButton(
+                AppTextButton(
+                    text = stringResource(R.string.common_publish),
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         showPublishAllDialog = false
                         viewModel.draftDelegate.publishAllDrafts { count ->
@@ -179,14 +185,8 @@ fun DraftsCard(
                             ).show()
                         }
                     }
-                ) {
-                    Text(stringResource(R.string.common_publish))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPublishAllDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+                )
+            }
+        )
     }
 }

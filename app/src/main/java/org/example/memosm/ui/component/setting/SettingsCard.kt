@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -36,7 +37,9 @@ import org.example.memosm.R
 import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.model.Visibility
 import org.example.memosm.ui.getVisibilityLabel
+import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppListItem
+import org.example.memosm.ui.theme.AppTextButton
 
 private val LANGUAGE_NAMES = mapOf(
     "ar" to "العربية",
@@ -113,53 +116,49 @@ private fun SettingsSelectionItem(
         onClick = { showDialog = true }
     )
 
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(text = label) },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(options) { option ->
-                        val isSelected = option == currentValue
-                        ListItem(
-                            content = {
-                                Text(
-                                    labelProvider(option),
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                            }, leadingContent = {
-                                if (isSelected) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.width(24.dp))
-                                }
-                            }, modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    onSelect(option)
-                                    showDialog = false
-                                }, colors = ListItemDefaults.colors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(
-                                    alpha = 0.3f
-                                )
-                                else Color.Transparent
+    AppDialog(
+        show = showDialog,
+        title = label,
+        onDismissRequest = { showDialog = false },
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                onClick = { showDialog = false }
+            )
+        }
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(options) { option ->
+                val isSelected = option == currentValue
+                AppListItem(
+                    title = labelProvider(option),
+                    leading = {
+                        if (isSelected) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
-                        )
+                        } else {
+                            Spacer(modifier = Modifier.width(24.dp))
+                        }
+                    },
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)),
+                    containerColor = if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    } else {
+                        Color.Transparent
+                    },
+                    onClick = {
+                        onSelect(option)
+                        showDialog = false
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+                )
+            }
+        }
     }
 }

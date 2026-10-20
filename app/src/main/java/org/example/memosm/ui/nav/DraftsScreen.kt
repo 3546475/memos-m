@@ -18,6 +18,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -102,26 +104,27 @@ fun DraftsScreen(
 
     // Delete confirmation dialog
     if (draftToDelete != null) {
-        AlertDialog(
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.drafts_delete_confirm_title),
+            summary = stringResource(R.string.drafts_delete_confirm_message),
             onDismissRequest = { draftToDelete = null },
-            title = { Text(stringResource(R.string.drafts_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.drafts_delete_confirm_message)) },
-            confirmButton = {
-                TextButton(
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { draftToDelete = null }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
                     onClick = {
                         viewModel.draftDelegate.deleteDraft(draftToDelete!!.id)
                         draftToDelete = null
-                    }, colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text(stringResource(R.string.common_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { draftToDelete = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            })
+                    }
+                )
+            }
+        )
     }
 }
