@@ -1,5 +1,17 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.ui.theme.miuixBlurSupported
+
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+
+import top.yukonga.miuix.kmp.blur.drawBackdrop
+
+import top.yukonga.miuix.kmp.blur.blur
+
+import androidx.compose.ui.graphics.RectangleShape
+
 import DeleteConfirmationDialog
 
 import androidx.compose.runtime.setValue
@@ -79,6 +91,8 @@ import org.example.memosm.viewmodel.MemosViewModel
 val LocalMemoEditor = compositionLocalOf<(Memo) -> Unit> { { } }
 val LocalMemoCommenter = compositionLocalOf<(Memo) -> Unit> { { } }
 
+private const val HeaderBlurRadius = 24f
+
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun MemosScaffold(
@@ -133,6 +147,10 @@ fun MemosScaffold(
     val isListVisible =
         navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded
     val isDualPane = isListVisible && isDetailVisible
+
+    // The floating list header frosts the list behind it on API 33+ in MIUIX only.
+    val headerBlurEnabled = miuixBlurSupported()
+    val headerBackdrop = rememberLayerBackdrop()
 
     // Sync selected memo with navigator
     // We add memos and search items as dependencies to ensure selectedMemo is updated if the items in the list change (e.g. after an edit)
@@ -203,20 +221,46 @@ fun MemosScaffold(
                     listPane = {
                         AnimatedPane {
                             Box(modifier = Modifier.fillMaxSize()) {
-                                listPane { memo ->
-                                    focusManager.clearFocus()
-                                    scope.launch {
-                                        val id = memo.name ?: memo.content.hashCode().toString()
-                                        navigator.navigateTo(
-                                            ListDetailPaneScaffoldRole.Detail, MemoKey(id)
+                                // MIUIX draws the list into a backdrop layer so the floating header
+                                // can sample and blur it; MD keeps the plain list.
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .then(
+                                            if (headerBlurEnabled) {
+                                                Modifier.layerBackdrop(headerBackdrop)
+                                            } else {
+                                                Modifier
+                                            }
                                         )
+                                ) {
+                                    listPane { memo ->
+                                        focusManager.clearFocus()
+                                        scope.launch {
+                                            val id = memo.name ?: memo.content.hashCode().toString()
+                                            navigator.navigateTo(
+                                                ListDetailPaneScaffoldRole.Detail, MemoKey(id)
+                                            )
+                                        }
                                     }
                                 }
 
                                 // Keep the header above the list without changing the list's
                                 // constraints as the header hides or search expands.
                                 Column(modifier = Modifier.fillMaxSize()) {
-                                    listHeader(showSearchBar, isSearchExpanded)
+                                    Box(
+                                        modifier = if (headerBlurEnabled) {
+                                            Modifier.drawBackdrop(
+                                                backdrop = headerBackdrop,
+                                                shape = { RectangleShape },
+                                                effects = { blur(HeaderBlurRadius, HeaderBlurRadius) }
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    ) {
+                                        listHeader(showSearchBar, isSearchExpanded)
+                                    }
                                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                         overlay(
                                             { memo ->
