@@ -512,9 +512,12 @@ AppTopBar(
   运行时由 `ui/theme/MiuixBlur.kt` 的 `miuixBlurSupported()` 统一把关
   （MIUIX + API 33），`drawBackdrop` 自身还会在无 RuntimeShader 时自动降级。
 - 首页：列表包进 `Modifier.layerBackdrop()`，浮层 header 用 `drawBackdrop(shape = Rectangle, effects = { blur(24f) })` 取景。
-- **实测限制**：首页 header 在向下滚动时会整体隐藏（滚动策略），所以毛玻璃只在
-  「header 半隐半现」的过渡态可见，静止时看不出来。要想效果明显，下一步应把 backdrop 铺到
-  **底部导航栏**（内容确实从导航栏下方穿过），并把导航栏背景改成半透明。
+- **底部导航栏（可见效果）**：内容列包进 backdrop 层，`MiuixNavigationBar` 传
+  `color = surface.copy(alpha = 0.72f)` + `drawBackdrop { blur(24f) }`，滚到导航栏下方的笔记
+  会被磨砂；真机已确认。MD 分支保持不透明纯色。
+- **实测限制**：首页 header 在向下滚动时会整体隐藏（滚动策略），所以顶栏毛玻璃只在
+  「header 半隐半现」的过渡态可见，静止时看不出来。若要让顶栏也明显，需要改成「header 常驻 +
+  scrollBehavior 收缩」，属于交互改动，留待产品确认。
 - MD 分支完全不启用（`LocalThemeStyle == MD` 时直接走原路径），保证 MD 零变化。
 
 - **一致性检查**：圆角、间距、分隔线、图标尺寸、按压反馈四项全 App 扫描（可写 grep 脚本，
