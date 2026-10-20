@@ -520,6 +520,12 @@ AppTopBar(
   scrollBehavior 收缩」，属于交互改动，留待产品确认。
 - MD 分支完全不启用（`LocalThemeStyle == MD` 时直接走原路径），保证 MD 零变化。
 
+- **深色模式（已核对）**：真机切「外观 → 主题模式 → 深色」后确认
+  页面纯黑 `#000000`、卡片 `#242424`、文字与图标对比正常、底栏磨砂在深色下同样生效。
+  浅色下页面 `#F7F7F7`、卡片纯白，与 HyperOS 一致。
+- **配色定稿**：`primaryContainer` 改为「主色 12% 叠页面色」，并补了浅色/深色两套单测
+  （`MiuixColorMappingTest`），防止再次退回紫色系容器。
+
 - **一致性检查**：圆角、间距、分隔线、图标尺寸、按压反馈四项全 App 扫描（可写 grep 脚本，
   禁止在 MIUIX 分支新增 `dp` 字面量、禁止直接使用 `androidx.compose.material3.*`）。
 - **lint 规则（可选）**：自定义 lint 或 CI grep，限制 `ui/` 下直接 import Material 组件
