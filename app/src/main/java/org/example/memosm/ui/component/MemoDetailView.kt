@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppExtendedFloatingActionButton
 import org.example.memosm.ui.theme.AppSurface
+import org.example.memosm.ui.theme.AppTopBar
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.composer.MemoComposerScreen
 import org.example.memosm.ui.component.item.MemoItem
@@ -117,18 +118,8 @@ fun MemoDetailView(
     ) {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = {
-                TopAppBar(
-                    title = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Text(
-                                stringResource(R.string.memo_detail_title),
-                                modifier = Modifier.widthIn(max = 600.dp)
-                            )
-                        }
-                    },
+                AppTopBar(
+                    title = stringResource(R.string.memo_detail_title),
                     navigationIcon = {
                         if (showBackButton) {
                             IconButton(onClick = onBack) {
@@ -138,10 +129,7 @@ fun MemoDetailView(
                                 )
                             }
                         }
-                    },
-                    // Set to empty because parent Scaffolds are already handling system bar insets
-                    windowInsets = WindowInsets(0, 0, 0, 0),
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    }
                 )
             }, floatingActionButton = {
                 if (uiState.session.currUser != null) {
