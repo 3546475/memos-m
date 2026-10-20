@@ -87,7 +87,7 @@
 | **P1 主题底座** | 令牌与映射收口、适配层补齐、字体/圆角/密度、主题测试与截图基线 | ✅ `4b883ce` 之后（见下节） |
 | **P2 主界面骨架** | Scaffold / 搜索栏 / 筛选 / 下拉刷新 / 进度与空态 / 滚动与 overscroll / 四个主 tab | 🔄 第一轮完成（搜索栏、筛选、下拉刷新、进度） |
 | **P3 弹层与浮层** | 对话框 / 底部弹层 / 下拉菜单 / Snackbar / ActionSheet / 权限与冲突弹窗 | 🔄 第四轮完成（17 处弹窗 + 2 个弹层 + 3 处菜单 + Snackbar） |
-| **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | ⬜ |
+| **P4 设置页与偏好组件** | 设置子页、偏好行、输入框、滑条、备份恢复长表单、账号与审计 | 🔄 第一轮完成（行原语 + 登录/资料表单） |
 | **P5 内容与媒体** | Memo 卡片细节、Markdown、附件与媒体播放器、编辑器 | ⬜ |
 | **P6 收尾验收** | 深色/字体/动画一致性、a11y、性能、回归清单、文档与截图 | ⬜ |
 
@@ -367,6 +367,22 @@ AppTopBar(
 ### P4 设置页与偏好组件
 
 **目标**：设置体系全部 HyperOS 化，并抽象出可复用的偏好行。
+
+**进度：第一轮已完成**（行原语 + 文本输入）
+
+已完成：
+- `AboutAppCard`（版本/Git Hash/仓库/问题反馈/许可证）、`ShortcutsCard`、`WebhookCard`、
+  `ProfileScreen` 实例信息、`RecoveryCard` 备份选择行 → `AppListItem` / `AppSwitch`。
+  `AppListItem` 支持 `leading` / `trailing` / `containerColor` / `onClick`，需要长按的行
+  （版本号彩蛋）仍用 `combinedClickable` 挂在 `modifier` 上。
+- `LoginScreen`（服务器地址/Token/用户名）与 `EditProfileScreen`（5 个字段）→ `AppTextField`；
+  `AppTextField` 新增 `minLines`/`maxLines` 透传（Miuix 与 M3 都支持）。
+- 真机检查：设置总览、常规页、个人页渲染正常。
+
+**已知待处理**
+- 设置总览的分组图标底圈是淡紫色（`primaryContainer` 取色），和 HyperOS 的浅蓝灰不一致，
+  属于配色映射调优，放到 P6 统一定稿。
+- 密码框（登录密码、备份密码）仍是 Material `OutlinedSecureTextField`，需要 `AppSecureTextField`。
 
 **范围**
 
