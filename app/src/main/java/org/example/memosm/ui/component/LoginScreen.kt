@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -517,7 +519,7 @@ fun LoginContent(
             enabled = !busy && hostUrl.isNotBlank()
         ) {
             if (busy) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                AppCircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
                 Text(when {
                     loginMode == LoginMode.SSO -> stringResource(R.string.login_sso_find_providers)

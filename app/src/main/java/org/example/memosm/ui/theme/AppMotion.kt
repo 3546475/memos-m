@@ -40,3 +40,19 @@ fun appSlideSpec(
     } else {
         tween(durationMillis = durationMillis)
     }
+
+/** Enter spec for overlay-style transitions (full-screen viewers, sheets). */
+fun appEnterSpec(miuix: Boolean, durationMillis: Int = 220): FiniteAnimationSpec<Float> =
+    if (miuix) {
+        spring(dampingRatio = 0.9f, stiffness = 700f, visibilityThreshold = 0.001f)
+    } else {
+        tween(durationMillis = durationMillis)
+    }
+
+/** Exit spec; slightly firmer so dismissals feel settled rather than bouncy. */
+fun appExitSpec(miuix: Boolean, durationMillis: Int = 180): FiniteAnimationSpec<Float> =
+    if (miuix) {
+        spring(dampingRatio = 0.95f, stiffness = 550f, visibilityThreshold = 0.001f)
+    } else {
+        tween(durationMillis = durationMillis)
+    }

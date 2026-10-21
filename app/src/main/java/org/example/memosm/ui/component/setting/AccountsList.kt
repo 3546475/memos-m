@@ -1,3 +1,7 @@
+import org.example.memosm.ui.theme.LocalThemeStyle
+import org.example.memosm.ui.theme.appEnterSpec
+import org.example.memosm.ui.theme.isMiuixMotion
+
 import androidx.compose.animation.animateColorAsState
 import org.example.memosm.ui.theme.flatCardElevation
 import androidx.compose.animation.core.animateDpAsState
@@ -159,7 +163,7 @@ fun AccountsList(
                     state = anchoredDraggableState,
                     // Require 90% swipe to trigger action
                     positionalThreshold = { distance: Float -> distance * 0.9f },
-                    animationSpec = tween(durationMillis = 200)
+                    animationSpec = appEnterSpec(isMiuixMotion(LocalThemeStyle.current), durationMillis = 200)
                 )
 
                 // Update anchors when width changes

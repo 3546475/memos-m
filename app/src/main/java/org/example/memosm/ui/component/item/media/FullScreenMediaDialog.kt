@@ -1,5 +1,15 @@
 package org.example.memosm.ui.component.item.media
 
+import org.example.memosm.ui.theme.appSlideSpec
+
+import org.example.memosm.ui.theme.appExitSpec
+
+import org.example.memosm.ui.theme.appEnterSpec
+
+import org.example.memosm.ui.theme.LocalThemeStyle
+
+import org.example.memosm.ui.theme.isMiuixMotion
+
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.findViewTreeOnBackPressedDispatcherOwner
@@ -108,6 +118,8 @@ internal fun FullScreenMediaDialog(
     title: String? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
+    // MIUIX uses Miuix's short springs; MD keeps the original tweens.
+    val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
     val density = LocalDensity.current
     val threshold = with(density) { 120.dp.toPx() }
     val fadeDistance = with(density) { 180.dp.toPx() }
@@ -187,7 +199,7 @@ internal fun FullScreenMediaDialog(
                     if (viewerReady && entering) {
                         enterOrigin = currentOrigin?.invoke()?.translate(-viewerPosition)
                         enterMediaSize = Size(imageWidth, imageHeight)
-                        enterProgress.animateTo(1f, tween(220))
+                        enterProgress.animateTo(1f, appEnterSpec(miuixMotion))
                         entering = false
                     }
                 }
@@ -225,7 +237,7 @@ internal fun FullScreenMediaDialog(
                         exitMediaSize = Size(imageWidth, imageHeight)
                         exiting = true
                         scope.launch {
-                            exitProgress.animateTo(1f, tween(220))
+                            exitProgress.animateTo(1f, appEnterSpec(miuixMotion))
                             currentDismiss()
                         }
                     }
@@ -247,7 +259,7 @@ internal fun FullScreenMediaDialog(
                             backProgress.snapTo(event.progress)
                         }
                         if (backingDetails) {
-                            backProgress.animateTo(1f, tween(180))
+                            backProgress.animateTo(1f, appExitSpec(miuixMotion))
                             scroll.scrollTo(0)
                             backProgress.snapTo(0f)
                         } else dismiss()
@@ -399,8 +411,8 @@ internal fun FullScreenMediaDialog(
                     }
                     AnimatedVisibility(
                         visible = !immersive,
-                        enter = slideInVertically(tween(220)) { -it } + fadeIn(tween(220)),
-                        exit = slideOutVertically(tween(220)) { -it } + fadeOut(tween(220)),
+                        enter = slideInVertically(appSlideSpec(miuixMotion, 220)) { -it } + fadeIn(appEnterSpec(miuixMotion)),
+                        exit = slideOutVertically(appSlideSpec(miuixMotion, 220)) { -it } + fadeOut(appExitSpec(miuixMotion)),
                         modifier = Modifier.align(Alignment.TopCenter)
                     ) {
                         Box(

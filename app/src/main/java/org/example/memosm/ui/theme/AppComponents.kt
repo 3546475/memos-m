@@ -78,6 +78,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator as MiuixCircularPro
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFab
 import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixDivider
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator as MiuixLinearProgressIndicator
+import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults as MiuixProgressDefaults
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PullToRefresh as MiuixPullToRefresh
 import top.yukonga.miuix.kmp.basic.RadioButton as MiuixRadioButton
@@ -562,14 +563,29 @@ fun AppSlider(
 @Composable
 fun AppLinearProgressIndicator(
     progress: Float?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    color: Color? = null
 ) {
     if (usesMiuix) {
-        MiuixLinearProgressIndicator(progress = progress, modifier = modifier)
+        MiuixLinearProgressIndicator(
+            progress = progress,
+            modifier = modifier,
+            colors = MiuixProgressDefaults.progressIndicatorColors(
+                foregroundColor = color ?: MiuixTheme.colorScheme.primary
+            )
+        )
     } else if (progress == null) {
-        LinearProgressIndicator(modifier = modifier)
+        if (color != null) {
+            LinearProgressIndicator(modifier = modifier, color = color)
+        } else {
+            LinearProgressIndicator(modifier = modifier)
+        }
     } else {
-        LinearProgressIndicator(progress = { progress }, modifier = modifier)
+        if (color != null) {
+            LinearProgressIndicator(progress = { progress }, modifier = modifier, color = color)
+        } else {
+            LinearProgressIndicator(progress = { progress }, modifier = modifier)
+        }
     }
 }
 
@@ -577,22 +593,32 @@ fun AppLinearProgressIndicator(
 fun AppCircularProgressIndicator(
     modifier: Modifier = Modifier,
     progress: Float? = null,
-    strokeWidth: Dp? = null
+    strokeWidth: Dp? = null,
+    color: Color? = null
 ) {
     if (usesMiuix) {
-        if (strokeWidth != null) {
-            MiuixCircularProgressIndicator(
-                modifier = modifier,
-                progress = progress,
-                strokeWidth = strokeWidth
-            )
-        } else {
-            MiuixCircularProgressIndicator(modifier = modifier, progress = progress)
-        }
+        // Miuix reads the spinner tint from a ProgressIndicatorColors bundle rather than a bare
+        // Colour, so a call site that needs to match its button's content tint passes `color` here.
+        MiuixCircularProgressIndicator(
+            modifier = modifier,
+            progress = progress,
+            colors = MiuixProgressDefaults.progressIndicatorColors(
+                foregroundColor = color ?: MiuixTheme.colorScheme.primary
+            ),
+            strokeWidth = strokeWidth ?: MiuixProgressDefaults.DefaultCircularProgressIndicatorStrokeWidth
+        )
     } else if (progress == null) {
-        CircularProgressIndicator(modifier = modifier)
+        if (color != null) {
+            CircularProgressIndicator(modifier = modifier, color = color)
+        } else {
+            CircularProgressIndicator(modifier = modifier)
+        }
     } else {
-        CircularProgressIndicator(progress = { progress }, modifier = modifier)
+        if (color != null) {
+            CircularProgressIndicator(progress = { progress }, modifier = modifier, color = color)
+        } else {
+            CircularProgressIndicator(progress = { progress }, modifier = modifier)
+        }
     }
 }
 

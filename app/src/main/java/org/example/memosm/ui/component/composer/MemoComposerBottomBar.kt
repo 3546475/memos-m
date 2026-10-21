@@ -168,7 +168,7 @@ fun MemoComposerBottomBar(
                                                 MaterialTheme.shapes.medium
                                             ), contentAlignment = Alignment.Center
                                     ) {
-                                        CircularProgressIndicator(
+                                        AppCircularProgressIndicator(
                                             modifier = Modifier.size(24.dp), color = Color.White
                                         )
                                     }
@@ -467,7 +467,7 @@ fun MemoComposerBottomBar(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 icon = {
                     if (isPosting) {
-                        CircularProgressIndicator(
+                        AppCircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = LocalContentColor.current,
                             strokeWidth = 2.dp
@@ -489,7 +489,7 @@ fun MemoComposerBottomBar(
                 modifier = Modifier
             ) {
                 if (isPosting) {
-                    CircularProgressIndicator(
+                    AppCircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = LocalContentColor.current,
                         strokeWidth = 2.dp

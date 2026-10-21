@@ -1,5 +1,15 @@
 package org.example.memosm.ui.component.item.media
 
+import org.example.memosm.ui.theme.appExitSpec
+
+import org.example.memosm.ui.theme.appEnterSpec
+
+import org.example.memosm.ui.theme.isMiuixMotion
+
+import org.example.memosm.ui.theme.LocalThemeStyle
+
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import org.example.memosm.ui.theme.AppSlider
 
 import androidx.compose.animation.AnimatedVisibility
@@ -140,7 +150,12 @@ internal fun VideoPlaybackControls(
                 .zoomable(true, mediaSize, doubleTapZoom = false, handleTapGestures = false)
         ) { videoContent() }
 
-        AnimatedVisibility(visible, enter = fadeIn(), exit = fadeOut()) {
+            val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
+            AnimatedVisibility(
+                visible,
+                enter = fadeIn(appEnterSpec(miuixMotion)),
+                exit = fadeOut(appExitSpec(miuixMotion))
+            ) {
             // Background taps pass through to the video; only the actual controls consume input.
             Box(
                 Modifier.fillMaxSize()
@@ -227,7 +242,7 @@ internal fun VideoPlaybackControls(
             }
         }
         if (active && !blocked && state.playbackState == Player.STATE_BUFFERING) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center).padding(top = 100.dp).size(32.dp))
+            AppCircularProgressIndicator(modifier = Modifier.align(Alignment.Center).padding(top = 100.dp).size(32.dp))
         }
         if (active && !blocked && state.hasError) {
             Column(
