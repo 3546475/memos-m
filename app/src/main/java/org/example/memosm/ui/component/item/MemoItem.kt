@@ -8,7 +8,6 @@ import android.content.Intent
 import android.net.Uri
 import android.text.format.DateUtils
 import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -69,11 +67,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import top.yukonga.miuix.kmp.blur.ProgressiveBlur
-import top.yukonga.miuix.kmp.blur.drawBackdrop
-import top.yukonga.miuix.kmp.blur.progressiveBlur
-import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -85,7 +78,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import org.example.memosm.ui.theme.AppCard
-import org.example.memosm.ui.theme.miuixBlurSupported
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -106,12 +98,6 @@ import org.example.memosm.ui.component.item.media.AttachmentOrigins
 import org.example.memosm.ui.component.item.media.attachmentOrigin
 import org.example.memosm.ui.component.item.media.FullScreenAttachmentViewer
 import org.example.memosm.ui.component.resolveResourceUrl
-
-/** Where the clipped-content dissolve begins, as a fraction of the visible card body. */
-private const val ContentFadeStart = 0.72f
-
-/** Blur radius of that dissolve, in pixels. */
-private const val ContentFadeBlurRadius = 16f
 
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -339,7 +325,30 @@ fun MemoItem(
             Spacer(modifier = Modifier.height(if (user != null) 10.dp else 2.dp))
 
             Column(modifier = Modifier.padding(start = 0.dp, end = 0.dp)) {
-                if (maxHeight == Dp.Unspecified) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (maxHeight != Dp.Unspecified) {
+                                Modifier
+                                    .heightIn(max = maxHeight)
+                                    .clip(RectangleShape)
+                                    .graphicsLayer {
+                                        compositingStrategy = CompositingStrategy.Offscreen
+                                    }
+                                    .drawWithContent {
+                                        drawContent()
+                                        if (size.height >= maxHeight.toPx() - 1.dp.toPx()) {
+                                            drawRect(
+                                                brush = Brush.verticalGradient(
+                                                    0.7f to Color.Black, 1.0f to Color.Transparent
+                                                ), blendMode = BlendMode.DstIn
+                                            )
+                                        }
+                                    }
+                            } else {
+                                Modifier
+                            })) {
                     NativeComposeMarkdown(
                         content = memo.content,
                         token = token,
@@ -352,86 +361,6 @@ fun MemoItem(
                             .padding(start = 12.dp, end = 16.dp, bottom = 8.dp),
                         headerScale = headerScale
                     )
-                } else {
-                    // A clipped card dissolves at its bottom edge. Miuix sessions dissolve into
-                    // depth of field instead of a white wash: the card records its own body into a
-                    // backdrop layer and a progressively blurred copy is drawn over its last
-                    // stretch. Material keeps the plain alpha fade.
-                    val blurFade = miuixBlurSupported()
-                    val fadeBackdrop = rememberLayerBackdrop()
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = maxHeight)
-                            .clip(RectangleShape)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (blurFade) Modifier.layerBackdrop(fadeBackdrop) else Modifier
-                                )
-                                // The blurred copy has to be opaque, so the card colour belongs to
-                                // the recorded layer instead of the card behind it.
-                                .background(colors.containerColor)
-                                .then(
-                                    if (blurFade) {
-                                        Modifier
-                                    } else {
-                                        Modifier
-                                            .graphicsLayer {
-                                                compositingStrategy = CompositingStrategy.Offscreen
-                                            }
-                                            .drawWithContent {
-                                                drawContent()
-                                                if (size.height >= maxHeight.toPx() - 1.dp.toPx()) {
-                                                    drawRect(
-                                                        brush = Brush.verticalGradient(
-                                                            ContentFadeStart to Color.Black,
-                                                            1.0f to Color.Transparent
-                                                        ),
-                                                        blendMode = BlendMode.DstIn
-                                                    )
-                                                }
-                                            }
-                                    }
-                                )
-                        ) {
-                            NativeComposeMarkdown(
-                                content = memo.content,
-                                token = token,
-                                hostUrl = hostUrl,
-                                selectable = isDetailView,
-                                onContentChange = onContentUpdate,
-                                onHashtagClick = onHashtagClick,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 12.dp, end = 16.dp, bottom = 8.dp),
-                                headerScale = headerScale
-                            )
-                        }
-                        if (blurFade) {
-                            // The band starts with a zero-radius blur, so its top edge is
-                            // pixel-identical to the sharp content underneath and needs no mask.
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(1f - ContentFadeStart)
-                                    .drawBackdrop(
-                                        backdrop = fadeBackdrop,
-                                        shape = { RectangleShape },
-                                        effects = {
-                                            progressiveBlur(
-                                                ContentFadeBlurRadius,
-                                                ContentFadeBlurRadius,
-                                                ProgressiveBlur.Bottom
-                                            )
-                                        }
-                                    )
-                            )
-                        }
-                    }
                 }
 
                 memo.location?.let { loc ->
