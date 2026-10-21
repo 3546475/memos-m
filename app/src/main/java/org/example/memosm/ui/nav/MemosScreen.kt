@@ -5,6 +5,7 @@ import org.example.memosm.model.TopBarScrollMode
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -34,11 +35,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Shortcut
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,9 +79,14 @@ import org.example.memosm.ui.component.GenericMemosListPane
 import org.example.memosm.ui.component.MemoSearchBar
 import org.example.memosm.ui.component.MemosScaffold
 import org.example.memosm.ui.component.SyncStatusBar
+import org.example.memosm.ui.component.SyncStatus
+import org.example.memosm.ui.component.SyncStatusIconButton
+import org.example.memosm.ui.component.SyncStatusPanel
+import org.example.memosm.ui.component.syncStatusOf
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.profile.DraftsActivity
+import org.example.memosm.ui.profile.SettingsActivity
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -124,6 +132,12 @@ fun MemosScreen(
     }
     var showDraftPrompt by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(true) }
+    // Miuix keeps the sync status next to the search action instead of inside a
+    // search field, so its panel is owned here.
+    var showSyncPanel by remember { mutableStateOf(false) }
+    val cacheSettingsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.refreshAfterProfileDetails()
+    }
 
 
     // FAB expansion based on scroll direction
@@ -172,27 +186,68 @@ fun MemosScreen(
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
         navigationKey = activeFeed,
-        listHeader = { showSearchBar, searchExpanded ->
-            // ALL hides the tabs with the search bar; the other modes keep the tabs pinned.
-            val tabsVisible = if (topBarScrollMode == TopBarScrollMode.ALL) {
-                showSearchBar && !searchExpanded
-            } else {
-                !searchExpanded
-            }
-            AnimatedVisibility(
-                visible = tabsVisible,
-                enter = slideInVertically { -it } + expandVertically() + fadeIn(),
-                exit = slideOutVertically { -it } + shrinkVertically() + fadeOut()
-            ) {
-                MemoFeedTabs(
-                    pagerState,
-                    Modifier
-                        .testTag("memo_feed_tabs")
-                        .onSizeChanged {
-                            feedHeaderHeight = with(density) { it.height.toDp() }
+        listHeader = { showSearchBar, searchExpanded, onSearchExpandedChange ->
+            if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                // One row of chrome: text tabs on the left, search on the right. The
+                // search field itself only exists while expanded, so the feed starts
+                // near the top of the screen instead of under two stacked capsules.
+                val rowVisible =
+                    (topBarScrollMode != TopBarScrollMode.ALL || showSearchBar) && !searchExpanded
+                val tabsVisible = topBarScrollMode == TopBarScrollMode.NEVER || showSearchBar
+                AnimatedVisibility(
+                    visible = rowVisible && !searchExpanded,
+                    enter = fadeIn() + expandVertically(),
+                    // Expanding the search replaces the row outright, so it must not
+                    // animate the pane downwards while the panel animates in.
+                    exit = if (searchExpanded) ExitTransition.None else fadeOut() + shrinkVertically()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AnimatedVisibility(visible = tabsVisible) {
+                            MemoFeedTabs(pagerState, Modifier.testTag("memo_feed_tabs"))
                         }
-                        .padding(bottom = 16.dp)
-                )
+                        Spacer(Modifier.weight(1f))
+                        // An idle sync state carries no information, so it stays silent.
+                        if (syncStatusOf(uiState) != SyncStatus.IDLE) {
+                            SyncStatusIconButton(
+                                uiState = uiState,
+                                onClick = { showSyncPanel = true }
+                            )
+                        }
+                        IconButton(onClick = { onSearchExpandedChange(true) }) {
+                            Icon(
+                                Icons.Outlined.Search,
+                                contentDescription = stringResource(R.string.memo_search_placeholder)
+                            )
+                        }
+                    }
+                }
+            } else {
+                // ALL hides the tabs with the search bar; the other modes keep the tabs pinned.
+                val tabsVisible = if (topBarScrollMode == TopBarScrollMode.ALL) {
+                    showSearchBar && !searchExpanded
+                } else {
+                    !searchExpanded
+                }
+                AnimatedVisibility(
+                    visible = tabsVisible,
+                    enter = slideInVertically { -it } + expandVertically() + fadeIn(),
+                    exit = slideOutVertically { -it } + shrinkVertically() + fadeOut()
+                ) {
+                    MemoFeedTabs(
+                        pagerState,
+                        Modifier
+                            .testTag("memo_feed_tabs")
+                            .onSizeChanged {
+                                feedHeaderHeight = with(density) { it.height.toDp() }
+                            }
+                            .padding(bottom = 16.dp)
+                    )
+                }
             }
         },
         listPane = { onMemoClick ->
@@ -203,8 +258,17 @@ fun MemosScreen(
                 key = { MemoFeed.entries[it] }
             ) { page ->
                 val feed = MemoFeed.entries[page]
+                // Miuix's header is a single row, so the list only needs to clear it;
+                // MD keeps the tab row plus the floating search field below it.
                 val contentPadding = PaddingValues(
-                    start = 16.dp, top = 88.dp + feedHeaderHeight, end = 16.dp, bottom = bottomPadding
+                    start = 16.dp,
+                    top = if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                        64.dp
+                    } else {
+                        88.dp + feedHeaderHeight
+                    },
+                    end = 16.dp,
+                    bottom = bottomPadding
                 )
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(
@@ -236,15 +300,8 @@ fun MemosScreen(
             }
         },
         overlay = { onMemoClick, showSearchBar, searchExpanded, onSearchExpandedChange, isDualPane, isDetailVisible ->
-            AnimatedVisibility(
-                visible = if (topBarScrollMode == TopBarScrollMode.NEVER) {
-                    !searchExpanded || isDualPane || !isDetailVisible
-                } else {
-                    (showSearchBar || searchExpanded) && (!searchExpanded || isDualPane || !isDetailVisible)
-                },
-                enter = slideInVertically { -it } + fadeIn(),
-                exit = slideOutVertically { -it } + fadeOut(),
-                modifier = Modifier.align(Alignment.TopCenter)) {
+            val miuixSearch = LocalThemeStyle.current == ThemeStyle.MIUIX
+            val searchBar: @Composable () -> Unit = {
                 key(activeFeed) {
                     MemoSearchBar(
                         viewModel = viewModel,
@@ -254,11 +311,29 @@ fun MemosScreen(
                             else R.string.memo_search_placeholder
                         ),
                         onMemoClick = onMemoClick,
+                        // Miuix has no collapsed field: the header row's search action
+                        // drives the expanded panel, so the state is hoisted there.
+                        expandedOverride = if (miuixSearch) searchExpanded else null,
                         onExpandedChange = {
                             isSearchExpanded = it
                             onSearchExpandedChange(it)
                         }
                     )
+                }
+            }
+            if (miuixSearch) {
+                searchBar()
+            } else {
+                AnimatedVisibility(
+                    visible = if (topBarScrollMode == TopBarScrollMode.NEVER) {
+                        !searchExpanded || isDualPane || !isDetailVisible
+                    } else {
+                        (showSearchBar || searchExpanded) && (!searchExpanded || isDualPane || !isDetailVisible)
+                    },
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = slideOutVertically { -it } + fadeOut(),
+                    modifier = Modifier.align(Alignment.TopCenter)) {
+                    searchBar()
                 }
             }
 
@@ -322,6 +397,20 @@ fun MemosScreen(
                 }
             }
         })
+
+    if (showSyncPanel) {
+        SyncStatusPanel(
+            uiState = uiState,
+            onDismiss = { showSyncPanel = false },
+            onDeleteOp = { opId -> viewModel.deletePendingOp(opId) },
+            onManageCache = {
+                showSyncPanel = false
+                cacheSettingsLauncher.launch(
+                    SettingsActivity.createIntent(context, SettingsSection.OFFLINE)
+                )
+            }
+        )
+    }
 
     // Draft prompt dialog
     AppDialog(

@@ -613,6 +613,28 @@ AppTopBar(
   落到 Material 的 `onSurface`（黑）；适配层统一提供 `onPrimary`。
 - **搜索图标贴边**：Miuix 输入框的 `leadingIcon` 无内边距，搜索栏在 MIUIX 分支加了 12dp 起点缩进。
 
+### 6.1 首页顶栏减重（A+B+C，2026-10-21）
+
+首页顶部原本是「42dp 全宽分段控件 + 16dp 空隙 + 48dp 灰搜索框」三块 chrome 叠在一起，且左右边距
+（0dp 与 28dp）互相错位。改造结论：**顶栏只保留一行**。
+
+- **A 文字标签**：`MemoFeedTabs` 的 MIUIX 分支不再用 `MiuixTabRow`，改为 18dp 间距的文字标签 +
+  16×3dp 主色下划线（未选中透明、选中淡入），左对齐并与搜索框左缘对齐，高度 40dp（含 12dp 隐形热区）。
+  MD 分支仍是 `PrimaryTabRow`，未改一行。
+- **B 搜索框瘦身**：折叠态不再有输入框，展开面板里的输入框 42dp、左右 12dp 内边距。
+- **C 搜索折叠为图标**：折叠态只有右上角一个搜索图标，点开才是整块面板；展开态由
+  `MemoSearchBar(expandedOverride = …)` 受控渲染（`MemosScaffold` 持有 `isSearchExpanded`，
+  `listHeader` 回调新增第三个参数 `onSearchExpandedChange`）。
+  - 面板内 Miuix `InputField` 在 `expanded = true` 时不画 label，空查询会没有任何提示，因此自己叠了
+    一层 `onSurfaceVariantSummary` 色的占位文字。
+  - 没有顶栏动作可点的页面（地图）仍走 `expandedOverride == null` 的旧路径：保留 Miuix 自带的可点击
+    折叠胶囊，避免搜索入口消失。
+- **同步状态图标只在非 IDLE 时出现**：正常状态不再常驻一个蓝色对勾；点击面板随图标迁到
+  `MemosScreen` 持有（`SyncStatusPanel` 在页面级渲染）。
+- **滚动隐藏三档语义不变**：`全部` = 整行滚走；`搜索框` = 标签滚走、图标留下；`不隐藏` = 常驻。
+- **列表顶部留白**：MIUIX 固定 `contentPadding.top = 64dp`（一行 chrome + 16dp 间距），
+  MD 仍是 `88dp + 实测标签高度`。
+
 | 问题 | 现状 / 决策 |
 | --- | --- |
 | 个人页 tab 头像 | Miuix `NavigationBarItem` 只接受 `ImageVector`；当前退化为 `Person` 图标，头像保留在个人主页。P2 决策：接受，或自绘支持 slot 的导航项。 |

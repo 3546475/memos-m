@@ -112,7 +112,11 @@ fun MemosScaffold(
     onToggleNavBar: (Boolean) -> Unit = {},
     isNavBarVisible: Boolean = true,
     navigationKey: Any? = null,
-    listHeader: @Composable (showSearchBar: Boolean, isSearchExpanded: Boolean) -> Unit = { _, _ -> }
+    listHeader: @Composable (
+        showSearchBar: Boolean,
+        isSearchExpanded: Boolean,
+        onSearchExpandedChange: (Boolean) -> Unit
+    ) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusRequester = remember { FocusRequester() }
@@ -266,7 +270,7 @@ fun MemosScaffold(
                                             Modifier
                                         }
                                     ) {
-                                        listHeader(showSearchBar, isSearchExpanded)
+                                        listHeader(showSearchBar, isSearchExpanded) { isSearchExpanded = it }
                                     }
                                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                         overlay(

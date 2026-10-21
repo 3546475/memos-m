@@ -117,6 +117,7 @@ import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.viewmodel.MemosViewModel
 import top.yukonga.miuix.kmp.basic.InputField as MiuixInputField
 import top.yukonga.miuix.kmp.basic.SearchBar as MiuixSearchBar
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.viewmodel.manager.LocalSearchFilter
 
 /** The map has already loaded its history, so search can filter the same pool offline. */
@@ -141,6 +142,7 @@ fun MemoSearchBar(
     isExplore: Boolean = false,
     onMemoClick: (Memo) -> Unit,
     onExpandedChange: (Boolean) -> Unit = {},
+    expandedOverride: Boolean? = null,
     placeholder: String = stringResource(R.string.memo_search_placeholder),
     localMemos: List<Memo>? = null,
     onLocalResultsChanged: (List<Memo>) -> Unit = {},
@@ -157,9 +159,18 @@ fun MemoSearchBar(
     val queryState = rememberTextFieldState()
     val query = queryState.text.toString()
     val searchBarState = rememberSearchBarState()
-    val expanded = searchBarState.targetValue == SearchBarValue.Expanded
+    // Miuix has no collapsed search field: the feed header owns the expanded state
+    // and hands it down, while Material keeps driving its own SearchBar state.
+    val controlledExpansion = expandedOverride != null
+    val expanded = expandedOverride ?: (searchBarState.targetValue == SearchBarValue.Expanded)
     val searchScope = rememberCoroutineScope()
-    fun collapseSearch() { searchScope.launch { searchBarState.animateToCollapsed() } }
+    fun collapseSearch() {
+        if (controlledExpansion) {
+            onExpandedChange(false)
+        } else {
+            searchScope.launch { searchBarState.animateToCollapsed() }
+        }
+    }
     val focusManager = LocalFocusManager.current
     val containerFocusRequester = remember { FocusRequester() }
 
@@ -358,41 +369,91 @@ fun MemoSearchBar(
         }
 
         if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-            MiuixSearchBar(
-                inputField = {
-                    MiuixInputField(
-                        query = query,
-                        onQueryChange = { queryState.setTextAndPlaceCursorAtEnd(it) },
-                        onSearch = {
-                            focusManager.clearFocus()
-                            if (filterActionLabel != null) collapseSearch()
-                        },
-                        expanded = expanded,
-                        onExpandedChange = expandSearch,
-                        label = placeholder,
-                        // Miuix puts the leading icon flush against the field edge, so the search
-                        // glyph needs its own inset to breathe like the HyperOS search field.
-                        leadingIcon = {
-                            Box(modifier = Modifier.padding(start = 12.dp)) {
-                                leadingIcon()
-                            }
-                        },
-                        trailingIcon = trailingIcon
-                    )
-                },
-                expanded = expanded,
-                onExpandedChange = expandSearch,
-                modifier = Modifier.fillMaxWidth().testTag("memo_search_bar"),
-                content = {
-                    // Miuix's SearchBar does not paint a surface for its content, so the
-                    // expanded results need an opaque background of their own.
-                    Box(
+            if (expandedOverride == null) {
+                // Screens without a feed header action (the map) keep Miuix's own
+                // collapsed pill, which expands on tap.
+                MiuixSearchBar(
+                    inputField = {
+                        MiuixInputField(
+                            query = query,
+                            onQueryChange = { queryState.setTextAndPlaceCursorAtEnd(it) },
+                            onSearch = {
+                                focusManager.clearFocus()
+                                if (filterActionLabel != null) collapseSearch()
+                            },
+                            expanded = expanded,
+                            onExpandedChange = expandSearch,
+                            label = placeholder,
+                            // Miuix puts the leading icon flush against the field edge, so the search
+                            // glyph needs its own inset to breathe like the HyperOS search field.
+                            leadingIcon = {
+                                Box(modifier = Modifier.padding(start = 12.dp)) {
+                                    leadingIcon()
+                                }
+                            },
+                            trailingIcon = trailingIcon
+                        )
+                    },
+                    expanded = expanded,
+                    onExpandedChange = expandSearch,
+                    modifier = Modifier.fillMaxWidth().testTag("memo_search_bar"),
+                    content = {
+                        // Miuix's SearchBar does not paint a surface for its content, so the
+                        // expanded results need an opaque background of their own.
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) { searchResults() }
+                    }
+                )
+            } else {
+                // Miuix keeps only a search icon in the feed header while collapsed, so
+                // the home feed only composes the expanded panel.
+                AnimatedVisibility(visible = expanded, enter = fadeIn(), exit = fadeOut()) {
+                    Column(
                         Modifier
+                            .testTag("memo_search_bar")
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.surface)
-                    ) { searchResults() }
+                    ) {
+                        Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            MiuixInputField(
+                                query = query,
+                                onQueryChange = { queryState.setTextAndPlaceCursorAtEnd(it) },
+                                onSearch = {
+                                    focusManager.clearFocus()
+                                    if (filterActionLabel != null) collapseSearch()
+                                },
+                                expanded = true,
+                                onExpandedChange = { if (!it) collapseSearch() },
+                                label = placeholder,
+                                leadingIcon = {
+                                    Box(modifier = Modifier.padding(start = 12.dp)) {
+                                        leadingIcon()
+                                    }
+                                },
+                                trailingIcon = trailingIcon,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            // Miuix drops its label once the field is expanded, so an empty
+                            // search would otherwise show no hint at all.
+                            if (query.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .padding(start = 56.dp, end = 56.dp),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        Box(Modifier.weight(1f).fillMaxWidth()) { searchResults() }
+                    }
                 }
-            )
+            }
         } else {
             // The inline overload respects the list pane's bounds and scaffold insets.
             // The newer expanded variants use separate dialog/popup windows.
