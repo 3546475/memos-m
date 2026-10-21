@@ -123,6 +123,9 @@ fun MemosScaffold(
     /** Space the floating bottom bar covers, so panes can keep their own floating controls clear. */
     navBarInset: Dp = 0.dp,
     navigationKey: Any? = null,
+    /** One-shot request from outside (launcher shortcut, compose sheet) to expand the search field. */
+    openSearch: Boolean = false,
+    onSearchOpened: () -> Unit = {},
     listHeader: @Composable (
         showSearchBar: Boolean,
         isSearchExpanded: Boolean,
@@ -197,6 +200,15 @@ fun MemosScaffold(
     }
 
     var isSearchExpanded by remember(navigationKey) { mutableStateOf(false) }
+
+    // The search field is owned here, so an external request (launcher shortcut, the compose
+    // sheet) has to be applied here; the caller clears its flag once the field is really open.
+    LaunchedEffect(openSearch, navigationKey) {
+        if (openSearch && !isSearchExpanded) {
+            isSearchExpanded = true
+            onSearchOpened()
+        }
+    }
 
     val showNavBarByScroll by remember(listState, scrollContext) {
         derivedStateOf { !scrollContext.isScrollingDown || listState.firstVisibleItemIndex == 0 }

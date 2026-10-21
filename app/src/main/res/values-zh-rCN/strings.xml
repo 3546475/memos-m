@@ -293,6 +293,10 @@
     </string-array>
     <!-- Drafts -->
     <string name="drafts_title">草稿</string>
+    <string name="shortcut_new_memo_short">新建</string>
+    <string name="shortcut_notifications_short">通知</string>
+    <string name="shortcut_search">搜索</string>
+    <string name="quick_actions_title">快捷操作</string>
     <string name="drafts_count">%1$d 个草稿</string>
     <string name="drafts_empty">无草稿</string>
     <string name="drafts_no_content">(空草稿)</string>

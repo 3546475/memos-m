@@ -1,6 +1,7 @@
 package org.example.memosm.widget.stats
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -12,6 +13,7 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.action.actionStartActivity
+import androidx.glance.appwidget.action.actionStartActivity as actionStartActivityWithIntent
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.provideContent
@@ -44,6 +46,7 @@ import org.example.memosm.model.Account
 import org.example.memosm.model.UserStats
 import org.example.memosm.network.hasLocalNetworkPermission
 import org.example.memosm.network.serverNeedsLocalNetworkPermission
+import org.example.memosm.ui.MainDestination
 
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -120,7 +123,14 @@ class UserStatsWidget : GlanceAppWidget(), KoinComponent {
                 Box(
                     modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface)
                         .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .clickable(actionStartActivity<MainActivity>())
+                        .clickable(
+                            actionStartActivityWithIntent(
+                                Intent(context, MainActivity::class.java).putExtra(
+                                    MainActivity.EXTRA_DESTINATION,
+                                    MainDestination.PROFILE.name
+                                )
+                            )
+                        )
                 ) {
                     if (accountId == null) {
                         EmptyState(context)

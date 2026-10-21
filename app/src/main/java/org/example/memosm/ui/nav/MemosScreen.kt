@@ -16,6 +16,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
@@ -40,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Shortcut
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Drafts
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.AlertDialog
@@ -57,8 +60,12 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
@@ -76,6 +83,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.model.ThemeStyle
+import org.example.memosm.ui.component.ActionSheet
+import org.example.memosm.ui.component.ActionSheetItem
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
@@ -107,6 +116,7 @@ import org.example.memosm.ui.component.item.DraftsCard
 import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
+import kotlinx.coroutines.withTimeoutOrNull
 
 // The frosted disc clips the blur, so the radius can be generous.
 private const val FabBlurRadius = 20f
@@ -119,7 +129,10 @@ fun MemosScreen(
     isNavBarVisible: Boolean = true,
     topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
     openComposer: Boolean = false,
-    onComposerOpened: () -> Unit = {}
+    onComposerOpened: () -> Unit = {},
+    /** Shortcut request: expand the search field once, then report back. */
+    openSearch: Boolean = false,
+    onSearchOpened: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val miuixFeed = LocalThemeStyle.current == ThemeStyle.MIUIX
@@ -148,11 +161,22 @@ fun MemosScreen(
     }
     var showDraftPrompt by remember { mutableStateOf(false) }
     var isFabExpanded by remember { mutableStateOf(true) }
+    // The compose button opens the composer on tap; holding it reveals the other entries.
+    var showQuickActions by remember { mutableStateOf(false) }
+    var fabLongPressConsumed by remember { mutableStateOf(false) }
+    var searchFromSheet by remember { mutableStateOf(false) }
     // Miuix keeps the sync status next to the search action instead of inside a
     // search field, so its panel is owned here.
     var showSyncPanel by remember { mutableStateOf(false) }
     val cacheSettingsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         viewModel.refreshAfterProfileDetails()
+    }
+    val composeAction: () -> Unit = {
+        if (uiState.draft.drafts.isNotEmpty()) showDraftPrompt = true else composeNew()
+    }
+    fun onFabTap() {
+        // A long press also reports an up event, so the trailing click must be swallowed.
+        if (fabLongPressConsumed) fabLongPressConsumed = false else composeAction()
     }
 
 
@@ -210,6 +234,14 @@ fun MemosScreen(
         isNavBarVisible = isNavBarVisible,
         navBarInset = navBarInset,
         navigationKey = activeFeed,
+        openSearch = openSearch || searchFromSheet,
+        onSearchOpened = {
+            searchFromSheet = false
+            // The scaffold expanded the field on its own, so mirror it here: paging must stop
+            // while the search panel is open even when the user never tapped the field.
+            isSearchExpanded = true
+            onSearchOpened()
+        },
         listHeader = { showSearchBar, searchExpanded, onSearchExpandedChange ->
             if (miuixFeed) {
                 // One row of chrome: text tabs on the left, search on the right. The
@@ -374,13 +406,6 @@ fun MemosScreen(
                 if (miuixFeed) {
                     // Frosted like the bars: the compose button samples the list sliding behind it.
                     val fabBackdrop = LocalListBackdrop.current
-                    val composeAction = {
-                        if (uiState.draft.drafts.isNotEmpty()) {
-                            showDraftPrompt = true
-                        } else {
-                            composeNew()
-                        }
-                    }
                     if (fabBackdrop != null) {
                         // Miuix's FAB paints an inner squircle that only shows once its container
                         // goes translucent, so the frosted variant draws the surface itself. Same
@@ -390,6 +415,7 @@ fun MemosScreen(
                                 .testTag("memo_feed_compose")
                                 .align(Alignment.BottomEnd)
                                 .padding(end = 16.dp, bottom = fabBottomPadding)
+                                .fabLongPress { showQuickActions = true; fabLongPressConsumed = true }
                                 .size(56.dp)
                                 .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
                                 .clip(CircleShape)
@@ -400,7 +426,7 @@ fun MemosScreen(
                                 )
                                 .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.72f))
                                 .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f), CircleShape)
-                                .clickable(onClick = composeAction),
+                                .clickable(onClick = ::onFabTap),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -411,11 +437,12 @@ fun MemosScreen(
                         }
                     } else {
                         MiuixFloatingActionButton(
-                            onClick = composeAction,
+                            onClick = ::onFabTap,
                             modifier = Modifier
                                 .testTag("memo_feed_compose")
                                 .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = fabBottomPadding),
+                                .padding(end = 16.dp, bottom = fabBottomPadding)
+                                .fabLongPress { showQuickActions = true; fabLongPressConsumed = true },
                             shape = CircleShape,
                             containerColor = MiuixTheme.colorScheme.primary
                         ) {
@@ -428,15 +455,7 @@ fun MemosScreen(
                     }
                 } else {
                     ExtendedFloatingActionButton(
-                    onClick = {
-                        // If drafts exist, show prompt; otherwise show composer directly
-                        if (uiState.draft.drafts.isNotEmpty()) {
-                            showDraftPrompt = true
-                        } else {
-                            // Start fresh with a new draft session ID
-                            composeNew()
-                        }
-                    },
+                    onClick = ::onFabTap,
                     expanded = isFabExpanded,
                     icon = {
                         Icon(
@@ -454,6 +473,7 @@ fun MemosScreen(
                         .testTag("memo_feed_compose")
                         .align(Alignment.BottomEnd)
                         .padding(end = 16.dp, bottom = fabBottomPadding)
+                        .fabLongPress { showQuickActions = true; fabLongPressConsumed = true }
                     )
                 }
             }
@@ -471,6 +491,48 @@ fun MemosScreen(
                 )
             }
         )
+    }
+
+    // Held compose button: the other ways into the feed without leaving it.
+    if (showQuickActions) {
+        ActionSheet(onDismissRequest = {
+            showQuickActions = false
+            fabLongPressConsumed = false
+        }) {
+            Text(
+                text = stringResource(R.string.quick_actions_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+            ActionSheetItem(
+                text = { Text(stringResource(R.string.memo_composer_fab_new_memo)) },
+                leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                onClick = {
+                    showQuickActions = false
+                    fabLongPressConsumed = false
+                    composeAction()
+                }
+            )
+            ActionSheetItem(
+                text = { Text(stringResource(R.string.drafts_title)) },
+                leadingIcon = { Icon(Icons.Outlined.Drafts, contentDescription = null) },
+                onClick = {
+                    showQuickActions = false
+                    fabLongPressConsumed = false
+                    draftsLauncher.launch(Intent(context, DraftsActivity::class.java))
+                }
+            )
+            ActionSheetItem(
+                text = { Text(stringResource(R.string.shortcut_search)) },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                onClick = {
+                    showQuickActions = false
+                    fabLongPressConsumed = false
+                    searchFromSheet = true
+                }
+            )
+        }
     }
 
     // Draft prompt dialog
@@ -506,6 +568,35 @@ fun MemosScreen(
         }
     )
 
+}
+
+/**
+ * Observes a long press without consuming it, so the compose button keeps its own click, ripple
+ * and shared transition. The click that a long press still produces is swallowed by the caller.
+ *
+ * The release is awaited with the raw pointer stream instead of [waitForUpOrCancellation]: that
+ * helper reports `null` for a *consumed* up event, and the button's own `clickable` handles the
+ * event first, so every plain tap looked like a long press.
+ */
+@Composable
+private fun Modifier.fabLongPress(onLongPress: () -> Unit): Modifier {
+    val current by rememberUpdatedState(onLongPress)
+    val haptics = LocalHapticFeedback.current
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                var up = false
+                while (!up) {
+                    up = awaitPointerEvent().changes.none { it.pressed }
+                }
+            }
+            if (released == null) {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                current()
+            }
+        }
+    }
 }
 
 @Composable

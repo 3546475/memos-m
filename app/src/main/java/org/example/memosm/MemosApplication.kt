@@ -54,7 +54,14 @@ class MemosApplication : Application(), SingletonImageLoader.Factory {
 
         // Complete incoming or interrupted restores before creating sessions or scheduling work.
         val backup = org.koin.core.context.GlobalContext.get().get<org.example.memosm.data.backup.BackupService>()
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+        val startupScope = kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+        )
+
+        // Keep the long-press entries in sync with the strings and icons this build shipped.
+        startupScope.launch { AppShortcuts.publish(this@MemosApplication) }
+
+        startupScope.launch {
             try {
                 backup.recoverInterruptedRestore().onFailure {
                     org.example.memosm.data.backup.BackupCoordinator.recoveryError.value = "Restore was interrupted. Retry to finish restoring your data."

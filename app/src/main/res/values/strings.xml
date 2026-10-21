@@ -348,6 +348,10 @@
 
     <!-- Drafts -->
     <string name="drafts_title">Drafts</string>
+    <string name="shortcut_new_memo_short">New</string>
+    <string name="shortcut_notifications_short">Alerts</string>
+    <string name="shortcut_search">Search</string>
+    <string name="quick_actions_title">Quick actions</string>
     <string name="drafts_count">%1$d draft(s)</string>
     <string name="drafts_empty">No drafts</string>
     <string name="drafts_no_content">(Empty draft)</string>

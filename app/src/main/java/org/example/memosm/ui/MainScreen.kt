@@ -140,7 +140,13 @@ fun MainScreen(
     shareIntentData: ShareIntentData? = null,
     onShareIntentConsumed: () -> Unit = {},
     shouldOpenComposer: Boolean = false,
-    onComposerOpened: () -> Unit = {}
+    onComposerOpened: () -> Unit = {},
+    /** One-shot tab request from a shortcut or widget, consumed by the screen. */
+    destinationRequest: MainDestination? = null,
+    onDestinationRequestConsumed: () -> Unit = {},
+    /** One-shot search request; [MemosScreen] consumes it after expanding the field. */
+    openSearchRequest: Boolean = false,
+    onOpenSearchRequestConsumed: () -> Unit = {}
 ) {
     val destination = rememberSaveable { mutableStateOf(MainDestination.MEMOS) }
     val viewModel: MemosViewModel = koinViewModel()
@@ -159,7 +165,9 @@ fun MainScreen(
     ) {
         key(uiState.accountGeneration) {
             MainScreenContent(viewModel, uiState, destination, onLogout, modifier,
-                shareIntentData, onShareIntentConsumed, shouldOpenComposer, onComposerOpened)
+                shareIntentData, onShareIntentConsumed, shouldOpenComposer, onComposerOpened,
+                destinationRequest, onDestinationRequestConsumed,
+                openSearchRequest, onOpenSearchRequestConsumed)
         }
     }
 }
@@ -174,7 +182,11 @@ private fun MainScreenContent(
     shareIntentData: ShareIntentData?,
     onShareIntentConsumed: () -> Unit,
     shouldOpenComposer: Boolean,
-    onComposerOpened: () -> Unit
+    onComposerOpened: () -> Unit,
+    destinationRequest: MainDestination?,
+    onDestinationRequestConsumed: () -> Unit,
+    openSearchRequest: Boolean,
+    onOpenSearchRequestConsumed: () -> Unit
 ) {
     var currentDestination by destination
     val mapSupported = uiState.memoMap.capability == MapCapability.SUPPORTED
@@ -197,6 +209,27 @@ private fun MainScreenContent(
         if (!mapSupported && currentDestination == MainDestination.MAP) currentDestination = MainDestination.MEMOS
     }
     val feedPagerState = rememberPagerState(pageCount = { MemoFeed.entries.size })
+
+    // Shortcuts and widgets can name a tab. Consume the request once so a later recomposition
+    // (or a configuration change) does not keep forcing the user back to that tab.
+    LaunchedEffect(destinationRequest) {
+        if (destinationRequest != null) {
+            if (destinationRequest == MainDestination.MEMOS) {
+                feedPagerState.requestScrollToPage(MemoFeed.MEMOS.ordinal)
+            }
+            currentDestination = destinationRequest
+            onDestinationRequestConsumed()
+        }
+    }
+
+    // The search field lives inside the Memos destination, so the shortcut has to land there
+    // first; MemosScreen reports back once the field is actually expanded.
+    LaunchedEffect(openSearchRequest) {
+        if (openSearchRequest) {
+            currentDestination = MainDestination.MEMOS
+            feedPagerState.requestScrollToPage(MemoFeed.MEMOS.ordinal)
+        }
+    }
     var lastTapTime by remember { mutableLongStateOf(0L) }
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
@@ -433,7 +466,9 @@ private fun MainScreenContent(
                                     onToggleNavBar = toggleNavBar,
                                     isNavBarVisible = isNavBarVisible,
                                     openComposer = shouldOpenComposer,
-                                    onComposerOpened = onComposerOpened
+                                    onComposerOpened = onComposerOpened,
+                                    openSearch = openSearchRequest,
+                                    onSearchOpened = onOpenSearchRequestConsumed
                                 )
 
                                 MainDestination.ATTACHMENTS -> AttachmentsScreen(

@@ -32,6 +32,9 @@ import kotlinx.coroutines.launch
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.model.ShareIntentData
 import org.example.memosm.ui.MainScreen
+import org.example.memosm.ui.MainDestination
+import org.example.memosm.ui.profile.DraftsActivity
+import org.example.memosm.ui.profile.NotificationsActivity
 import org.example.memosm.ui.component.LoginScreen
 import org.example.memosm.ui.component.LocalNetworkPermission
 import org.example.memosm.ui.component.rememberLocalNetworkPermission
@@ -54,6 +57,13 @@ class MainActivity : ComponentActivity() {
     // StateFlow to trigger composer opening from widget
     private val shouldOpenComposerFlow = MutableStateFlow(false)
 
+    // One-shot requests raised by launcher shortcuts and widgets that must survive the
+    // login/inspection gate before the main screen can consume them.
+    private val pendingDestinationFlow = MutableStateFlow<MainDestination?>(null)
+    private val pendingSearchFlow = MutableStateFlow(false)
+    private val pendingDraftsFlow = MutableStateFlow(false)
+    private val pendingNotificationsFlow = MutableStateFlow(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -65,6 +75,7 @@ class MainActivity : ComponentActivity() {
         if (intent.action == DraftWidget.ACTION_OPEN_COMPOSER) {
             shouldOpenComposerFlow.value = true
         }
+        handleEntryIntent(intent)
 
         setContent {
             SavedMemosMTheme(dataStoreManager) {
@@ -116,6 +127,10 @@ class MainActivity : ComponentActivity() {
                     // Collect pending share data from the flow
                     val pendingShareData by pendingShareDataFlow.collectAsState()
                     val shouldOpenComposer by shouldOpenComposerFlow.collectAsState()
+                    val pendingDestination by pendingDestinationFlow.collectAsState()
+                    val pendingSearch by pendingSearchFlow.collectAsState()
+                    val pendingDrafts by pendingDraftsFlow.collectAsState()
+                    val pendingNotifications by pendingNotificationsFlow.collectAsState()
 
                     LaunchedEffect(accounts, setupCompleted) {
                         if (accounts != null && setupCompleted != null) {
@@ -153,6 +168,24 @@ class MainActivity : ComponentActivity() {
                                     CircularProgressIndicator()
                                 }
                             } else if (activeAccount != null) {
+                                // Launcher shortcuts land on the page they name; child pages that
+                                // own their own window are opened once the session is bound.
+                                LaunchedEffect(pendingDrafts) {
+                                    if (pendingDrafts) {
+                                        pendingDraftsFlow.value = false
+                                        startActivity(
+                                            Intent(this@MainActivity, DraftsActivity::class.java)
+                                        )
+                                    }
+                                }
+                                LaunchedEffect(pendingNotifications) {
+                                    if (pendingNotifications) {
+                                        pendingNotificationsFlow.value = false
+                                        startActivity(
+                                            Intent(this@MainActivity, NotificationsActivity::class.java)
+                                        )
+                                    }
+                                }
                                 MainScreen(
                                     onLogout = {
                                         scope.launch {
@@ -162,7 +195,11 @@ class MainActivity : ComponentActivity() {
                                     shareIntentData = pendingShareData,
                                     onShareIntentConsumed = { pendingShareDataFlow.value = null },
                                     shouldOpenComposer = shouldOpenComposer,
-                                    onComposerOpened = { shouldOpenComposerFlow.value = false })
+                                    onComposerOpened = { shouldOpenComposerFlow.value = false },
+                                    destinationRequest = pendingDestination,
+                                    onDestinationRequestConsumed = { pendingDestinationFlow.value = null },
+                                    openSearchRequest = pendingSearch,
+                                    onOpenSearchRequestConsumed = { pendingSearchFlow.value = false })
                             } else {
                                 // If no active account, show login
                                 LoginScreen(
@@ -208,6 +245,55 @@ class MainActivity : ComponentActivity() {
         if (intent.action == DraftWidget.ACTION_OPEN_COMPOSER) {
             shouldOpenComposerFlow.value = true
         }
+        handleEntryIntent(intent)
+    }
+
+    /**
+     * Routes the launcher shortcut and widget actions that name a page. The composer request is
+     * kept on its own flag because [MainScreen] already consumes it after switching feeds.
+     *
+     * The markers are cleared from the retained intent afterwards: this activity is recreated on
+     * a configuration change, and replaying "open the drafts" would reopen the page the user had
+     * already left.
+     */
+    private fun handleEntryIntent(intent: Intent?) {
+        if (intent == null) return
+        var handled = false
+        when (intent.action) {
+            AppShortcuts.ACTION_NEW_MEMO -> {
+                shouldOpenComposerFlow.value = true
+                handled = true
+            }
+            AppShortcuts.ACTION_OPEN_DRAFTS -> {
+                pendingDraftsFlow.value = true
+                handled = true
+            }
+            AppShortcuts.ACTION_OPEN_NOTIFICATIONS -> {
+                pendingNotificationsFlow.value = true
+                handled = true
+            }
+            AppShortcuts.ACTION_OPEN_SEARCH -> {
+                pendingSearchFlow.value = true
+                handled = true
+            }
+            else -> Unit
+        }
+        intent.getStringExtra(EXTRA_DESTINATION)
+            ?.let { name -> MainDestination.entries.firstOrNull { it.name == name } }
+            ?.let {
+                pendingDestinationFlow.value = it
+                handled = true
+            }
+        if (handled) {
+            intent.removeExtra(EXTRA_DESTINATION)
+            val action = intent.action
+            if (action != null && !action.startsWith("android.intent.action.")) intent.action = null
+        }
+    }
+
+    companion object {
+        /** Tab a widget should land on, stored as the [MainDestination] name. */
+        const val EXTRA_DESTINATION = "org.example.memosm.extra.DESTINATION"
     }
 
     /**
