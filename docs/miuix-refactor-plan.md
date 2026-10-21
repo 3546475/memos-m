@@ -536,6 +536,28 @@ AppTopBar(
   - 搜索栏展开/收起在 MIUIX 下走 Miuix `SearchBar` 自带动画，无需另调。
   - 待办：`FullScreenMediaDialog`（13 处动画）、`AccountsList` 拖拽动画、音频/视频控件内的自绘动画。
 
+- **一致性扫描（第一轮）**：用下式统计 `ui/` 下仍直接构造 Material 组件的位置（排除适配层）：
+
+  ```bash
+  rg -n "^\s*(Card|Surface|AlertDialog|DropdownMenu|ExposedDropdownMenu|ModalBottomSheet|OutlinedTextField|CircularProgressIndicator|LinearProgressIndicator|TopAppBar|NavigationBar|NavigationRail|TabRow|SnackbarHost|PullToRefreshBox|FilterChip|ListItem|Switch|Checkbox|RadioButton|Slider|OutlinedSecureTextField|ExtendedFloatingActionButton|FloatingActionButton|HorizontalDivider)\(" \
+     app/src/main/java --glob '!**/ui/theme/AppComponents.kt'
+  ```
+
+  当前 **53 处**，分三类：
+
+  | 类别 | 数量 | 处理 |
+  | --- | --- | --- |
+  | A. Activity / 页面根容器（`MainActivity`、`ProfileActivity`、`SsoLoginActivity`、`SetupScreen`、`OpenSourceLicensesScreen`、`EditAccountCredentialsActivity`、widget 配置页） | 12 | 只是 `Surface` 当根，颜色已由 `MaterialTheme` 映射；可择机换 `AppSurface`，无视觉差异 |
+  | B. **有意保留的 Material**（见下方清单） | 33 | 记录在案，不迁 |
+  | C. 待办 | 8 | `SyncStatusWidget` 同步面板（4）、`MemoComposerBottomBar` 的两个菜单（2）、`LoginScreen` 的根容器与按钮内 spinner（2） |
+
+  **有意保留清单（B）**：`OfflineSettingsCard`（可编辑下拉 + 缓存编辑弹窗）、`ConflictDialog`（三态
+  对话框）、`AccountsList`（拖拽手势卡）、`MemoCatchDialog`（彩蛋）、`MemoInput` 的建议气泡、
+  `NativeMarkdownNode` 代码块底色、`ViewerHeader` 圆形按钮、`AttachmentCard`/`MemoItem` 的小角标、
+  `FullScreenMediaDialog` 的全屏容器、`SearchScreen`/`NotificationsScreen`/`MapScreen` 的内联提示条、
+  `SettingsOverview` 的分组图标圆底、`AppearanceSettingsContent` 的色点、`ReactionPickerDialog` 的
+  表情圆底、`VideoPlaybackControls` 的加载圈、`MemosScreen` 的草稿提示条。
+
 - **一致性检查**：圆角、间距、分隔线、图标尺寸、按压反馈四项全 App 扫描（可写 grep 脚本，
   禁止在 MIUIX 分支新增 `dp` 字面量、禁止直接使用 `androidx.compose.material3.*`）。
 - **lint 规则（可选）**：自定义 lint 或 CI grep，限制 `ui/` 下直接 import Material 组件
