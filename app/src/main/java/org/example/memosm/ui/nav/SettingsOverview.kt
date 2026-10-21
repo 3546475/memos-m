@@ -55,9 +55,13 @@ enum class SettingsSection(
 
 @Composable
 internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier: Modifier = Modifier) {
+    // Every section is listed here: the profile page used to link four of them directly, which
+    // gave the same screen two homes and left the remaining five reachable only from there.
     val groups = listOf(
         listOf(SettingsSection.GENERAL, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
-        listOf(SettingsSection.OFFLINE, SettingsSection.RECOVERY)
+        listOf(SettingsSection.SHORTCUTS, SettingsSection.WEBHOOKS, SettingsSection.INSTANCE),
+        listOf(SettingsSection.OFFLINE, SettingsSection.RECOVERY, SettingsSection.AUDIT),
+        listOf(SettingsSection.ABOUT)
     )
     LazyColumn(
         modifier = modifier.fillMaxSize(),

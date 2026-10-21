@@ -163,11 +163,8 @@ class SettingsActivity : ProfileActivity() {
     companion object {
         private const val EXTRA_SECTION = "settings_section"
 
-        fun createIntent(context: Context, section: SettingsSection): Intent {
-            val activity = if (section == SettingsSection.AUDIT) SyncLogActivity::class.java
-                else SettingsActivity::class.java
-            return Intent(context, activity).putExtra(EXTRA_SECTION, section.name)
-        }
+        fun createIntent(context: Context, section: SettingsSection): Intent =
+            Intent(context, SettingsActivity::class.java).putExtra(EXTRA_SECTION, section.name)
     }
 }
 
@@ -175,12 +172,5 @@ class OpenSourceLicensesActivity : ProfileActivity() {
     @Composable
     override fun Destination(viewModel: MemosViewModel, onBack: () -> Unit) {
         org.example.memosm.ui.nav.OpenSourceLicensesScreen(onBack)
-    }
-}
-
-class SyncLogActivity : ProfileActivity() {
-    @Composable
-    override fun Destination(viewModel: MemosViewModel, onBack: () -> Unit) {
-        org.example.memosm.ui.nav.SyncLogScreen(onBack)
     }
 }

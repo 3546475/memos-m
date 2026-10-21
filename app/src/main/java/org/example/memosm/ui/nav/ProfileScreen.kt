@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalContext
 import org.example.memosm.ui.profile.EditProfileActivity
 import org.example.memosm.ui.profile.EditAccountCredentialsActivity
 import org.example.memosm.ui.profile.ArchivedMemosActivity
+import org.example.memosm.ui.profile.DraftsActivity
 import org.example.memosm.ui.profile.NotificationsActivity
 import org.example.memosm.ui.profile.SettingsActivity
 import org.example.memosm.ui.theme.ProfileTheme
@@ -32,6 +33,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Drafts
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -100,6 +102,9 @@ fun ProfileScreen(
     val editProfile = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         viewModel.refreshAfterProfileDetails()
     }
+    val drafts = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.refreshAfterEditor()
+    }
     val listState = rememberLazyListState()
     ProfileTheme {
         ProfileListPane(
@@ -107,11 +112,9 @@ fun ProfileScreen(
             onLogout = onLogout,
             onAddAccount = onAddAccount,
             onShowArchived = { archived.launch(Intent(context, ArchivedMemosActivity::class.java)) },
+            onShowDrafts = { drafts.launch(Intent(context, DraftsActivity::class.java)) },
             onShowNotifications = { notifications.launch(Intent(context, NotificationsActivity::class.java)) },
             onShowSettings = { settings.launch(Intent(context, SettingsActivity::class.java)) },
-            onOpenSection = { section ->
-                settings.launch(SettingsActivity.createIntent(context, section))
-            },
             onEditProfile = { editProfile.launch(Intent(context, EditProfileActivity::class.java)) },
             onToggleNavBar = onToggleNavBar,
             isNavBarVisible = isNavBarVisible,
@@ -127,9 +130,9 @@ private fun ProfileListPane(
     onLogout: () -> Unit,
     onAddAccount: () -> Unit,
     onShowArchived: () -> Unit,
+    onShowDrafts: () -> Unit,
     onShowNotifications: () -> Unit,
     onShowSettings: () -> Unit,
-    onOpenSection: (SettingsSection) -> Unit,
     onEditProfile: () -> Unit,
     onToggleNavBar: ((Boolean) -> Unit)? = null,
     isNavBarVisible: Boolean = true,
@@ -291,6 +294,8 @@ private fun ProfileListPane(
                     }
                 }
 
+                // Content: the pages reached from here belong to the user's own data. Settings owns
+                // its sections, so they are not duplicated as rows here.
                 item {
                     Box(itemModifier) {
                         SettingsGroup {
@@ -299,25 +304,15 @@ private fun ProfileListPane(
                                 icon = Icons.Outlined.Notifications,
                                 onClick = onShowNotifications
                             )
-                            listOf(SettingsSection.SHORTCUTS, SettingsSection.WEBHOOKS, SettingsSection.INSTANCE)
-                                .forEach { section ->
-                                    SettingsNavigationRow(
-                                        title = stringResource(section.titleRes),
-                                        icon = section.icon,
-                                        onClick = { onOpenSection(section) }
-                                    )
-                                }
-                        }
-                    }
-                }
-
-                item {
-                    Box(itemModifier) {
-                        SettingsGroup {
                             SettingsNavigationRow(
                                 title = stringResource(R.string.profile_archived),
                                 icon = Icons.Outlined.Archive,
                                 onClick = onShowArchived
+                            )
+                            SettingsNavigationRow(
+                                title = stringResource(R.string.drafts_title),
+                                icon = Icons.Outlined.Drafts,
+                                onClick = onShowDrafts
                             )
                         }
                     }
@@ -330,11 +325,6 @@ private fun ProfileListPane(
                                 title = stringResource(R.string.settings_title),
                                 icon = Icons.Outlined.Settings,
                                 onClick = onShowSettings
-                            )
-                            SettingsNavigationRow(
-                                title = stringResource(SettingsSection.ABOUT.titleRes),
-                                icon = SettingsSection.ABOUT.icon,
-                                onClick = { onOpenSection(SettingsSection.ABOUT) }
                             )
                         }
                     }
