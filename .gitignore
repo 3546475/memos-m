@@ -38,3 +38,19 @@ google-services.json
 # Local development only (not part of the app)
 mock-server/
 AGENTS.md
+
+# Tooling that stays on the development machine: index caches, agent skills,
+# maintainer scripts and the migration plan itself.
+.codegraph/
+.agent/
+tools/
+docs/miuix-refactor-plan.md
+
+# Scratch files
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+.DS_Store
+Thumbs.db
