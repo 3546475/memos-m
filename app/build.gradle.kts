@@ -41,12 +41,31 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = providers.environmentVariable("KEYSTORE_PATH")
-            storeFile = keystorePath.map { file(it) }.orNull
+            // CI hands the signing material over through environment variables; a local build can
+            // keep an untracked keystore.properties at the repository root instead.
+            val localSigning = rootProject.file("keystore.properties")
+                .takeIf { it.exists() }
+                ?.readLines()
+                ?.mapNotNull { line ->
+                    val entry = line.trim()
+                    if (entry.isEmpty() || entry.startsWith("#") || '=' !in entry) {
+                        null
+                    } else {
+                        entry.substringBefore('=').trim() to entry.substringAfter('=').trim()
+                    }
+                }
+                ?.toMap()
+                .orEmpty()
 
-            storePassword = providers.environmentVariable("KEYSTORE_PASSWORD").orNull
-            keyAlias = providers.environmentVariable("KEY_ALIAS").orElse("key0").orNull
-            keyPassword = providers.environmentVariable("KEY_PASSWORD").orNull
+            fun signingValue(envName: String, key: String): String? =
+                providers.environmentVariable(envName).orNull
+                    ?: localSigning[key]?.takeIf { it.isNotBlank() }
+
+            storeFile = signingValue("KEYSTORE_PATH", "storeFile")
+                ?.let { rootProject.file(it) }
+            storePassword = signingValue("KEYSTORE_PASSWORD", "storePassword")
+            keyAlias = signingValue("KEY_ALIAS", "keyAlias") ?: "key0"
+            keyPassword = signingValue("KEY_PASSWORD", "keyPassword")
         }
     }
 
