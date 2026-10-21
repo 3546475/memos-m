@@ -13,8 +13,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -58,10 +61,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
@@ -101,6 +107,7 @@ import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
 
+// The frosted disc clips the blur, so the radius can be generous.
 private const val FabBlurRadius = 20f
 
 @Composable
@@ -365,41 +372,55 @@ fun MemosScreen(
                 if (miuixFeed) {
                     // Frosted like the bars: the compose button samples the list sliding behind it.
                     val fabBackdrop = LocalListBackdrop.current
-                    MiuixFloatingActionButton(
-                        onClick = {
-                            if (uiState.draft.drafts.isNotEmpty()) {
-                                showDraftPrompt = true
-                            } else {
-                                composeNew()
-                            }
-                        },
-                        modifier = Modifier
-                            .testTag("memo_feed_compose")
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = fabBottomPadding)
-                            .then(
-                                if (fabBackdrop != null) {
-                                    Modifier.drawBackdrop(
-                                        backdrop = fabBackdrop,
-                                        shape = { CircleShape },
-                                        effects = { blur(FabBlurRadius, FabBlurRadius) }
-                                    )
-                                } else {
-                                    Modifier
-                                }
-                            ),
-                        shape = CircleShape,
-                        containerColor = if (fabBackdrop != null) {
-                            MiuixTheme.colorScheme.primary.copy(alpha = 0.78f)
+                    val composeAction = {
+                        if (uiState.draft.drafts.isNotEmpty()) {
+                            showDraftPrompt = true
                         } else {
-                            MiuixTheme.colorScheme.primary
+                            composeNew()
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Add,
-                            contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-                            tint = MiuixTheme.colorScheme.onPrimary
-                        )
+                    }
+                    if (fabBackdrop != null) {
+                        // Miuix's FAB paints an inner squircle that only shows once its container
+                        // goes translucent, so the frosted variant draws the surface itself.
+                        Box(
+                            modifier = Modifier
+                                .testTag("memo_feed_compose")
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = fabBottomPadding)
+                                .size(56.dp)
+                                .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                                .clip(CircleShape)
+                                .drawBackdrop(
+                                    backdrop = fabBackdrop,
+                                    shape = { RectangleShape },
+                                    effects = { blur(FabBlurRadius, FabBlurRadius) }
+                                )
+                                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.72f))
+                                .clickable(onClick = composeAction),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Add,
+                                contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+                                tint = MiuixTheme.colorScheme.onPrimary
+                            )
+                        }
+                    } else {
+                        MiuixFloatingActionButton(
+                            onClick = composeAction,
+                            modifier = Modifier
+                                .testTag("memo_feed_compose")
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = fabBottomPadding),
+                            shape = CircleShape,
+                            containerColor = MiuixTheme.colorScheme.primary
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Add,
+                                contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+                                tint = MiuixTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 } else {
                     ExtendedFloatingActionButton(
