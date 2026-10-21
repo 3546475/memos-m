@@ -44,6 +44,7 @@ import org.example.memosm.data.sync.SyncRepository
 import org.example.memosm.data.sync.SyncWorkScheduler
 import org.example.memosm.model.Account
 import org.example.memosm.model.Memo
+import org.example.memosm.model.MemoState
 import org.example.memosm.viewmodel.delegates.AppSettingsDelegate
 import org.example.memosm.viewmodel.delegates.AppSettingsDelegateImpl
 import org.example.memosm.viewmodel.delegates.DraftDelegate
@@ -428,12 +429,10 @@ class MemosViewModel(
 
         override fun handleMemoStateChange(memo: Memo, updated: Memo) {
             memoMapManager.upsert(updated)
-            val oldState = memo.state ?: "NORMAL"
-            val newState = updated.state ?: "NORMAL"
             val comparator = compareByDescending<Memo> { it.displayTime }
 
-            if (oldState != newState) {
-                if (newState == "ARCHIVED") {
+            when (memoStateMove(memo.state, updated.state)) {
+                MemoStateMove.TO_ARCHIVED -> {
                     // Move from User/Explore -> Archived
                     val isSame = { m: Memo -> m.name == memo.name }
                     userMemoManager.remove(isSame)
@@ -441,7 +440,9 @@ class MemosViewModel(
 
                     val isSameUpdated = { m: Memo -> m.name == updated.name }
                     archivedMemoManager.upsert(updated, isSameUpdated, comparator)
-                } else if (newState == "NORMAL") {
+                }
+
+                MemoStateMove.TO_USER -> {
                     // Move from Archived -> User (and maybe Explore if public, but keep simple for now)
                     val isSame = { m: Memo -> m.name == memo.name }
                     archivedMemoManager.remove(isSame)
@@ -449,6 +450,8 @@ class MemosViewModel(
                     val isSameUpdated = { m: Memo -> m.name == updated.name }
                     userMemoManager.upsert(updated, isSameUpdated, USER_MEMO_COMPARATOR)
                 }
+
+                null -> Unit
             }
         }
 
@@ -1178,4 +1181,25 @@ class MemosViewModel(
         super.onCleared()
     }
 
+}
+
+/** Which list a memo has to move between after its state changed. */
+internal enum class MemoStateMove { TO_ARCHIVED, TO_USER }
+
+/**
+ * The list move implied by a state change, or null when nothing moves.
+ *
+ * Kept out of the view model so the mapping is unit-testable: an earlier version compared
+ * `memo.state ?: "NORMAL"` (which widens to [Any]) against the string "ARCHIVED", so the
+ * comparison was never true and archiving left the memo on the timeline until a full reload.
+ */
+internal fun memoStateMove(oldState: MemoState?, newState: MemoState?): MemoStateMove? {
+    val old = oldState ?: MemoState.NORMAL
+    val new = newState ?: MemoState.NORMAL
+    if (old == new) return null
+    return when (new) {
+        MemoState.ARCHIVED -> MemoStateMove.TO_ARCHIVED
+        MemoState.NORMAL -> MemoStateMove.TO_USER
+        MemoState.STATE_UNSPECIFIED -> null
+    }
 }
