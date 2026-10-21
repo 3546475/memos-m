@@ -243,8 +243,19 @@ fun AppListItem(
         else -> null
     }
     if (usesMiuix) {
+        // Inside a grouped card the row is a plain rectangle: the card owns the corners.
+        val grouped = LocalGroupedRow.current
         BasicComponent(
-            modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(MiuixTokens.RowCornerRadius)).background(containerColor),
+            modifier = modifier
+                .fillMaxWidth()
+                .then(
+                    if (grouped) {
+                        Modifier
+                    } else {
+                        Modifier.clip(RoundedCornerShape(MiuixTokens.RowCornerRadius))
+                    }
+                )
+                .background(containerColor),
             title = title,
             summary = summary,
             startAction = leading,
