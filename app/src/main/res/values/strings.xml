@@ -493,4 +493,4 @@
     <string name="settings_top_bar_scroll_all">Hide search and tabs</string>
     <string name="settings_nav_items">Bottom bar items</string>
     <string name="settings_nav_move_up">Move up</string>
-    <string name="settings_nav_move_down">Move down</string></resources>
+    <string name="settings_nav_move_down">Move down</string>    <string name="settings_nav_reset">Reset to defaults</string></resources>

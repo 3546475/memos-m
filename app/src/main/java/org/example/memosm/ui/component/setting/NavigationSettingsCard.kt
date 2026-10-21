@@ -110,6 +110,20 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
             )
         }
 
+        SettingsGroup {
+            SettingsNavigationRow(
+                title = stringResource(R.string.settings_nav_reset),
+                showChevron = false,
+                onClick = {
+                    scope.launch {
+                        dataStore.saveNavDestinations(emptyList())
+                        dataStore.saveNavBarScrollMode(NavBarScrollMode.HIDE_ON_SCROLL)
+                        dataStore.saveTopBarScrollMode(TopBarScrollMode.ALL)
+                    }
+                }
+            )
+        }
+
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SettingsLabel(stringResource(R.string.settings_nav_items))
             SettingsGroup {
