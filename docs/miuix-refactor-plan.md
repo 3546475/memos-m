@@ -526,6 +526,16 @@ AppTopBar(
 - **配色定稿**：`primaryContainer` 改为「主色 12% 叠页面色」，并补了浅色/深色两套单测
   （`MiuixColorMappingTest`），防止再次退回紫色系容器。
 
+- **动效对齐（第一轮）**：新增 `ui/theme/AppMotion.kt`
+  - `appFadeSpec(miuix, durationMillis, delayMillis)` / `appSlideSpec(miuix, durationMillis)`：
+    MIUIX 用 Miuix 风格的短弹簧（`spring(0.9f, 700f)` / `spring(0.9f, 550f)`），
+    MD 保持原有 `tween(220/300, delay 90)`——只换 spec、不换转场形态，MD 零变化。
+  - ⚠️ `transitionSpec` lambda 不是 `@Composable`，所以 spec 函数接收 `miuix: Boolean` 而不是读
+    `LocalThemeStyle`；调用点先 `val miuixMotion = isMiuixMotion(LocalThemeStyle.current)` 捕获。
+  - 已应用：底部 tab 切换（`MainScreen` 的 `AnimatedContent`）、列表/详情转场（`MemosCommon`）。
+  - 搜索栏展开/收起在 MIUIX 下走 Miuix `SearchBar` 自带动画，无需另调。
+  - 待办：`FullScreenMediaDialog`（13 处动画）、`AccountsList` 拖拽动画、音频/视频控件内的自绘动画。
+
 - **一致性检查**：圆角、间距、分隔线、图标尺寸、按压反馈四项全 App 扫描（可写 grep 脚本，
   禁止在 MIUIX 分支新增 `dp` 字面量、禁止直接使用 `androidx.compose.material3.*`）。
 - **lint 规则（可选）**：自定义 lint 或 CI grep，限制 `ui/` 下直接 import Material 组件
