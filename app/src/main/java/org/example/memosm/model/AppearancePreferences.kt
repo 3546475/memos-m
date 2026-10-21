@@ -32,8 +32,10 @@ data class AppearancePreferences(
     val themeStyle: ThemeStyle = ThemeStyle.MIUIX,
     val navBarScrollMode: NavBarScrollMode = NavBarScrollMode.HIDE_ON_SCROLL,
     val topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
-    /** Frosts the top bar, the bottom bar and the compose button (API 33+ only). */
-    val blurEnabled: Boolean = true,
+    /** Frosts the floating feed header (API 33+ only). */
+    val topBarBlur: Boolean = true,
+    /** Frosts the bottom bar and the compose button that shares its material (API 33+ only). */
+    val bottomBarBlur: Boolean = true,
     /** Draws the bottom bar as a floating capsule with a centred compose button. */
     val floatingNavBar: Boolean = false,
     /** Enabled bottom-bar destinations in display order (MainDestination names); empty = default. */

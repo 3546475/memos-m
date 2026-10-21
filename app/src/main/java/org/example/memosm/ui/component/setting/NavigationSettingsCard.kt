@@ -94,10 +94,17 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                 checked = appearance.floatingNavBar,
                 onCheckedChange = { on -> scope.launch { dataStore.saveFloatingNavBar(on) } }
             )
+            // Frosting is per bar: the header and the navigation use different content behind
+            // them, so someone may want the list to show through one and not the other.
             SettingToggleRow(
-                label = stringResource(R.string.settings_blur_enabled),
-                checked = appearance.blurEnabled,
-                onCheckedChange = { on -> scope.launch { dataStore.saveBlurEnabled(on) } }
+                label = stringResource(R.string.settings_top_bar_blur),
+                checked = appearance.topBarBlur,
+                onCheckedChange = { on -> scope.launch { dataStore.saveTopBarBlur(on) } }
+            )
+            SettingToggleRow(
+                label = stringResource(R.string.settings_nav_bar_blur),
+                checked = appearance.bottomBarBlur,
+                onCheckedChange = { on -> scope.launch { dataStore.saveBottomBarBlur(on) } }
             )
         }
 
@@ -111,7 +118,8 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                         dataStore.saveNavBarScrollMode(NavBarScrollMode.HIDE_ON_SCROLL)
                         dataStore.saveTopBarScrollMode(TopBarScrollMode.ON_SCROLL)
                         dataStore.saveFloatingNavBar(false)
-                        dataStore.saveBlurEnabled(true)
+                        dataStore.saveTopBarBlur(true)
+                        dataStore.saveBottomBarBlur(true)
                     }
                 }
             )

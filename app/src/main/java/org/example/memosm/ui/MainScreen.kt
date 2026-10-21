@@ -16,7 +16,7 @@ import org.example.memosm.ui.theme.appFadeSpec
 
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-import org.example.memosm.ui.theme.miuixBlurSupported
+import org.example.memosm.ui.theme.bottomBarBlurSupported
 
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 
@@ -28,6 +28,7 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.blur
 
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.TransformOrigin
 
 
 import androidx.compose.runtime.setValue
@@ -38,6 +39,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -121,7 +124,8 @@ import org.example.memosm.model.Visibility
 import org.example.memosm.ui.component.ConflictDialog
 import org.example.memosm.ui.component.LoginDialog
 import org.example.memosm.ui.component.LocalNetworkPermission
-import org.example.memosm.ui.theme.LocalBlurEnabled
+import org.example.memosm.ui.theme.LocalBottomBarBlurEnabled
+import org.example.memosm.ui.theme.LocalTopBarBlurEnabled
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.component.item.media.MemoImage
@@ -398,10 +402,13 @@ private fun MainScreenContent(
     AppSurface(
         modifier = modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background
     ) {
-        // One switch drives every frosted surface: both bars here, the feed header and the compose
-        // button further down the tree.
-        CompositionLocalProvider(LocalBlurEnabled provides appearance.blurEnabled) {
-        val navBlurEnabled = miuixBlurSupported()
+        // Each bar has its own frosted switch; the values are provided here so every screen below
+        // reads the same preference without threading it through every composable.
+        CompositionLocalProvider(
+            LocalTopBarBlurEnabled provides appearance.topBarBlur,
+            LocalBottomBarBlurEnabled provides appearance.bottomBarBlur
+        ) {
+        val navBlurEnabled = bottomBarBlurSupported()
         Box(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxSize()) {
                 // Navigation Rail for tablets/desktops
@@ -624,6 +631,12 @@ private fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this
 private const val CapsuleBlurRadius = 18f
 
 /**
+ * Length of the floating capsule with four destinations enabled. The bar keeps this length when
+ * fewer destinations are on, so the navigation does not change shape when items are toggled.
+ */
+private val CapsuleBarWidth = 272.dp
+
+/**
  * The floating bottom bar: a capsule that hovers over the content with the compose button in the
  * middle, so the primary action lives in the navigation instead of a separate floating button.
  */
@@ -642,11 +655,25 @@ private fun FloatingBottomBar(
     Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
         AnimatedVisibility(
             visible = visible,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            // Scale and fade instead of a full-height slide: the capsule stays inside the screen
+            // for the whole animation, so its drop shadow is never cut off at the edge and cannot
+            // pop in a beat after the bar itself (which read as a stutter).
+            enter = fadeIn(animationSpec = tween(180)) + scaleIn(
+                animationSpec = tween(220),
+                initialScale = 0.92f,
+                transformOrigin = TransformOrigin(0.5f, 1f)
+            ),
+            exit = fadeOut(animationSpec = tween(160)) + scaleOut(
+                animationSpec = tween(180),
+                targetScale = 0.92f,
+                transformOrigin = TransformOrigin(0.5f, 1f)
+            )
         ) {
             Row(
                 modifier = Modifier
+                    // A fixed length keeps the capsule the same width whatever destination count is
+                    // enabled; the two halves split it around the centred compose button.
+                    .width(CapsuleBarWidth)
                     .shadow(elevation = 10.dp, shape = capsule, clip = false)
                     .clip(capsule)
                     .then(
@@ -672,24 +699,36 @@ private fun FloatingBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val firstHalf = (destinations.size + 1) / 2
-                destinations.take(firstHalf).forEach { destination ->
-                    FloatingBarItem(
-                        destination = destination,
-                        selected = current == destination,
-                        onClick = { onDestination(destination) }
-                    )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    destinations.take(firstHalf).forEach { destination ->
+                        FloatingBarItem(
+                            destination = destination,
+                            selected = current == destination,
+                            onClick = { onDestination(destination) }
+                        )
+                    }
                 }
                 ComposeCapsuleButton(
                     onClick = onCompose,
                     blurEnabled = blurEnabled,
                     backdrop = backdrop
                 )
-                destinations.drop(firstHalf).forEach { destination ->
-                    FloatingBarItem(
-                        destination = destination,
-                        selected = current == destination,
-                        onClick = { onDestination(destination) }
-                    )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    destinations.drop(firstHalf).forEach { destination ->
+                        FloatingBarItem(
+                            destination = destination,
+                            selected = current == destination,
+                            onClick = { onDestination(destination) }
+                        )
+                    }
                 }
             }
         }

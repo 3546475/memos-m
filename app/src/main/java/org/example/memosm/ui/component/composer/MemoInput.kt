@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -344,6 +345,10 @@ fun MemoInput(
                                     color = MaterialTheme.colorScheme.surfaceContainer,
                                     modifier = Modifier
                                         .padding(4.dp)
+                                        // Clip to the circle first: Surface applies its own clip
+                                        // after this modifier, so without it the ripple would be
+                                        // drawn as a square around the round button.
+                                        .clip(androidx.compose.foundation.shape.CircleShape)
                                         .clickable { showSuggestionPopup = true }) {
                                     Box(modifier = Modifier.padding(8.dp)) {
                                         Icon(

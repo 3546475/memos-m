@@ -491,7 +491,8 @@
     <string name="settings_nav_bar_hide_on_scroll">Hide bottom bar on scroll</string>
     <string name="settings_top_bar_hide_on_scroll">Hide top bar on scroll</string>
     <string name="settings_floating_nav_bar">Floating bottom bar</string>
-    <string name="settings_blur_enabled">Frosted surfaces</string>
+    <string name="settings_top_bar_blur">Frost the top bar</string>
+    <string name="settings_nav_bar_blur">Frost the bottom bar</string>
     <string name="settings_nav_items">Bottom bar items</string>
     <string name="settings_nav_move_up">Move up</string>
     <string name="settings_nav_move_down">Move down</string>

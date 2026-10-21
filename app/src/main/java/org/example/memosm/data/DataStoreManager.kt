@@ -51,7 +51,13 @@ class DataStoreManager(
     val APPEARANCE_NAV_SCROLL_MODE = stringPreferencesKey("appearance_nav_scroll_mode")
     val APPEARANCE_TOP_SCROLL_MODE = stringPreferencesKey("appearance_top_scroll_mode")
     val APPEARANCE_NAV_DESTINATIONS = stringPreferencesKey("appearance_nav_destinations")
+        /**
+         * The single switch the two per-bar switches replaced. Kept readable so preferences and
+         * backups written by an older build still carry their choice over to both bars.
+         */
         val APPEARANCE_BLUR_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_blur_enabled")
+        val APPEARANCE_TOP_BAR_BLUR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_top_bar_blur")
+        val APPEARANCE_BOTTOM_BAR_BLUR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_bottom_bar_blur")
         val APPEARANCE_FLOATING_NAV_BAR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_floating_nav_bar")
         val ACCOUNTS_JSON = stringPreferencesKey("accounts_json")
         val SETUP_COMPLETED = androidx.datastore.preferences.core.booleanPreferencesKey("setup_completed")
@@ -270,7 +276,10 @@ class DataStoreManager(
             } ?: NavBarScrollMode.HIDE_ON_SCROLL,
             topBarScrollMode = topBarScrollModeOf(preferences[APPEARANCE_TOP_SCROLL_MODE])
                 ?: TopBarScrollMode.ON_SCROLL,
-            blurEnabled = preferences[APPEARANCE_BLUR_ENABLED] ?: true,
+            topBarBlur = preferences[APPEARANCE_TOP_BAR_BLUR]
+                ?: preferences[APPEARANCE_BLUR_ENABLED] ?: true,
+            bottomBarBlur = preferences[APPEARANCE_BOTTOM_BAR_BLUR]
+                ?: preferences[APPEARANCE_BLUR_ENABLED] ?: true,
             floatingNavBar = preferences[APPEARANCE_FLOATING_NAV_BAR] ?: false,
             navDestinations = preferences[APPEARANCE_NAV_DESTINATIONS]
                 ?.split(',')
@@ -305,8 +314,12 @@ class DataStoreManager(
         editPreferences { it[APPEARANCE_TOP_SCROLL_MODE] = mode.name }
     }
 
-    suspend fun saveBlurEnabled(enabled: Boolean) {
-        editPreferences { it[APPEARANCE_BLUR_ENABLED] = enabled }
+    suspend fun saveTopBarBlur(enabled: Boolean) {
+        editPreferences { it[APPEARANCE_TOP_BAR_BLUR] = enabled }
+    }
+
+    suspend fun saveBottomBarBlur(enabled: Boolean) {
+        editPreferences { it[APPEARANCE_BOTTOM_BAR_BLUR] = enabled }
     }
 
     suspend fun saveFloatingNavBar(enabled: Boolean) {
@@ -532,6 +545,7 @@ class DataStoreManager(
         APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_CUSTOM_HUE, APPEARANCE_FONT,
         APPEARANCE_THEME_STYLE, APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE,
         APPEARANCE_NAV_DESTINATIONS, APPEARANCE_BLUR_ENABLED, APPEARANCE_FLOATING_NAV_BAR,
+        APPEARANCE_TOP_BAR_BLUR, APPEARANCE_BOTTOM_BAR_BLUR,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
         PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB
     )

@@ -47,6 +47,43 @@ class AppearanceSettingsTest {
         assertThrows(IllegalArgumentException::class.java) { settings.validateBackupSettings(settingsJson) }
     }
 
+    @Test
+    fun `frosting is stored per bar`() = withSettings { settings ->
+        assertEquals(true, settings.appearance.first().topBarBlur)
+        assertEquals(true, settings.appearance.first().bottomBarBlur)
+
+        settings.saveTopBarBlur(false)
+        assertEquals(false, settings.appearance.first().topBarBlur)
+        assertEquals(true, settings.appearance.first().bottomBarBlur)
+
+        settings.saveBottomBarBlur(false)
+        assertEquals(false, settings.appearance.first().topBarBlur)
+        assertEquals(false, settings.appearance.first().bottomBarBlur)
+    }
+
+    @Test
+    fun `the old single frosting switch seeds both bars`() = withSettings { settings ->
+        // Backups from the build with one switch still carry that key; it has to keep working
+        // without overriding a per-bar choice made afterwards.
+        val settingsJson = JsonObject().apply {
+            addProperty(DataStoreManager.APPEARANCE_BLUR_ENABLED.name, false)
+        }
+        settings.applyBackup(
+            BackupManifest(
+                createdAt = 0L,
+                categories = setOf(BackupCategory.SETTINGS),
+                accounts = emptyList(),
+                settings = settingsJson
+            )
+        )
+        assertEquals(false, settings.appearance.first().topBarBlur)
+        assertEquals(false, settings.appearance.first().bottomBarBlur)
+
+        settings.saveTopBarBlur(true)
+        assertEquals(true, settings.appearance.first().topBarBlur)
+        assertEquals(false, settings.appearance.first().bottomBarBlur)
+    }
+
     private fun withSettings(check: suspend (DataStoreManager) -> Unit) = runBlocking {
         val directory = Files.createTempDirectory("appearance-settings").toFile()
         val job = SupervisorJob()

@@ -7,7 +7,8 @@ import org.example.memosm.ui.theme.appSlideSpec
 
 import org.example.memosm.ui.theme.appFadeSpec
 
-import org.example.memosm.ui.theme.miuixBlurSupported
+import org.example.memosm.ui.theme.bottomBarBlurSupported
+import org.example.memosm.ui.theme.topBarBlurSupported
 
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
@@ -173,8 +174,12 @@ fun MemosScaffold(
         navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded
     val isDualPane = isListVisible && isDetailVisible
 
-    // The floating list header frosts the list behind it on API 33+ in MIUIX only.
-    val headerBlurEnabled = miuixBlurSupported()
+    // The floating header frosts the list behind it, and the compose button samples the same layer
+    // so it shares the bottom bar's material. Each bar has its own switch: the layer is recorded
+    // when either of them needs it, but each surface is frosted only by its own preference.
+    val headerBlurEnabled = topBarBlurSupported()
+    val fabBlurEnabled = bottomBarBlurSupported()
+    val backdropNeeded = headerBlurEnabled || fabBlurEnabled
     val headerBackdrop = rememberLayerBackdrop()
 
     // Sync selected memo with navigator
@@ -240,7 +245,7 @@ fun MemosScaffold(
     CompositionLocalProvider(
         LocalMemoEditor provides editMemo,
         LocalMemoCommenter provides commentMemo,
-        LocalListBackdrop provides if (headerBlurEnabled) headerBackdrop else null
+        LocalListBackdrop provides if (fabBlurEnabled) headerBackdrop else null
     ) {
         Box(Modifier.fillMaxSize()) {
             Scaffold(
@@ -262,7 +267,7 @@ fun MemosScaffold(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .then(
-                                            if (headerBlurEnabled) {
+                                            if (backdropNeeded) {
                                                 Modifier.layerBackdrop(headerBackdrop)
                                             } else {
                                                 Modifier
