@@ -55,10 +55,13 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
     val available = remember(mapSupported) {
         MainDestination.entries.filter { it != MainDestination.MAP || mapSupported }
     }
+    // Two distinct concepts: which destinations are enabled (and in what order), and the order the
+    // rows are listed in the editor (enabled first, then the disabled ones).
     val enabledOrder = remember(appearance.navDestinations, available) {
         enabledDestinations(appearance.navDestinations, available)
     }
-
+    val enabledNames = enabledOrder.map { it.name }.toSet()
+    val rowOrder = remember(enabledOrder, available) { destinationRows(enabledOrder, available) }
     // settingsItem hosts its content in a Box, so the card stacks its groups in an explicit column
     // instead of overlapping them.
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -110,8 +113,8 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SettingsLabel(stringResource(R.string.settings_nav_items))
             SettingsGroup {
-                available.forEach { destination ->
-                    val enabled = destination in enabledOrder
+                rowOrder.forEach { destination ->
+                    val enabled = destination.name in enabledNames
                     val position = enabledOrder.indexOf(destination)
                     AppListItem(
                         title = stringResource(destination.labelRes),
@@ -122,9 +125,7 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                                     IconButton(
                                         onClick = {
                                             scope.launch {
-                                                dataStore.saveNavDestinations(
-                                                    moveDestination(enabledOrder, position, -1)
-                                                )
+                                                dataStore.saveNavDestinations(moveDestination(enabledOrder, position, -1).map { it.name })
                                             }
                                         },
                                         enabled = position > 0
@@ -137,9 +138,7 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                                     IconButton(
                                         onClick = {
                                             scope.launch {
-                                                dataStore.saveNavDestinations(
-                                                    moveDestination(enabledOrder, position, 1)
-                                                )
+                                                dataStore.saveNavDestinations(moveDestination(enabledOrder, position, 1).map { it.name })
                                             }
                                         },
                                         enabled = position in 0 until enabledOrder.lastIndex
@@ -156,8 +155,8 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                                     onCheckedChange = { checked ->
                                         scope.launch {
                                             dataStore.saveNavDestinations(
-                                                toggleDestination(enabledOrder, available, destination, checked)
-                                            )
+                                                    setDestinationEnabled(enabledOrder, destination, checked).map { it.name }
+                                                )
                                         }
                                     }
                                 )
@@ -171,50 +170,18 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
 }
 
 /** Everything in the default order when nothing is configured. */
-private fun enabledDestinations(
-    stored: List<String>,
-    available: List<MainDestination>
-): List<MainDestination> {
-    if (stored.isEmpty()) return available
-    val ordered = stored.mapNotNull { name -> available.firstOrNull { it.name == name } }
-    // Keep destinations added by a newer build reachable even if the stored list predates them.
-    return ordered + available.filterNot { it in ordered }
-}
+/**
+ * The enabled destinations, in their configured order. An empty stored list means "everything
+ * enabled"; names that are no longer available (a build without map support) are dropped, and
+ * destinations added by a newer build stay visible by appearing in [available] but not here.
+ */
 
-private fun toggleDestination(
-    enabledOrder: List<MainDestination>,
-    available: List<MainDestination>,
-    destination: MainDestination,
-    checked: Boolean
-): List<String> {
-    val current = enabledOrder.toMutableList()
-    if (checked) {
-        if (destination !in current) current.add(destination)
-    } else {
-        current.remove(destination)
-    }
-    // An empty list means "show everything", so disabling must leave at least one destination.
-    return if (current.isEmpty()) {
-        listOfNotNull(available.firstOrNull()).map { it.name }
-    } else {
-        current.map { it.name }
-    }
-}
+/**
+ * Turning a destination on or off. The last one cannot be turned off — the app has no bottom bar
+ * without a destination, and an empty stored list would be read as "everything enabled" again.
+ */
 
-private fun moveDestination(
-    enabledOrder: List<MainDestination>,
-    position: Int,
-    delta: Int
-): List<String> {
-    val target = position + delta
-    if (position !in enabledOrder.indices || target !in enabledOrder.indices) {
-        return enabledOrder.map { it.name }
-    }
-    val moved = enabledOrder.toMutableList()
-    val item = moved.removeAt(position)
-    moved.add(target, item)
-    return moved.map { it.name }
-}
+/** Reorders within the enabled set; positions are relative to the enabled list, not the row list. */
 
 /** A row that shows the current value and opens a picker for a small fixed set of options. */
 @Composable
