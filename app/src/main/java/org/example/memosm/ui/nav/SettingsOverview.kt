@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDownload
@@ -26,8 +24,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -79,16 +75,9 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
                                 summary = section.summaryRes?.let { stringResource(it) },
                                 modifier = Modifier.clip(RoundedCornerShape(4.dp)),
                                 leading = {
-                                    Surface(
-                                        modifier = Modifier.size(40.dp),
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(section.icon, contentDescription = null, modifier = Modifier.size(22.dp))
-                                        }
-                                    }
+                                    // Same treatment as the profile rows: a plain icon, not a
+                                    // filled circle, which read as a colour block in Miuix.
+                                    Icon(section.icon, contentDescription = null)
                                 },
                                 onClick = { onOpenSection(section) }
                             )
