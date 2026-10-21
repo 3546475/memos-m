@@ -34,6 +34,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 
 
 import androidx.compose.runtime.setValue
@@ -56,8 +59,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -633,6 +634,15 @@ private fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this
 /** Blur radius of the capsule's compose button, in pixels. */
 private const val CapsuleBlurRadius = 18f
 
+/** Width of the hairline that outlines the capsule. */
+private val CapsuleHairlineWidth = 1.dp
+
+/**
+ * Slot the compose button occupies in the capsule. It is wider than the blue squircle so that a
+ * tap right next to the button still belongs to the bar instead of the content behind it.
+ */
+private val CapsuleButtonSlotWidth = 68.dp
+
 /**
  * Length of the floating capsule with four destinations enabled. The bar keeps this length when
  * fewer destinations are on, so the navigation does not change shape when items are toggled.
@@ -701,10 +711,10 @@ private fun FloatingBottomBar(
                         }
                     )
                     // A hairline keeps the frosted capsule readable where the blurred content
-                    // behind it is bright. It is drawn inset, so the whole 0.5dp shows instead of
-                    // being half clipped away by the capsule clip.
+                    // behind it is bright. It is drawn inset, so the whole stroke shows instead
+                    // of being half clipped away by the capsule clip.
                     .drawBehind {
-                        val stroke = 0.5.dp.toPx()
+                        val stroke = CapsuleHairlineWidth.toPx()
                         drawRoundRect(
                             color = hairlineColor,
                             topLeft = Offset(stroke / 2f, stroke / 2f),
@@ -713,6 +723,15 @@ private fun FloatingBottomBar(
                             style = Stroke(width = stroke)
                         )
                     }
+                    // The capsule floats over the feed, so a tap on the parts of it that are not
+                    // a destination must not reach the memo underneath. The destinations are
+                    // children of this row and keep their own clicks; this only makes the bar
+                    // itself a hit target.
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false).consume()
+                        }
+                    }
                     .height(64.dp)
                     .padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -720,14 +739,16 @@ private fun FloatingBottomBar(
                 val firstHalf = (destinations.size + 1) / 2
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     destinations.take(firstHalf).forEach { destination ->
                         FloatingBarItem(
                             destination = destination,
                             selected = current == destination,
-                            onClick = { onDestination(destination) }
+                            onClick = { onDestination(destination) },
+                            // The item takes the whole slot, so with two destinations a tap
+                            // anywhere in that half of the bar reaches it.
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -738,14 +759,14 @@ private fun FloatingBottomBar(
                 )
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     destinations.drop(firstHalf).forEach { destination ->
                         FloatingBarItem(
                             destination = destination,
                             selected = current == destination,
-                            onClick = { onDestination(destination) }
+                            onClick = { onDestination(destination) },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -758,7 +779,8 @@ private fun FloatingBottomBar(
 private fun FloatingBarItem(
     destination: MainDestination,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val color = if (selected) {
         MiuixTheme.colorScheme.primary
@@ -768,8 +790,8 @@ private fun FloatingBarItem(
     // Icon only: a floating bar is narrower than the docked one, and the labels made the icons
     // read as cramped. The destination name stays available to accessibility services.
     Box(
-        modifier = Modifier
-            .size(50.dp)
+        modifier = modifier
+            .fillMaxHeight()
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -794,32 +816,38 @@ private fun ComposeCapsuleButton(
     val squircle = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
-            .padding(horizontal = 4.dp)
-            .width(52.dp)
-            .height(35.dp)
-            .clip(squircle)
-            .then(
-                if (blurEnabled) {
-                    Modifier.drawBackdrop(
-                        backdrop = backdrop,
-                        shape = { RectangleShape },
-                        effects = { blur(CapsuleBlurRadius, CapsuleBlurRadius) }
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .background(
-                MiuixTheme.colorScheme.primary.copy(alpha = if (blurEnabled) 0.78f else 1f)
-            )
-            .clickable(onClick = onClick),
+            .fillMaxHeight()
+            .width(CapsuleButtonSlotWidth),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Outlined.Add,
-            contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-            tint = MiuixTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(26.dp)
-        )
+        Box(
+            modifier = Modifier
+                .width(52.dp)
+                .height(35.dp)
+                .clip(squircle)
+                .then(
+                    if (blurEnabled) {
+                        Modifier.drawBackdrop(
+                            backdrop = backdrop,
+                            shape = { RectangleShape },
+                            effects = { blur(CapsuleBlurRadius, CapsuleBlurRadius) }
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+                .background(
+                    MiuixTheme.colorScheme.primary.copy(alpha = if (blurEnabled) 0.78f else 1f)
+                )
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Add,
+                contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+                tint = MiuixTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(26.dp)
+            )
+        }
     }
 }
