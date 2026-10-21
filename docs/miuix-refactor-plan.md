@@ -597,6 +597,22 @@ AppTopBar(
 
 ## 6. 已知问题与决策记录
 
+### 6.0 后续功能与修复（2026-10-21）
+
+- **主题风格默认 MIUIX**：`AppearancePreferences.themeStyle` 默认值与 DataStore 解析兜底同步改成
+  `MIUIX`，老用户已保存的值不受影响。
+- **导航控制（设置 → 导航栏）**：新增 `NavBarScrollMode`（滚动隐藏 / 始终显示）、
+  `TopBarScrollMode`（不隐藏 / 隐藏搜索框 / 隐藏搜索框和标签）与底栏项目自定义
+  （开关 + 上下移动）。底栏项目以 `MainDestination` 枚举名逗号拼接存储，空列表 = 全部按默认顺序，
+  并已加入备份白名单与校验。
+  ⚠️ `settingsItem {}` 的内容是放在 `Box` 里的，一个设置页里要放多个分组必须自己包一层 `Column`，
+  否则会互相重叠（本次踩到：前两组被项目列表盖住）。
+- **日历星期全显示「星」**：`TextStyle.NARROW` 在中文下取的是「星期三」首字，七天都是「星」；
+  改为取 `SHORT`（周一…周日）再去掉「周/星期」前缀。
+- **深色按钮上的黑色图标**：Miuix `FloatingActionButton` 不向下传递内容色，未指定 `tint` 的图标会
+  落到 Material 的 `onSurface`（黑）；适配层统一提供 `onPrimary`。
+- **搜索图标贴边**：Miuix 输入框的 `leadingIcon` 无内边距，搜索栏在 MIUIX 分支加了 12dp 起点缩进。
+
 | 问题 | 现状 / 决策 |
 | --- | --- |
 | 个人页 tab 头像 | Miuix `NavigationBarItem` 只接受 `ImageVector`；当前退化为 `Person` 图标，头像保留在个人主页。P2 决策：接受，或自绘支持 slot 的导航项。 |
