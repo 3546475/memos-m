@@ -257,8 +257,11 @@ private fun MainScreenContent(
     val adaptiveInfo = androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2()
 
 
-    val toggleNavBar: ((Boolean) -> Unit)? = if (isMobile && !navBarAlwaysVisible) {
-        { isNavBarVisible = it }
+    // Non-null means "this layout has a bottom bar to hide". Screens use it both to hide the bar on
+    // scroll and to reserve bottom padding for it, so with the bar pinned visible the callback must
+    // still exist — it just ignores the scroll updates.
+    val toggleNavBar: ((Boolean) -> Unit)? = if (isMobile) {
+        { visible -> if (!navBarAlwaysVisible) isNavBarVisible = visible }
     } else null
 
 
