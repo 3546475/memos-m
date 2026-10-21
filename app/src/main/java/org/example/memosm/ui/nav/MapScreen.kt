@@ -59,7 +59,8 @@ import org.example.memosm.viewmodel.MemosViewModel
 fun MapScreen(
     viewModel: MemosViewModel,
     isNavBarVisible: Boolean = true,
-    onToggleNavBar: ((Boolean) -> Unit)? = null
+    onToggleNavBar: ((Boolean) -> Unit)? = null,
+    navBarAlwaysVisible: Boolean = false
 ) {
     val ui by viewModel.uiState.collectAsState()
     val map = ui.memoMap
@@ -88,7 +89,14 @@ fun MapScreen(
     var controlsHeight by remember { mutableIntStateOf(0) }
     val controlsBottom = with(LocalDensity.current) { controlsHeight.toDp() } + 12.dp
     val configuration = LocalConfiguration.current
-    val bottom = if (configuration.screenWidthDp < 600 && isNavBarVisible && !searchExpanded) 80.dp else 0.dp
+    val navigationBarInset =
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val barInset = 80.dp + navigationBarInset
+    val bottom = if (configuration.screenWidthDp < 600 && isNavBarVisible && !searchExpanded) {
+        barInset
+    } else {
+        0.dp
+    }
     val dark = MaterialTheme.colorScheme.background.let { it.red + it.green + it.blue < 1.5f }
     val visible = remember(map.memos, searchResults) {
         val current = map.memos.associateBy { it.name }
@@ -109,7 +117,8 @@ fun MapScreen(
         navigationKey = "map-${map.scope}",
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
-        navBarInset = if (onToggleNavBar != null && isNavBarVisible) 80.dp else 0.dp,
+        navBarAlwaysVisible = navBarAlwaysVisible,
+        navBarInset = if (onToggleNavBar != null && isNavBarVisible) barInset else 0.dp,
         listPane = { onMemoClick ->
             BoxWithConstraints(Modifier.fillMaxSize().padding(bottom = bottom).testTag("memo_map")) {
                 val desktop = maxWidth >= 600.dp

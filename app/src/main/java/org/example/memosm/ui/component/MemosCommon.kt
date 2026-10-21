@@ -33,6 +33,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -40,10 +41,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -121,6 +126,8 @@ fun MemosScaffold(
     overlay: @Composable BoxScope.(onMemoClick: (Memo) -> Unit, showSearchBar: Boolean, isSearchExpanded: Boolean, onSearchExpandedChange: (Boolean) -> Unit, isDualPane: Boolean, isDetailVisible: Boolean) -> Unit = { _, _, _, _, _, _ -> },
     onToggleNavBar: (Boolean) -> Unit = {},
     isNavBarVisible: Boolean = true,
+    /** "Always visible" only pins the bar against scroll hiding, not against detail/search. */
+    navBarAlwaysVisible: Boolean = false,
     /** Space the floating bottom bar covers, so panes can keep their own floating controls clear. */
     navBarInset: Dp = 0.dp,
     navigationKey: Any? = null,
@@ -219,13 +226,13 @@ fun MemosScaffold(
         derivedStateOf { !scrollContext.isScrollingDown || listState.firstVisibleItemIndex == 0 }
     }
 
-    LaunchedEffect(listState, showNavBarByScroll, isDetailVisible, isDualPane, isSearchExpanded) {
+    LaunchedEffect(listState, showNavBarByScroll, isDetailVisible, isDualPane, isSearchExpanded, navBarAlwaysVisible) {
         if ((isDetailVisible || isSearchExpanded) && !isDualPane) {
-            // Hide navbar when viewing detail or searching on single-pane (mobile)
+            // Detail and search always hide the bar, even when scroll-hiding is switched off.
             onToggleNavBar(false)
         } else {
-            // Restore navbar state based on scroll direction when returning to list or when in dual-pane
-            onToggleNavBar(showNavBarByScroll)
+            // Scrolling only hides when the user allowed it; "always visible" pins the bar.
+            onToggleNavBar(navBarAlwaysVisible || showNavBarByScroll)
         }
     }
 
@@ -249,6 +256,13 @@ fun MemosScaffold(
     ) {
         Box(Modifier.fillMaxSize()) {
             Scaffold(
+                // The feed must stay edge-to-edge at the bottom. Leaving the navigation-bar
+                // inset here painted the Scaffold's background across the gesture-handle row,
+                // hiding whatever was scrolled underneath it. Top/horizontal insets stay so
+                // the floating header is still below the status bar.
+                contentWindowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                ),
                 topBar = { topBar(isDetailVisible, isDualPane) }) { paddingValues ->
                 NavigableListDetailPaneScaffold(
                     modifier = Modifier
@@ -296,7 +310,9 @@ fun MemosScaffold(
                                                 effects = { blur(HeaderBlurRadius, HeaderBlurRadius) }
                                             )
                                         } else {
-                                            Modifier
+                                            // Blur off must not leave the list showing through the
+                                            // header; give it the page's solid color instead.
+                                            Modifier.background(MaterialTheme.colorScheme.background)
                                         }
                                     ) {
                                         listHeader(showSearchBar, isSearchExpanded) { isSearchExpanded = it }

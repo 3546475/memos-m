@@ -111,6 +111,10 @@ class MainActivity : ComponentActivity() {
                     // Observe accounts instead of single credentials
                     val accounts by dataStoreManager.accounts.collectAsState(initial = null)
                     val setupCompleted by dataStoreManager.setupCompleted.collectAsState(initial = null)
+                    // Wait for the saved appearance before composing the main screen: the
+                    // default preferences would otherwise show the docked bar first and then
+                    // switch to the saved floating bar.
+                    val appearance by dataStoreManager.appearance.collectAsState(initial = null)
                     var setupLaunched by rememberSaveable { mutableStateOf(false) }
                     val setupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                         if (it.resultCode == RESULT_OK) {
@@ -148,7 +152,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (isCheckingSession || setupCompleted != true) {
+                    if (isCheckingSession || setupCompleted != true || appearance == null) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
@@ -187,6 +191,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 MainScreen(
+                                    appearance = appearance!!,
                                     onLogout = {
                                         scope.launch {
                                             viewModel.userDelegate.removeAccount(activeAccount)

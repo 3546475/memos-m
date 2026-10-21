@@ -19,6 +19,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -127,6 +130,7 @@ fun MemosScreen(
     pagerState: PagerState,
     onToggleNavBar: ((Boolean) -> Unit)? = null,
     isNavBarVisible: Boolean = true,
+    navBarAlwaysVisible: Boolean = false,
     topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
     openComposer: Boolean = false,
     onComposerOpened: () -> Unit = {},
@@ -190,14 +194,24 @@ fun MemosScreen(
         isFabExpanded = !scrollContext.isScrollingDown
     }
 
+    // The bars are edge-to-edge overlays: the system navigation area (including the gesture
+    // handle) sits between them and the screen edge, so the content has to clear that inset too.
+    val navigationBarInset =
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     val bottomPadding by animateDpAsState(
-        targetValue = if (isNavBarVisible) 80.dp else 16.dp, label = "BottomPadding"
+        targetValue = (if (isNavBarVisible) 80.dp else 16.dp) + navigationBarInset,
+        label = "BottomPadding"
     )
 
     // The bottom bar floats over the content, so the detail pane must reserve its height to keep
     // its own floating button clear. Null callback means this layout has no bottom bar at all.
     val navBarInset by animateDpAsState(
-        targetValue = if (onToggleNavBar != null && isNavBarVisible) 80.dp else 0.dp,
+        targetValue = if (onToggleNavBar != null && isNavBarVisible) {
+            80.dp + navigationBarInset
+        } else {
+            0.dp
+        },
         label = "NavBarInset"
     )
 
@@ -234,6 +248,7 @@ fun MemosScreen(
         listState = listState,
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
+        navBarAlwaysVisible = navBarAlwaysVisible,
         navBarInset = navBarInset,
         navigationKey = activeFeed,
         openSearch = openSearch || searchFromSheet,
@@ -401,7 +416,8 @@ fun MemosScreen(
             if (showComposeFab && uiState.session.currUser != null && !searchExpanded) {
                 // Animate FAB position only if nav bar can be toggled (onToggleNavBar provided)
                 val fabBottomPadding by animateDpAsState(
-                    targetValue = if (onToggleNavBar != null && isNavBarVisible) 96.dp else 16.dp,
+                    targetValue = (if (onToggleNavBar != null && isNavBarVisible) 96.dp else 16.dp) +
+                        navigationBarInset,
                     label = "fabBottomPadding"
                 )
 

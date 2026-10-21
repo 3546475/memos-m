@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -150,8 +153,12 @@ fun AttachmentsScreen(
         onScrollUp = { onToggleNavBar?.invoke(true) }
     )
 
+    // Keep the last row above the system navigation area as well as above the floating bar.
+    val navigationBarInset =
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomPadding by animateDpAsState(
-        targetValue = if (isNavBarVisible) 80.dp else 16.dp, label = "BottomPadding"
+        targetValue = (if (isNavBarVisible) 80.dp else 16.dp) + navigationBarInset,
+        label = "BottomPadding"
     )
 
     LaunchedEffect(Unit) {

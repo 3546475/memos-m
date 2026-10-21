@@ -96,6 +96,7 @@ fun MemosMTheme(
 }
 
 /** Each activity observes the same saved preferences, including changes made in another activity. */
+@Suppress("DEPRECATION") // isStatusBarContrastEnforced is deprecated but still the only switch
 @Composable
 fun SavedMemosMTheme(dataStoreManager: DataStoreManager, content: @Composable () -> Unit) {
     val appearance by dataStoreManager.appearance.collectAsStateWithLifecycle(
@@ -109,6 +110,13 @@ fun SavedMemosMTheme(dataStoreManager: DataStoreManager, content: @Composable ()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !isDark
                 isAppearanceLightNavigationBars = !isDark
+            }
+            // Android 10+ may paint a contrast scrim behind the transparent system bars. The
+            // app is edge-to-edge and draws the content itself, so both scrims must be off for
+            // the page background/content to show through unchanged.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+                window.isStatusBarContrastEnforced = false
             }
         }
     }
