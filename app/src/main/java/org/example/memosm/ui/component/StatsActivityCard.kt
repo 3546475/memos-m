@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.example.memosm.model.UserStats
 import java.time.DayOfWeek
+import java.util.Locale
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -136,7 +137,10 @@ private fun CalendarMonthView(
         ) {
             for (day in daysOfWeek) {
                 Text(
-                    text = day.getDisplayName(TextStyle.NARROW, locale),
+                    // NARROW is unusable in Chinese: every day is "星" (first char of 星期三) or
+                    // "周", so the whole header reads the same. SHORT gives 周一…周日, which we trim
+                    // to 一…日 the way the HyperOS calendar shows it; other locales keep SHORT.
+                    text = day.displayWeekday(locale),
                     style = MaterialTheme.typography.labelSmall,
                     color = onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -264,5 +268,15 @@ private fun parseActivityDate(timestamp: String): LocalDate? {
                 }
             }
         }
+    }
+}
+
+/** Weekday header text: 一…日 for Chinese locales, the short name elsewhere. */
+private fun DayOfWeek.displayWeekday(locale: Locale): String {
+    val short = getDisplayName(TextStyle.SHORT, locale)
+    return when {
+        short.startsWith("周") -> short.removePrefix("周")
+        short.startsWith("星期") -> short.removePrefix("星期")
+        else -> short
     }
 }

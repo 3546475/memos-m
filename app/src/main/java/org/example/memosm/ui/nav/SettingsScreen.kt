@@ -1,5 +1,9 @@
 package org.example.memosm.ui.nav
 
+import org.example.memosm.model.MapCapability
+
+import org.example.memosm.ui.component.setting.NavigationSettingsCard
+
 import android.os.Build
 
 import androidx.compose.foundation.layout.Arrangement
@@ -91,6 +95,11 @@ fun SettingsScreen(
                         }
                     }
                     SettingsSection.APPEARANCE -> Unit
+                SettingsSection.NAVIGATION -> settingsItem {
+                    NavigationSettingsCard(
+                        mapSupported = uiState.memoMap.capability == MapCapability.SUPPORTED
+                    )
+                }
                     SettingsSection.SHORTCUTS -> {
                         settingsItem {
                             ShortcutsCard(

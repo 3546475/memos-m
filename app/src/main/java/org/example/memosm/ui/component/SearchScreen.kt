@@ -370,7 +370,13 @@ fun MemoSearchBar(
                         expanded = expanded,
                         onExpandedChange = expandSearch,
                         label = placeholder,
-                        leadingIcon = leadingIcon,
+                        // Miuix puts the leading icon flush against the field edge, so the search
+                        // glyph needs its own inset to breathe like the HyperOS search field.
+                        leadingIcon = {
+                            Box(modifier = Modifier.padding(start = 12.dp)) {
+                                leadingIcon()
+                            }
+                        },
                         trailingIcon = trailingIcon
                     )
                 },

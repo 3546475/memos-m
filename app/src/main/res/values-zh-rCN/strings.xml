@@ -472,4 +472,15 @@
     <string name="viewer_back">返回</string>
     <string name="video_playback_speed">视频播放速度</string>
     <string name="video_playback_error">无法播放此视频。</string>
-</resources>
+    <string name="settings_navigation">导航栏</string>
+    <string name="settings_navigation_summary">滚动行为、底栏项目</string>
+    <string name="settings_nav_bar_scroll">底栏滚动行为</string>
+    <string name="settings_nav_bar_scroll_hide">滚动时隐藏</string>
+    <string name="settings_nav_bar_scroll_always">始终显示</string>
+    <string name="settings_top_bar_scroll">顶栏滚动行为</string>
+    <string name="settings_top_bar_scroll_never">始终显示</string>
+    <string name="settings_top_bar_scroll_search">隐藏搜索框</string>
+    <string name="settings_top_bar_scroll_all">隐藏搜索框和标签</string>
+    <string name="settings_nav_items">底栏项目</string>
+    <string name="settings_nav_move_up">上移</string>
+    <string name="settings_nav_move_down">下移</string></resources>

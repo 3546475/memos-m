@@ -282,16 +282,6 @@ fun OfflineSettingsCard(
 }
 
 @Composable
-private fun SettingsLabel(label: String) {
-    Text(
-        label,
-        modifier = Modifier.padding(start = 16.dp, top = 12.dp),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary
-    )
-}
-
-@Composable
 private fun CacheUsageRow(label: String, bytes: Long?, limitMb: Int) {
     // The row carries a usage bar under its text, which AppListItem's single summary line cannot
     // express, so it is a styled column that still follows the Miuix row metrics.

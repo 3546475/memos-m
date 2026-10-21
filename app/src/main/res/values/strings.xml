@@ -482,4 +482,15 @@
     <string name="login_sso_token_failed">Signed in, but could not create an app access token. Please try again.</string>
     <string name="attachments_unknown_date">Unknown date</string>
     <string name="attachments_video">Video</string>
-</resources>
+    <string name="settings_navigation">Navigation</string>
+    <string name="settings_navigation_summary">Bars, order</string>
+    <string name="settings_nav_bar_scroll">Bottom bar on scroll</string>
+    <string name="settings_nav_bar_scroll_hide">Hide while scrolling</string>
+    <string name="settings_nav_bar_scroll_always">Always visible</string>
+    <string name="settings_top_bar_scroll">Top bar on scroll</string>
+    <string name="settings_top_bar_scroll_never">Never hide</string>
+    <string name="settings_top_bar_scroll_search">Hide search only</string>
+    <string name="settings_top_bar_scroll_all">Hide search and tabs</string>
+    <string name="settings_nav_items">Bottom bar items</string>
+    <string name="settings_nav_move_up">Move up</string>
+    <string name="settings_nav_move_down">Move down</string></resources>

@@ -1,5 +1,13 @@
 package org.example.memosm.ui
 
+import org.koin.core.context.GlobalContext
+
+import org.example.memosm.data.DataStoreManager
+
+import org.example.memosm.model.NavBarScrollMode
+
+import org.example.memosm.model.AppearancePreferences
+
 import org.example.memosm.ui.theme.isMiuixMotion
 
 import org.example.memosm.ui.theme.appSlideSpec
@@ -170,7 +178,21 @@ private fun MainScreenContent(
 ) {
     var currentDestination by destination
     val mapSupported = uiState.memoMap.capability == MapCapability.SUPPORTED
-    val visibleDestinations = MainDestination.entries.filter { it != MainDestination.MAP || mapSupported }
+    val dataStore = remember { GlobalContext.get().get<DataStoreManager>() }
+    val appearance by dataStore.appearance.collectAsState(initial = AppearancePreferences())
+    // The user can hide, reorder and drop bottom-bar destinations; MAP only exists when supported.
+    val availableDestinations = remember(mapSupported) {
+        MainDestination.entries.filter { it != MainDestination.MAP || mapSupported }
+    }
+    val visibleDestinations = remember(appearance.navDestinations, availableDestinations) {
+        if (appearance.navDestinations.isEmpty()) {
+            availableDestinations
+        } else {
+            appearance.navDestinations
+                .mapNotNull { name -> availableDestinations.firstOrNull { it.name == name } }
+                .ifEmpty { availableDestinations }
+        }
+    }
     LaunchedEffect(mapSupported, uiState.accountGeneration) {
         if (!mapSupported && currentDestination == MainDestination.MAP) currentDestination = MainDestination.MEMOS
     }
@@ -189,7 +211,9 @@ private fun MainScreenContent(
 
     val saveableStateHolder = rememberSaveableStateHolder()
 
+    val navBarAlwaysVisible = appearance.navBarScrollMode == NavBarScrollMode.ALWAYS_VISIBLE
     var isNavBarVisible by remember { mutableStateOf(true) }
+    LaunchedEffect(navBarAlwaysVisible) { if (navBarAlwaysVisible) isNavBarVisible = true }
     var isAddingAccount by remember { mutableStateOf(false) }
 
     val openEditor = rememberMemoEditorLauncher(viewModel)
@@ -233,7 +257,7 @@ private fun MainScreenContent(
     val adaptiveInfo = androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2()
 
 
-    val toggleNavBar: ((Boolean) -> Unit)? = if (isMobile) {
+    val toggleNavBar: ((Boolean) -> Unit)? = if (isMobile && !navBarAlwaysVisible) {
         { isNavBarVisible = it }
     } else null
 
@@ -402,6 +426,7 @@ private fun MainScreenContent(
                                 MainDestination.MEMOS -> MemosScreen(
                                     viewModel = viewModel,
                                     pagerState = feedPagerState,
+                                    topBarScrollMode = appearance.topBarScrollMode,
                                     onToggleNavBar = toggleNavBar,
                                     isNavBarVisible = isNavBarVisible,
                                     openComposer = shouldOpenComposer,

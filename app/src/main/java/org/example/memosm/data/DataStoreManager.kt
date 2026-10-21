@@ -1,5 +1,9 @@
 package org.example.memosm.data
 
+import org.example.memosm.model.TopBarScrollMode
+
+import org.example.memosm.model.NavBarScrollMode
+
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -34,6 +38,9 @@ class DataStoreManager(
         val APPEARANCE_CUSTOM_HUE = androidx.datastore.preferences.core.floatPreferencesKey("appearance_custom_hue")
         val APPEARANCE_FONT = stringPreferencesKey("appearance_font")
         val APPEARANCE_THEME_STYLE = stringPreferencesKey("appearance_theme_style")
+    val APPEARANCE_NAV_SCROLL_MODE = stringPreferencesKey("appearance_nav_scroll_mode")
+    val APPEARANCE_TOP_SCROLL_MODE = stringPreferencesKey("appearance_top_scroll_mode")
+    val APPEARANCE_NAV_DESTINATIONS = stringPreferencesKey("appearance_nav_destinations")
         val ACCOUNTS_JSON = stringPreferencesKey("accounts_json")
         val SETUP_COMPLETED = androidx.datastore.preferences.core.booleanPreferencesKey("setup_completed")
         val PAGE_SIZE = intPreferencesKey("page_size")
@@ -245,7 +252,17 @@ class DataStoreManager(
             customHue = hue?.rem(360f),
             font = AppFont.entries.firstOrNull { it.name == preferences[APPEARANCE_FONT] } ?: AppFont.SYSTEM,
             themeStyle = ThemeStyle.entries.firstOrNull { it.name == preferences[APPEARANCE_THEME_STYLE] }
-                ?: ThemeStyle.MD
+                ?: ThemeStyle.MIUIX,
+            navBarScrollMode = NavBarScrollMode.entries.firstOrNull {
+                it.name == preferences[APPEARANCE_NAV_SCROLL_MODE]
+            } ?: NavBarScrollMode.HIDE_ON_SCROLL,
+            topBarScrollMode = TopBarScrollMode.entries.firstOrNull {
+                it.name == preferences[APPEARANCE_TOP_SCROLL_MODE]
+            } ?: TopBarScrollMode.ALL,
+            navDestinations = preferences[APPEARANCE_NAV_DESTINATIONS]
+                ?.split(',')
+                ?.filter { it.isNotBlank() }
+                ?: emptyList()
         )
     }.distinctUntilChanged()
 
@@ -265,6 +282,25 @@ class DataStoreManager(
 
     suspend fun saveFont(font: AppFont) {
         dataStore.edit { it[APPEARANCE_FONT] = font.name }
+    }
+
+    suspend fun saveNavBarScrollMode(mode: NavBarScrollMode) {
+        editPreferences { it[APPEARANCE_NAV_SCROLL_MODE] = mode.name }
+    }
+
+    suspend fun saveTopBarScrollMode(mode: TopBarScrollMode) {
+        editPreferences { it[APPEARANCE_TOP_SCROLL_MODE] = mode.name }
+    }
+
+    /** Destinations are stored as one comma-joined string so the backup stays a single primitive. */
+    suspend fun saveNavDestinations(destinations: List<String>) {
+        editPreferences { preferences ->
+            if (destinations.isEmpty()) {
+                preferences.remove(APPEARANCE_NAV_DESTINATIONS)
+            } else {
+                preferences[APPEARANCE_NAV_DESTINATIONS] = destinations.joinToString(",")
+            }
+        }
     }
 
     suspend fun saveThemeStyle(style: ThemeStyle) {
@@ -473,7 +509,8 @@ class DataStoreManager(
 
     private val portableKeys: List<Preferences.Key<*>> get() = listOf(
         APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_CUSTOM_HUE, APPEARANCE_FONT,
-        APPEARANCE_THEME_STYLE,
+        APPEARANCE_THEME_STYLE, APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE,
+        APPEARANCE_NAV_DESTINATIONS,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
         PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB
     )
@@ -497,6 +534,8 @@ class DataStoreManager(
                 APPEARANCE_COLOR_THEME.name -> org.example.memosm.model.ColorTheme.valueOf(value.asString)
                 APPEARANCE_FONT.name -> org.example.memosm.model.AppFont.valueOf(value.asString)
                 APPEARANCE_THEME_STYLE.name -> ThemeStyle.valueOf(value.asString)
+                APPEARANCE_NAV_SCROLL_MODE.name -> NavBarScrollMode.valueOf(value.asString)
+                APPEARANCE_TOP_SCROLL_MODE.name -> TopBarScrollMode.valueOf(value.asString)
                 APPEARANCE_CUSTOM_HUE.name, HEADER_SCALE.name -> require(value.asJsonPrimitive.isNumber && value.asFloat.isFinite())
                 PAGE_SIZE.name ->
                     require(value.asJsonPrimitive.isNumber && value.asBigDecimal.stripTrailingZeros().scale() <= 0 && value.asLong in 1..Int.MAX_VALUE.toLong())
@@ -518,7 +557,9 @@ class DataStoreManager(
                     prefs.remove(key)
                     val value = values.get(key.name) ?: return@forEach
                     when (key) {
-                        APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_FONT, APPEARANCE_THEME_STYLE -> prefs[stringPreferencesKey(key.name)] = value.asString
+                        APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_FONT, APPEARANCE_THEME_STYLE,
+            APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE, APPEARANCE_NAV_DESTINATIONS ->
+                prefs[stringPreferencesKey(key.name)] = value.asString
                         APPEARANCE_CUSTOM_HUE, HEADER_SCALE -> prefs[androidx.datastore.preferences.core.floatPreferencesKey(key.name)] = value.asFloat
                         PAGE_SIZE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB -> prefs[intPreferencesKey(key.name)] = value.asInt
                         else -> prefs[androidx.datastore.preferences.core.booleanPreferencesKey(key.name)] = value.asBoolean

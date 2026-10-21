@@ -1,5 +1,7 @@
 package org.example.memosm.ui.nav
 
+import org.example.memosm.model.TopBarScrollMode
+
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.animation.AnimatedVisibility
@@ -67,6 +69,7 @@ import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.data.sync.PreDownloadState
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
@@ -91,6 +94,7 @@ fun MemosScreen(
     pagerState: PagerState,
     onToggleNavBar: ((Boolean) -> Unit)? = null,
     isNavBarVisible: Boolean = true,
+    topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ALL,
     openComposer: Boolean = false,
     onComposerOpened: () -> Unit = {}
 ) {
@@ -169,8 +173,14 @@ fun MemosScreen(
         isNavBarVisible = isNavBarVisible,
         navigationKey = activeFeed,
         listHeader = { showSearchBar, searchExpanded ->
+            // ALL hides the tabs with the search bar; the other modes keep the tabs pinned.
+            val tabsVisible = if (topBarScrollMode == TopBarScrollMode.ALL) {
+                showSearchBar && !searchExpanded
+            } else {
+                !searchExpanded
+            }
             AnimatedVisibility(
-                visible = showSearchBar && !searchExpanded,
+                visible = tabsVisible,
                 enter = slideInVertically { -it } + expandVertically() + fadeIn(),
                 exit = slideOutVertically { -it } + shrinkVertically() + fadeOut()
             ) {
@@ -227,7 +237,11 @@ fun MemosScreen(
         },
         overlay = { onMemoClick, showSearchBar, searchExpanded, onSearchExpandedChange, isDualPane, isDetailVisible ->
             AnimatedVisibility(
-                visible = (showSearchBar || searchExpanded) && (!searchExpanded || isDualPane || !isDetailVisible),
+                visible = if (topBarScrollMode == TopBarScrollMode.NEVER) {
+                    !searchExpanded || isDualPane || !isDetailVisible
+                } else {
+                    (showSearchBar || searchExpanded) && (!searchExpanded || isDualPane || !isDetailVisible)
+                },
                 enter = slideInVertically { -it } + fadeIn(),
                 exit = slideOutVertically { -it } + fadeOut(),
                 modifier = Modifier.align(Alignment.TopCenter)) {
@@ -272,7 +286,8 @@ fun MemosScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Add,
-                            contentDescription = stringResource(R.string.memo_composer_fab_new_memo)
+                            contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+                            tint = MiuixTheme.colorScheme.onPrimary
                         )
                     }
                 } else {

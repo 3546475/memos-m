@@ -186,12 +186,16 @@ fun AppFloatingActionButton(
     content: @Composable () -> Unit
 ) {
     if (usesMiuix) {
-        MiuixFab(
-            onClick = onClick,
-            modifier = modifier,
-            containerColor = MiuixTheme.colorScheme.primary,
-            content = content
-        )
+        // Miuix's FAB does not hand a content colour down, so an untinted Icon would draw in the
+        // Material onSurface (black) on top of the accent fill.
+        CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onPrimary) {
+            MiuixFab(
+                onClick = onClick,
+                modifier = modifier,
+                containerColor = MiuixTheme.colorScheme.primary,
+                content = content
+            )
+        }
     } else {
         FloatingActionButton(
             onClick = onClick,

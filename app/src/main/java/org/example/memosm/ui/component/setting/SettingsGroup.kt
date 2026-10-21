@@ -1,5 +1,9 @@
 package org.example.memosm.ui.component.setting
 
+import androidx.compose.material3.Text
+
+import androidx.compose.foundation.layout.padding
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -30,4 +34,15 @@ fun SettingsSurface(content: @Composable ColumnScope.() -> Unit) {
     ) {
         Column(content = content)
     }
+}
+
+/** A small section caption above a group of rows. */
+@Composable
+fun SettingsLabel(label: String) {
+    Text(
+        label,
+        modifier = Modifier.padding(start = 16.dp, top = 12.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary
+    )
 }

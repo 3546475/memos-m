@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.outlined.ImportExport
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Bookmarks
@@ -46,6 +47,7 @@ enum class SettingsSection(
 ) {
     GENERAL(R.string.settings_group_general, Icons.Outlined.Settings, R.string.settings_summary_general),
     APPEARANCE(R.string.settings_appearance, Icons.Outlined.Palette, R.string.settings_summary_appearance),
+    NAVIGATION(R.string.settings_navigation, Icons.Outlined.ViewAgenda, R.string.settings_navigation_summary),
     SHORTCUTS(R.string.profile_shortcuts, Icons.Outlined.Bookmarks),
     WEBHOOKS(R.string.profile_webhooks, Icons.Outlined.Link),
     OFFLINE(R.string.offline_settings_title, Icons.Outlined.CloudDownload, R.string.settings_summary_offline),
@@ -58,7 +60,7 @@ enum class SettingsSection(
 @Composable
 internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier: Modifier = Modifier) {
     val groups = listOf(
-        listOf(SettingsSection.GENERAL, SettingsSection.APPEARANCE),
+        listOf(SettingsSection.GENERAL, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
         listOf(SettingsSection.OFFLINE, SettingsSection.RECOVERY)
     )
     LazyColumn(
