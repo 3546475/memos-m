@@ -1,5 +1,11 @@
 package org.example.memosm.ui
 
+import org.example.memosm.ui.theme.isMiuixMotion
+
+import org.example.memosm.ui.theme.appSlideSpec
+
+import org.example.memosm.ui.theme.appFadeSpec
+
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 import org.example.memosm.ui.theme.miuixBlurSupported
@@ -373,12 +379,12 @@ private fun MainScreenContent(
                         )
                 ) {
                     // Content
+                    val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
                     AnimatedContent(
                         targetState = currentDestination,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(220)) togetherWith fadeOut(
-                                animationSpec = tween(220)
-                            )
+                            val spec = appFadeSpec(miuixMotion)
+                            fadeIn(animationSpec = spec) togetherWith fadeOut(animationSpec = spec)
                         },
                         label = "MainScreenDestinationTransition",
                         modifier = Modifier.fillMaxSize()

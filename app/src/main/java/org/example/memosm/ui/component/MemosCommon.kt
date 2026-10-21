@@ -1,5 +1,12 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.ui.theme.LocalThemeStyle
+import org.example.memosm.ui.theme.isMiuixMotion
+
+import org.example.memosm.ui.theme.appSlideSpec
+
+import org.example.memosm.ui.theme.appFadeSpec
+
 import org.example.memosm.ui.theme.miuixBlurSupported
 
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
@@ -286,30 +293,36 @@ fun MemosScaffold(
                     },
                     detailPane = {
                         AnimatedPane {
+                            val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
                             AnimatedContent(
                                 targetState = navigator.currentDestination?.contentKey, transitionSpec = {
                                     if (isDualPane) {
                                         if (initialState == null) {
                                             (fadeIn(
-                                                animationSpec = tween(
-                                                    220,
+                                                animationSpec = appFadeSpec(
+                                                    miuixMotion,
+                                                    durationMillis = 220,
                                                     delayMillis = 90
                                                 )
                                             ) + scaleIn(
                                                 initialScale = 0.92f,
-                                                animationSpec = tween(220, delayMillis = 90)
-                                            )).togetherWith(fadeOut(animationSpec = tween(90)))
+                                                animationSpec = appFadeSpec(
+                                                    miuixMotion,
+                                                    durationMillis = 220,
+                                                    delayMillis = 90
+                                                )
+                                            )).togetherWith(fadeOut(animationSpec = appFadeSpec(miuixMotion, durationMillis = 90)))
                                         } else {
-                                            fadeIn(animationSpec = tween(300)).togetherWith(
-                                                fadeOut(animationSpec = tween(300))
+                                            fadeIn(animationSpec = appFadeSpec(miuixMotion, durationMillis = 300)).togetherWith(
+                                                fadeOut(animationSpec = appFadeSpec(miuixMotion, durationMillis = 300))
                                             )
                                         }
                                     } else {
                                         (slideInVertically(
-                                            initialOffsetY = { it }, animationSpec = tween(300)
+                                            initialOffsetY = { it }, animationSpec = appSlideSpec(miuixMotion, 300)
                                         ) + fadeIn()).togetherWith(
                                             slideOutVertically(
-                                                targetOffsetY = { it }, animationSpec = tween(300)
+                                                targetOffsetY = { it }, animationSpec = appSlideSpec(miuixMotion, 300)
                                             ) + fadeOut()
                                         )
                                     }
