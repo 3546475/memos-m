@@ -29,6 +29,11 @@ import top.yukonga.miuix.kmp.blur.blur
 
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.drawBehind
 
 
 import androidx.compose.runtime.setValue
@@ -650,6 +655,8 @@ private fun FloatingBottomBar(
     modifier: Modifier = Modifier
 ) {
     val capsule = RoundedCornerShape(percent = 50)
+    // The hairline that separates the frosted capsule from a bright background.
+    val hairlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
         AnimatedVisibility(
             visible = visible,
@@ -693,7 +700,20 @@ private fun FloatingBottomBar(
                             MiuixTheme.colorScheme.surface
                         }
                     )
-                    .height(58.dp)
+                    // A hairline keeps the frosted capsule readable where the blurred content
+                    // behind it is bright. It is drawn inset, so the whole 0.5dp shows instead of
+                    // being half clipped away by the capsule clip.
+                    .drawBehind {
+                        val stroke = 0.5.dp.toPx()
+                        drawRoundRect(
+                            color = hairlineColor,
+                            topLeft = Offset(stroke / 2f, stroke / 2f),
+                            size = Size(size.width - stroke, size.height - stroke),
+                            cornerRadius = CornerRadius((size.height - stroke) / 2f),
+                            style = Stroke(width = stroke)
+                        )
+                    }
+                    .height(64.dp)
                     .padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
