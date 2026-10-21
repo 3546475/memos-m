@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.setting
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,7 +101,7 @@ fun EditProfileScreen(
                         enabled = !isSaving && canSave
                     ) {
                         if (isSaving) {
-                            CircularProgressIndicator(
+                            AppCircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp
                             )

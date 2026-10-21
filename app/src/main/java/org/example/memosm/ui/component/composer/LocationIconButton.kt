@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.composer
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -105,7 +107,7 @@ fun LocationIconButton(
         modifier = modifier
     ) {
         if (isFetching) {
-            CircularProgressIndicator(
+            AppCircularProgressIndicator(
                 modifier = Modifier.size(iconSize),
                 strokeWidth = 2.dp
             )

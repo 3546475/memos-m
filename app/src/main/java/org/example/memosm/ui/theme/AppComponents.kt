@@ -576,10 +576,19 @@ fun AppLinearProgressIndicator(
 @Composable
 fun AppCircularProgressIndicator(
     modifier: Modifier = Modifier,
-    progress: Float? = null
+    progress: Float? = null,
+    strokeWidth: Dp? = null
 ) {
     if (usesMiuix) {
-        MiuixCircularProgressIndicator(modifier = modifier, progress = progress)
+        if (strokeWidth != null) {
+            MiuixCircularProgressIndicator(
+                modifier = modifier,
+                progress = progress,
+                strokeWidth = strokeWidth
+            )
+        } else {
+            MiuixCircularProgressIndicator(modifier = modifier, progress = progress)
+        }
     } else if (progress == null) {
         CircularProgressIndicator(modifier = modifier)
     } else {

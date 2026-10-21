@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import DeleteConfirmationDialog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -258,7 +260,7 @@ fun MemoDetailView(
                                     .padding(32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                AppCircularProgressIndicator()
                             }
                         }
                     }

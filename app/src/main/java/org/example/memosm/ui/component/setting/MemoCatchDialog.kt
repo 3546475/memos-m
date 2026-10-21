@@ -1,5 +1,9 @@
 package org.example.memosm.ui.component.setting
 
+import org.example.memosm.ui.theme.AppLinearProgressIndicator
+
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import org.example.memosm.ui.theme.flatCardElevation
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -134,8 +138,8 @@ internal fun MemoCatchDialog(onDismiss: () -> Unit) {
                             ceil(MemoCatchState.ROUND_SECONDS - game.elapsed).toInt()
                         ))
                     }
-                    LinearProgressIndicator(
-                        progress = { (1 - game.elapsed / MemoCatchState.ROUND_SECONDS).toFloat() },
+                    AppLinearProgressIndicator(
+                        progress = (1 - game.elapsed / MemoCatchState.ROUND_SECONDS).toFloat(),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

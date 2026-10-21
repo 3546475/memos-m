@@ -1,5 +1,9 @@
 package org.example.memosm.ui.component
 
+import androidx.compose.foundation.clickable
+
+import org.example.memosm.ui.theme.AppCard
+
 import org.example.memosm.ui.theme.flatCardElevation
 import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
@@ -53,12 +57,9 @@ fun ProfileHeader(
     onEditClick: (() -> Unit)? = null,
     userStats: UserStats? = null
 ) {
-    Card(
-        elevation = flatCardElevation(),
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        onClick = onClick
+    AppCard(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(24.dp)) {

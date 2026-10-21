@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.composer
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import org.example.memosm.ui.theme.flatCardElevation
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -469,7 +471,7 @@ fun MemoComposerBottomBar(
                             modifier = Modifier.size(24.dp),
                             color = LocalContentColor.current,
                             strokeWidth = 2.dp
-                        )
+                            )
                     } else {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.Send,
@@ -491,7 +493,7 @@ fun MemoComposerBottomBar(
                         modifier = Modifier.size(24.dp),
                         color = LocalContentColor.current,
                         strokeWidth = 2.dp
-                    )
+                        )
                 } else {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.Send,

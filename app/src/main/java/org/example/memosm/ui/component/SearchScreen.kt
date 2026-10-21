@@ -1,5 +1,9 @@
 package org.example.memosm.ui.component
 
+import androidx.compose.foundation.clickable
+
+import org.example.memosm.ui.theme.AppCard
+
 import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppDropdownMenu
 import org.example.memosm.ui.theme.AppDropdownMenuItem
@@ -525,15 +529,11 @@ private fun SearchResultContent(
         // Tag Cloud Section
         if (availableTags.isNotEmpty()) {
             item {
-                Card(
-                    elevation = flatCardElevation(),
+                AppCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    ),
-                    shape = MaterialTheme.shapes.large
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
@@ -770,11 +770,9 @@ private fun DateSelectorCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    Card(
-        elevation = flatCardElevation(),
-        modifier = modifier, colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ), shape = MaterialTheme.shapes.large, onClick = onClick
+    AppCard(
+        modifier = modifier.clickable(onClick = onClick),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     ) {
         Row(
             modifier = Modifier

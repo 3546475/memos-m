@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component.item.media
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import android.net.Uri
 import android.util.Base64
 import androidx.compose.foundation.combinedClickable
@@ -175,7 +177,7 @@ fun MemoImage(
         }
 
         if (isLoading && !isRound) {
-            CircularProgressIndicator(
+            AppCircularProgressIndicator(
                 modifier = Modifier.size(24.dp), strokeWidth = 2.dp
             )
         }

@@ -1,5 +1,7 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
+
 import org.example.memosm.ui.theme.flatCardElevation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -130,7 +132,7 @@ fun NotificationsScreen(
             when {
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        AppCircularProgressIndicator()
                     }
                 }
 
