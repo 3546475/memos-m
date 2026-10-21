@@ -51,7 +51,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -113,7 +112,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import org.koin.androidx.compose.koinViewModel
 import kotlinx.coroutines.launch
@@ -674,7 +672,8 @@ private fun FloatingBottomBar(
                     // A fixed length keeps the capsule the same width whatever destination count is
                     // enabled; the two halves split it around the centred compose button.
                     .width(CapsuleBarWidth)
-                    .shadow(elevation = 10.dp, shape = capsule, clip = false)
+                    // No drop shadow: the frosted glass separates the bar from the content on its
+                    // own, and an elevation shadow here popped in a beat after the bar appeared.
                     .clip(capsule)
                     .then(
                         if (blurEnabled) {
@@ -746,27 +745,20 @@ private fun FloatingBarItem(
     } else {
         MiuixTheme.colorScheme.onSurfaceVariantActions
     }
-    Column(
+    // Icon only: a floating bar is narrower than the docked one, and the labels made the icons
+    // read as cramped. The destination name stays available to accessibility services.
+    Box(
         modifier = Modifier
-            .width(50.dp)
+            .size(50.dp)
             .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 5.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = destination.navIcon(selected),
-            contentDescription = null,
+            contentDescription = stringResource(destination.labelRes),
             tint = color,
             modifier = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = stringResource(destination.labelRes),
-            color = color,
-            fontSize = 10.sp,
-            maxLines = 1
         )
     }
 }
@@ -777,13 +769,14 @@ private fun ComposeCapsuleButton(
     blurEnabled: Boolean,
     backdrop: LayerBackdrop
 ) {
-    // Squircle rather than a circle, so it reads as the capsule's own action.
-    val squircle = RoundedCornerShape(18.dp)
+    // Squircle rather than a circle, so it reads as the capsule's own action. Two thirds of the
+    // old height: the corner radius shrinks with it, otherwise it would clamp into a pill.
+    val squircle = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
             .padding(horizontal = 4.dp)
-            .size(52.dp)
-            .shadow(elevation = 6.dp, shape = squircle, clip = false)
+            .width(52.dp)
+            .height(35.dp)
             .clip(squircle)
             .then(
                 if (blurEnabled) {
