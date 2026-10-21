@@ -9,6 +9,7 @@ import org.example.memosm.ui.theme.appFadeSpec
 
 import org.example.memosm.ui.theme.miuixBlurSupported
 
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -80,6 +81,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.example.memosm.R
@@ -98,6 +100,13 @@ import org.example.memosm.viewmodel.MemosViewModel
 val LocalMemoEditor = compositionLocalOf<(Memo) -> Unit> { { } }
 val LocalMemoCommenter = compositionLocalOf<(Memo) -> Unit> { { } }
 
+/**
+ * The list content, recorded as a backdrop layer, so anything floating above it (the frosted
+ * header, the compose button) can sample and blur what is scrolling underneath. Null when the
+ * blur is unavailable, which is every MD session and every device below API 33.
+ */
+val LocalListBackdrop = compositionLocalOf<LayerBackdrop?> { null }
+
 private const val HeaderBlurRadius = 24f
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -111,6 +120,8 @@ fun MemosScaffold(
     overlay: @Composable BoxScope.(onMemoClick: (Memo) -> Unit, showSearchBar: Boolean, isSearchExpanded: Boolean, onSearchExpandedChange: (Boolean) -> Unit, isDualPane: Boolean, isDetailVisible: Boolean) -> Unit = { _, _, _, _, _, _ -> },
     onToggleNavBar: (Boolean) -> Unit = {},
     isNavBarVisible: Boolean = true,
+    /** Space the floating bottom bar covers, so panes can keep their own floating controls clear. */
+    navBarInset: Dp = 0.dp,
     navigationKey: Any? = null,
     listHeader: @Composable (
         showSearchBar: Boolean,
@@ -216,7 +227,8 @@ fun MemosScaffold(
     }
     CompositionLocalProvider(
         LocalMemoEditor provides editMemo,
-        LocalMemoCommenter provides commentMemo
+        LocalMemoCommenter provides commentMemo,
+        LocalListBackdrop provides if (headerBlurEnabled) headerBackdrop else null
     ) {
         Box(Modifier.fillMaxSize()) {
             Scaffold(
@@ -359,7 +371,8 @@ fun MemosScaffold(
                                         },
                                         viewModel = viewModel,
                                         reactionOptions = uiState.session.instanceSettings?.memoRelatedSetting?.reactions
-                                            ?: emptyList()
+                                            ?: emptyList(),
+                                        bottomBarInset = navBarInset
                                     )
                                 } else if (isDualPane) {
                                     MemoDetailPlaceholder()
@@ -391,6 +404,8 @@ fun MemosScaffold(
         contentPadding: PaddingValues = PaddingValues(
             start = 16.dp, top = 88.dp, end = 16.dp, bottom = 80.dp
         ),
+        /** Pushes the pull-to-refresh spinner below a floating header instead of behind it. */
+        indicatorTopPadding: Dp = 0.dp,
         errorTitle: String = stringResource(R.string.common_error_failed_to_load),
         onHashtagClick: ((String) -> Unit)? = null,
         isActive: Boolean = true
@@ -410,6 +425,7 @@ fun MemosScaffold(
         AppPullToRefresh(
             isRefreshing = isRefreshing,
             onRefresh = { if (isActive) onRefresh() },
+            indicatorTopPadding = indicatorTopPadding,
             modifier = modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {

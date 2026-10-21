@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -684,13 +685,16 @@ fun AppPullToRefresh(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Miuix offsets its spinner by this much; screens with a floating header use it to clear it. */
+    indicatorTopPadding: Dp = 0.dp,
     content: @Composable () -> Unit
 ) {
     if (usesMiuix) {
         MiuixPullToRefresh(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
-            modifier = modifier
+            modifier = modifier,
+            contentPadding = PaddingValues(top = indicatorTopPadding)
         ) {
             content()
         }

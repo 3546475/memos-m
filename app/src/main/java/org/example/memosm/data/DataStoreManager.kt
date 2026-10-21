@@ -25,6 +25,16 @@ import org.example.memosm.model.Account
 import org.example.memosm.model.User
 import org.example.memosm.model.toUserSnapshot
 
+/**
+ * Resolves a stored top-bar mode, including the retired three-way names: "NEVER" meant "always
+ * visible", and both "ALL" and "SEARCH_ONLY" meant "hide while scrolling".
+ */
+internal fun topBarScrollModeOf(name: String?): TopBarScrollMode? = when (name) {
+    TopBarScrollMode.ALWAYS.name, "NEVER" -> TopBarScrollMode.ALWAYS
+    TopBarScrollMode.ON_SCROLL.name, "ALL", "SEARCH_ONLY" -> TopBarScrollMode.ON_SCROLL
+    else -> null
+}
+
 class DataStoreManager(
     private val dataStore: DataStore<Preferences>,
     private val onAccountsChanged: () -> Unit = {}
@@ -256,9 +266,8 @@ class DataStoreManager(
             navBarScrollMode = NavBarScrollMode.entries.firstOrNull {
                 it.name == preferences[APPEARANCE_NAV_SCROLL_MODE]
             } ?: NavBarScrollMode.HIDE_ON_SCROLL,
-            topBarScrollMode = TopBarScrollMode.entries.firstOrNull {
-                it.name == preferences[APPEARANCE_TOP_SCROLL_MODE]
-            } ?: TopBarScrollMode.ALL,
+            topBarScrollMode = topBarScrollModeOf(preferences[APPEARANCE_TOP_SCROLL_MODE])
+                ?: TopBarScrollMode.ON_SCROLL,
             navDestinations = preferences[APPEARANCE_NAV_DESTINATIONS]
                 ?.split(',')
                 ?.filter { it.isNotBlank() }
@@ -535,7 +544,9 @@ class DataStoreManager(
                 APPEARANCE_FONT.name -> org.example.memosm.model.AppFont.valueOf(value.asString)
                 APPEARANCE_THEME_STYLE.name -> ThemeStyle.valueOf(value.asString)
                 APPEARANCE_NAV_SCROLL_MODE.name -> NavBarScrollMode.valueOf(value.asString)
-                APPEARANCE_TOP_SCROLL_MODE.name -> TopBarScrollMode.valueOf(value.asString)
+                APPEARANCE_TOP_SCROLL_MODE.name -> require(topBarScrollModeOf(value.asString) != null) {
+                    "Unknown top bar scroll mode"
+                }
                 APPEARANCE_CUSTOM_HUE.name, HEADER_SCALE.name -> require(value.asJsonPrimitive.isNumber && value.asFloat.isFinite())
                 PAGE_SIZE.name ->
                     require(value.asJsonPrimitive.isNumber && value.asBigDecimal.stripTrailingZeros().scale() <= 0 && value.asLong in 1..Int.MAX_VALUE.toLong())

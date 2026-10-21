@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Shortcut
@@ -64,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.model.ThemeStyle
@@ -72,10 +74,13 @@ import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
+import top.yukonga.miuix.kmp.blur.blur
+import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.data.sync.PreDownloadState
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
+import org.example.memosm.ui.component.LocalListBackdrop
 import org.example.memosm.ui.component.MemoSearchBar
 import org.example.memosm.ui.component.MemosScaffold
 import org.example.memosm.ui.component.SyncStatusBar
@@ -96,17 +101,20 @@ import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
 
+private const val FabBlurRadius = 20f
+
 @Composable
 fun MemosScreen(
     viewModel: MemosViewModel,
     pagerState: PagerState,
     onToggleNavBar: ((Boolean) -> Unit)? = null,
     isNavBarVisible: Boolean = true,
-    topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ALL,
+    topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
     openComposer: Boolean = false,
     onComposerOpened: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val miuixFeed = LocalThemeStyle.current == ThemeStyle.MIUIX
     val memosListState = rememberLazyListState()
     val exploreListState = rememberLazyListState()
     val activeFeed = MemoFeed.entries[pagerState.currentPage]
@@ -152,6 +160,13 @@ fun MemosScreen(
         targetValue = if (isNavBarVisible) 80.dp else 16.dp, label = "BottomPadding"
     )
 
+    // The bottom bar floats over the content, so the detail pane must reserve its height to keep
+    // its own floating button clear. Null callback means this layout has no bottom bar at all.
+    val navBarInset by animateDpAsState(
+        targetValue = if (onToggleNavBar != null && isNavBarVisible) 80.dp else 0.dp,
+        label = "NavBarInset"
+    )
+
     // Handle external composer open request (e.g. from widget)
     LaunchedEffect(openComposer) {
         if (openComposer) {
@@ -185,15 +200,16 @@ fun MemosScreen(
         listState = listState,
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
+        navBarInset = navBarInset,
         navigationKey = activeFeed,
         listHeader = { showSearchBar, searchExpanded, onSearchExpandedChange ->
-            if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+            if (miuixFeed) {
                 // One row of chrome: text tabs on the left, search on the right. The
                 // search field itself only exists while expanded, so the feed starts
                 // near the top of the screen instead of under two stacked capsules.
                 val rowVisible =
-                    (topBarScrollMode != TopBarScrollMode.ALL || showSearchBar) && !searchExpanded
-                val tabsVisible = topBarScrollMode == TopBarScrollMode.NEVER || showSearchBar
+                    (topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar) && !searchExpanded
+                val tabsVisible = topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar
                 AnimatedVisibility(
                     visible = rowVisible && !searchExpanded,
                     enter = fadeIn() + expandVertically(),
@@ -227,8 +243,8 @@ fun MemosScreen(
                     }
                 }
             } else {
-                // ALL hides the tabs with the search bar; the other modes keep the tabs pinned.
-                val tabsVisible = if (topBarScrollMode == TopBarScrollMode.ALL) {
+                // ON_SCROLL hides the tabs with the header; ALWAYS keeps them pinned.
+                val tabsVisible = if (topBarScrollMode == TopBarScrollMode.ON_SCROLL) {
                     showSearchBar && !searchExpanded
                 } else {
                     !searchExpanded
@@ -260,22 +276,22 @@ fun MemosScreen(
                 val feed = MemoFeed.entries[page]
                 // Miuix's header is a single row, so the list only needs to clear it;
                 // MD keeps the tab row plus the floating search field below it.
+                val headerTop = if (miuixFeed) 64.dp else 88.dp + feedHeaderHeight
                 val contentPadding = PaddingValues(
                     start = 16.dp,
-                    top = if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-                        64.dp
-                    } else {
-                        88.dp + feedHeaderHeight
-                    },
+                    top = headerTop,
                     end = 16.dp,
                     bottom = bottomPadding
                 )
+                // Keep the pull-to-refresh spinner under the header instead of behind its frost.
+                val indicatorPadding = if (miuixFeed) 52.dp else 0.dp
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(
                         viewModel = viewModel,
                         listState = memosListState,
                         onMemoClick = onMemoClick,
                         contentPadding = contentPadding,
+                        indicatorTopPadding = indicatorPadding,
                         onDraftsCardClick = { draftsLauncher.launch(Intent(context, DraftsActivity::class.java)) },
                         onHashtagClick = { tag -> viewModel.shortcutDelegate.toggleHashtagFilter(tag) },
                         isActive = activeFeed == feed
@@ -292,6 +308,7 @@ fun MemosScreen(
                         onMemoClick = onMemoClick,
                         listState = exploreListState,
                         contentPadding = contentPadding,
+                        indicatorTopPadding = indicatorPadding,
                         userProvider = { memo -> uiState.users[memo.creator] },
                         errorTitle = stringResource(R.string.common_error_failed_to_load_explore),
                         isActive = activeFeed == feed
@@ -300,7 +317,7 @@ fun MemosScreen(
             }
         },
         overlay = { onMemoClick, showSearchBar, searchExpanded, onSearchExpandedChange, isDualPane, isDetailVisible ->
-            val miuixSearch = LocalThemeStyle.current == ThemeStyle.MIUIX
+            val miuixSearch = miuixFeed
             val searchBar: @Composable () -> Unit = {
                 key(activeFeed) {
                     MemoSearchBar(
@@ -325,7 +342,7 @@ fun MemosScreen(
                 searchBar()
             } else {
                 AnimatedVisibility(
-                    visible = if (topBarScrollMode == TopBarScrollMode.NEVER) {
+                    visible = if (topBarScrollMode == TopBarScrollMode.ALWAYS) {
                         !searchExpanded || isDualPane || !isDetailVisible
                     } else {
                         (showSearchBar || searchExpanded) && (!searchExpanded || isDualPane || !isDetailVisible)
@@ -345,7 +362,9 @@ fun MemosScreen(
                     label = "fabBottomPadding"
                 )
 
-                if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+                if (miuixFeed) {
+                    // Frosted like the bars: the compose button samples the list sliding behind it.
+                    val fabBackdrop = LocalListBackdrop.current
                     MiuixFloatingActionButton(
                         onClick = {
                             if (uiState.draft.drafts.isNotEmpty()) {
@@ -358,6 +377,23 @@ fun MemosScreen(
                             .testTag("memo_feed_compose")
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = fabBottomPadding)
+                            .then(
+                                if (fabBackdrop != null) {
+                                    Modifier.drawBackdrop(
+                                        backdrop = fabBackdrop,
+                                        shape = { CircleShape },
+                                        effects = { blur(FabBlurRadius, FabBlurRadius) }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                        shape = CircleShape,
+                        containerColor = if (fabBackdrop != null) {
+                            MiuixTheme.colorScheme.primary.copy(alpha = 0.78f)
+                        } else {
+                            MiuixTheme.colorScheme.primary
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Add,
@@ -453,6 +489,7 @@ private fun MemosListPane(
     listState: LazyListState,
     onMemoClick: (Memo) -> Unit,
     contentPadding: PaddingValues,
+    indicatorTopPadding: Dp = 0.dp,
     onDraftsCardClick: () -> Unit,
     onHashtagClick: (String) -> Unit,
     isActive: Boolean
@@ -474,6 +511,7 @@ private fun MemosListPane(
         onMemoClick = onMemoClick,
         listState = listState,
         contentPadding = contentPadding,
+        indicatorTopPadding = indicatorTopPadding,
         errorTitle = stringResource(R.string.common_error_failed_to_load_memos),
         onHashtagClick = onHashtagClick,
         isActive = isActive,

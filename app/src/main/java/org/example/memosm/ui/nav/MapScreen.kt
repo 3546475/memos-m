@@ -109,6 +109,7 @@ fun MapScreen(
         navigationKey = "map-${map.scope}",
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
+        navBarInset = if (onToggleNavBar != null && isNavBarVisible) 80.dp else 0.dp,
         listPane = { onMemoClick ->
             BoxWithConstraints(Modifier.fillMaxSize().padding(bottom = bottom).testTag("memo_map")) {
                 val desktop = maxWidth >= 600.dp

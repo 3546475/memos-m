@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppExtendedFloatingActionButton
@@ -80,6 +81,8 @@ fun MemoDetailView(
     onBack: () -> Unit,
     viewModel: MemosViewModel,
     reactionOptions: List<String> = emptyList(),
+    /** Height the floating bottom bar covers here; the comment button must stay above it. */
+    bottomBarInset: Dp = 0.dp,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val onCommentMemo = LocalMemoCommenter.current
@@ -135,20 +138,22 @@ fun MemoDetailView(
                 )
             }, floatingActionButton = {
                 if (uiState.session.currUser != null) {
-                    AppExtendedFloatingActionButton(
-                        onClick = { onCommentMemo(memo) },
-                        expanded = isFabExpanded,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Add, contentDescription = null
-                            )
-                        },
-                        text = {
-                            Text(text = stringResource(R.string.memo_detail_add_comment))
-                        }
-                    )
+                    Box(Modifier.padding(bottom = bottomBarInset)) {
+                        AppExtendedFloatingActionButton(
+                            onClick = { onCommentMemo(memo) },
+                            expanded = isFabExpanded,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Add, contentDescription = null
+                                )
+                            },
+                            text = {
+                                Text(text = stringResource(R.string.memo_detail_add_comment))
+                            }
+                        )
+                    }
                 }
             }, containerColor = Color.Transparent, modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
@@ -164,7 +169,7 @@ fun MemoDetailView(
                         .fillMaxSize() // Use fillMaxSize instead of fillMaxHeight
                         .widthIn(max = 800.dp)
                         .padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp + bottomBarInset),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {

@@ -635,6 +635,24 @@ AppTopBar(
 - **列表顶部留白**：MIUIX 固定 `contentPadding.top = 64dp`（一行 chrome + 16dp 间距），
   MD 仍是 `88dp + 实测标签高度`。
 
+### 6.2 四条修复（2026-10-21 下午）
+
+- **顶栏/底栏滚动行为改成开关**：`TopBarScrollMode` 从三值（`NEVER` / `SEARCH_ONLY` / `ALL`）收敛为
+  两值（`ALWAYS` / `ON_SCROLL`），设置页两行都用 `SettingToggleRow` 开关，一次点击即可切换。
+  `DataStoreManager.topBarScrollModeOf` 保留了旧值映射（`NEVER` → `ALWAYS`，`ALL` / `SEARCH_ONLY` →
+  `ON_SCROLL`），备份校验也用同一函数，老备份不会因为字符串变了而被判非法；配对单测在
+  `TopBarScrollModeTest`。
+- **下拉刷新指示器被顶栏毛玻璃糊住**：Miuix `PullToRefresh` 的 `contentPadding.top` 只作用在
+  `RefreshHeader` 的 `offset` 上（读的是字节码里的 `calculateTopPadding()`），所以
+  `AppPullToRefresh` 新增 `indicatorTopPadding`，首页 MIUIX 传 52dp，把转圈推到顶栏下方；内容布局
+  不受影响。MD 分支忽略该参数。
+- **详情页「添加评论」被底栏盖住**：底栏是浮层（`Box(align = BottomCenter)`）而不是布局占位，所以
+  `MemosScaffold` 新增 `navBarInset`（`MemosScreen` 按 `onToggleNavBar != null && isNavBarVisible`
+  算成 80dp 并做动画），透传给 `MemoDetailView`：FAB 加同高底部内边距，列表底部内边距同样加上。
+- **首页 FAB 改毛玻璃**：`MemosScaffold` 通过 `LocalListBackdrop` 把列表录制的那层背景暴露出来
+  （未开启模糊时为 null），FAB 用同一层做 `drawBackdrop(shape = CircleShape)`，容器色取
+  `primary.copy(alpha = 0.78f)`，与顶栏/底栏同一材质。降级路径（MD、API < 33）仍是纯色主色圆形。
+
 | 问题 | 现状 / 决策 |
 | --- | --- |
 | 个人页 tab 头像 | Miuix `NavigationBarItem` 只接受 `ImageVector`；当前退化为 `Person` 图标，头像保留在个人主页。P2 决策：接受，或自绘支持 slot 的导航项。 |

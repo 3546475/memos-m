@@ -65,46 +65,27 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
     // settingsItem hosts its content in a Box, so the card stacks its groups in an explicit column
     // instead of overlapping them.
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Both bars only have two states, so a switch is one tap instead of a picker.
         SettingsGroup {
-            SettingsOptionRow(
-                title = stringResource(R.string.settings_nav_bar_scroll),
-                summary = stringResource(
-                    when (appearance.navBarScrollMode) {
-                        NavBarScrollMode.HIDE_ON_SCROLL -> R.string.settings_nav_bar_scroll_hide
-                        NavBarScrollMode.ALWAYS_VISIBLE -> R.string.settings_nav_bar_scroll_always
-                    }
-                ),
-                options = listOf(
-                    stringResource(R.string.settings_nav_bar_scroll_hide),
-                    stringResource(R.string.settings_nav_bar_scroll_always)
-                ),
-                selectedIndex = if (appearance.navBarScrollMode == NavBarScrollMode.HIDE_ON_SCROLL) 0 else 1,
-                onSelect = { index ->
+            SettingToggleRow(
+                label = stringResource(R.string.settings_top_bar_hide_on_scroll),
+                checked = appearance.topBarScrollMode == TopBarScrollMode.ON_SCROLL,
+                onCheckedChange = { hide ->
                     scope.launch {
-                        dataStore.saveNavBarScrollMode(
-                            if (index == 0) NavBarScrollMode.HIDE_ON_SCROLL else NavBarScrollMode.ALWAYS_VISIBLE
+                        dataStore.saveTopBarScrollMode(
+                            if (hide) TopBarScrollMode.ON_SCROLL else TopBarScrollMode.ALWAYS
                         )
                     }
                 }
             )
-            SettingsOptionRow(
-                title = stringResource(R.string.settings_top_bar_scroll),
-                summary = stringResource(
-                    when (appearance.topBarScrollMode) {
-                        TopBarScrollMode.NEVER -> R.string.settings_top_bar_scroll_never
-                        TopBarScrollMode.SEARCH_ONLY -> R.string.settings_top_bar_scroll_search
-                        TopBarScrollMode.ALL -> R.string.settings_top_bar_scroll_all
-                    }
-                ),
-                options = listOf(
-                    stringResource(R.string.settings_top_bar_scroll_never),
-                    stringResource(R.string.settings_top_bar_scroll_search),
-                    stringResource(R.string.settings_top_bar_scroll_all)
-                ),
-                selectedIndex = appearance.topBarScrollMode.ordinal,
-                onSelect = { index ->
+            SettingToggleRow(
+                label = stringResource(R.string.settings_nav_bar_hide_on_scroll),
+                checked = appearance.navBarScrollMode == NavBarScrollMode.HIDE_ON_SCROLL,
+                onCheckedChange = { hide ->
                     scope.launch {
-                        dataStore.saveTopBarScrollMode(TopBarScrollMode.entries[index])
+                        dataStore.saveNavBarScrollMode(
+                            if (hide) NavBarScrollMode.HIDE_ON_SCROLL else NavBarScrollMode.ALWAYS_VISIBLE
+                        )
                     }
                 }
             )
@@ -118,7 +99,7 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                     scope.launch {
                         dataStore.saveNavDestinations(emptyList())
                         dataStore.saveNavBarScrollMode(NavBarScrollMode.HIDE_ON_SCROLL)
-                        dataStore.saveTopBarScrollMode(TopBarScrollMode.ALL)
+                        dataStore.saveTopBarScrollMode(TopBarScrollMode.ON_SCROLL)
                     }
                 }
             )

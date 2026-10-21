@@ -18,16 +18,16 @@ import org.junit.Test
 
 class AppearanceSettingsTest {
     @Test
-    fun `theme style defaults to MD and survives backup restore`() = withSettings { settings ->
-        assertEquals(ThemeStyle.MD, settings.appearance.first().themeStyle)
-
-        settings.saveThemeStyle(ThemeStyle.MIUIX)
+    fun `theme style defaults to Miuix and survives backup restore`() = withSettings { settings ->
         assertEquals(ThemeStyle.MIUIX, settings.appearance.first().themeStyle)
 
-        val backup = settings.backupSettings()
-        assertEquals(ThemeStyle.MIUIX.name, backup.get(DataStoreManager.APPEARANCE_THEME_STYLE.name).asString)
-
         settings.saveThemeStyle(ThemeStyle.MD)
+        assertEquals(ThemeStyle.MD, settings.appearance.first().themeStyle)
+
+        val backup = settings.backupSettings()
+        assertEquals(ThemeStyle.MD.name, backup.get(DataStoreManager.APPEARANCE_THEME_STYLE.name).asString)
+
+        settings.saveThemeStyle(ThemeStyle.MIUIX)
         settings.applyBackup(
             BackupManifest(
                 createdAt = 0L,
@@ -36,7 +36,7 @@ class AppearanceSettingsTest {
                 settings = backup
             )
         )
-        assertEquals(ThemeStyle.MIUIX, settings.appearance.first().themeStyle)
+        assertEquals(ThemeStyle.MD, settings.appearance.first().themeStyle)
     }
 
     @Test
