@@ -534,7 +534,14 @@ AppTopBar(
     `LocalThemeStyle`；调用点先 `val miuixMotion = isMiuixMotion(LocalThemeStyle.current)` 捕获。
   - 已应用：底部 tab 切换（`MainScreen` 的 `AnimatedContent`）、列表/详情转场（`MemosCommon`）。
   - 搜索栏展开/收起在 MIUIX 下走 Miuix `SearchBar` 自带动画，无需另调。
-  - 待办：`FullScreenMediaDialog`（13 处动画）、`AccountsList` 拖拽动画、音频/视频控件内的自绘动画。
+  - 已补齐：`FullScreenMediaDialog` 的入场/退场/返回（`appEnterSpec` / `appExitSpec` / `appSlideSpec`；
+  背景色渐隐仍用 tween，spring 对 Color 不自然）、`AccountsList` 的拖拽 fling
+  （`AnchoredDraggableDefaults.flingBehavior` 的 `animationSpec`）、`AudioPlayer` 的播放/暂停图标切换、
+  `VideoPlaybackControls` 控制条淡入淡出。
+- 有意保留：`VideoSeekRipple` 的 750/80/170ms 波纹时序（弹簧会破坏波纹观感）。
+- 进度指示器彻底统一：`AppCircularProgressIndicator` / `AppLinearProgressIndicator` 新增 `color`，
+  MIUIX 映射为 `progressIndicatorColors(foregroundColor = …)`，于是「跟随按钮内容色的 spinner」
+  （编辑器、登录、视频加载圈）也能走适配层。
 
 - **一致性扫描（第一轮）**：用下式统计 `ui/` 下仍直接构造 Material 组件的位置（排除适配层）：
 
