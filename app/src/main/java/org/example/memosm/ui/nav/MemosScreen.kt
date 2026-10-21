@@ -130,6 +130,8 @@ fun MemosScreen(
     topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
     openComposer: Boolean = false,
     onComposerOpened: () -> Unit = {},
+    /** Off when the floating bottom bar carries its own compose button. */
+    showComposeFab: Boolean = true,
     /** Shortcut request: expand the search field once, then report back. */
     openSearch: Boolean = false,
     onSearchOpened: () -> Unit = {}
@@ -396,7 +398,7 @@ fun MemosScreen(
             }
 
             // FAB for creating new memo
-            if (uiState.session.currUser != null && !searchExpanded) {
+            if (showComposeFab && uiState.session.currUser != null && !searchExpanded) {
                 // Animate FAB position only if nav bar can be toggled (onToggleNavBar provided)
                 val fabBottomPadding by animateDpAsState(
                     targetValue = if (onToggleNavBar != null && isNavBarVisible) 96.dp else 16.dp,

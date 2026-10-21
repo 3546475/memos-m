@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.dp
 /**
  * A grouped list of rows.
  *
- * Miuix draws one rounded card and separates its rows with hairlines; the 0.5dp gap between rows
- * shows the divider colour painted by the card itself. Material keeps the familiar stacked blocks
- * with a small gap between them.
+ * Miuix shows a group as one solid card: the rows carry no surface, no corners and no separators,
+ * and the card's rounded background is the only shape the user sees. Material keeps the familiar
+ * stacked blocks with a small gap between them.
  */
 @Composable
 fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
@@ -38,13 +38,10 @@ fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(MiuixTokens.CardCornerRadius))
-                .background(MaterialTheme.colorScheme.outlineVariant)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             CompositionLocalProvider(LocalGroupedRow provides true) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(MiuixTokens.DividerThickness),
-                    content = content
-                )
+                Column(content = content)
             }
         }
     } else {

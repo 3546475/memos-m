@@ -24,6 +24,7 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.blur
 
 import androidx.compose.ui.graphics.RectangleShape
@@ -43,7 +44,16 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -52,6 +62,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.filled.Attachment
@@ -99,6 +110,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import org.koin.androidx.compose.koinViewModel
 import kotlinx.coroutines.launch
@@ -109,6 +121,7 @@ import org.example.memosm.model.Visibility
 import org.example.memosm.ui.component.ConflictDialog
 import org.example.memosm.ui.component.LoginDialog
 import org.example.memosm.ui.component.LocalNetworkPermission
+import org.example.memosm.ui.theme.LocalBlurEnabled
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.component.item.media.MemoImage
@@ -379,13 +392,16 @@ private fun MainScreenContent(
         lastTapTime = currentTime
     }
 
-    // Frost the content behind the bottom bar on API 33+ in MIUIX only.
-    val navBlurEnabled = miuixBlurSupported()
+    // Frost the content behind the bars on API 33+ in MIUIX only, and only while the switch is on.
     val navBackdrop = rememberLayerBackdrop()
 
     AppSurface(
         modifier = modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background
     ) {
+        // One switch drives every frosted surface: both bars here, the feed header and the compose
+        // button further down the tree.
+        CompositionLocalProvider(LocalBlurEnabled provides appearance.blurEnabled) {
+        val navBlurEnabled = miuixBlurSupported()
         Box(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxSize()) {
                 // Navigation Rail for tablets/desktops
@@ -465,6 +481,11 @@ private fun MainScreenContent(
                                     topBarScrollMode = appearance.topBarScrollMode,
                                     onToggleNavBar = toggleNavBar,
                                     isNavBarVisible = isNavBarVisible,
+                                    // The floating bar carries the compose action already.
+                                    showComposeFab = !(
+                                        LocalThemeStyle.current == ThemeStyle.MIUIX &&
+                                            appearance.floatingNavBar
+                                        ),
                                     openComposer = shouldOpenComposer,
                                     onComposerOpened = onComposerOpened,
                                     openSearch = openSearchRequest,
@@ -492,6 +513,31 @@ private fun MainScreenContent(
 
             // Bottom Navigation Bar for mobile
             if (isMobile) {
+                val floatingBar =
+                    LocalThemeStyle.current == ThemeStyle.MIUIX && appearance.floatingNavBar
+                if (floatingBar) {
+                    FloatingBottomBar(
+                        visible = isNavBarVisible,
+                        destinations = visibleDestinations,
+                        current = currentDestination,
+                        onDestination = { handleDestinationClick(it) },
+                        onCompose = {
+                            uiState.accounts.firstOrNull { it.isActive }?.let { account ->
+                                openEditor(
+                                    EditorRequest(
+                                        account.id,
+                                        titleRes = R.string.memo_composer_fab_new_memo,
+                                        visibility = uiState.session.userSettings?.memoVisibility
+                                            ?: Visibility.PRIVATE
+                                    )
+                                )
+                            }
+                        },
+                        blurEnabled = navBlurEnabled,
+                        backdrop = navBackdrop,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                } else {
                 Box(Modifier.align(Alignment.BottomCenter)) {
                     AnimatedVisibility(
                         visible = isNavBarVisible,
@@ -546,7 +592,9 @@ private fun MainScreenContent(
                         }
                     }
                 }
+                }
             }
+        }
         }
     }
 
@@ -570,4 +618,156 @@ private fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this
         if (selected) Icons.AutoMirrored.Filled.LibraryBooks else Icons.AutoMirrored.Outlined.LibraryBooks
     MainDestination.ATTACHMENTS -> if (selected) Icons.Filled.Attachment else Icons.Outlined.Attachment
     MainDestination.PROFILE -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
+}
+
+/** Blur radius of the capsule's compose button, in pixels. */
+private const val CapsuleBlurRadius = 18f
+
+/**
+ * The floating bottom bar: a capsule that hovers over the content with the compose button in the
+ * middle, so the primary action lives in the navigation instead of a separate floating button.
+ */
+@Composable
+private fun FloatingBottomBar(
+    visible: Boolean,
+    destinations: List<MainDestination>,
+    current: MainDestination,
+    onDestination: (MainDestination) -> Unit,
+    onCompose: () -> Unit,
+    blurEnabled: Boolean,
+    backdrop: LayerBackdrop,
+    modifier: Modifier = Modifier
+) {
+    val capsule = RoundedCornerShape(percent = 50)
+    Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            Row(
+                modifier = Modifier
+                    .shadow(elevation = 10.dp, shape = capsule, clip = false)
+                    .clip(capsule)
+                    .then(
+                        if (blurEnabled) {
+                            Modifier.drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { RectangleShape },
+                                effects = { blur(NavBlurRadius, NavBlurRadius) }
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .background(
+                        if (blurEnabled) {
+                            MiuixTheme.colorScheme.surface.copy(alpha = 0.72f)
+                        } else {
+                            MiuixTheme.colorScheme.surface
+                        }
+                    )
+                    .height(58.dp)
+                    .padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val firstHalf = (destinations.size + 1) / 2
+                destinations.take(firstHalf).forEach { destination ->
+                    FloatingBarItem(
+                        destination = destination,
+                        selected = current == destination,
+                        onClick = { onDestination(destination) }
+                    )
+                }
+                ComposeCapsuleButton(
+                    onClick = onCompose,
+                    blurEnabled = blurEnabled,
+                    backdrop = backdrop
+                )
+                destinations.drop(firstHalf).forEach { destination ->
+                    FloatingBarItem(
+                        destination = destination,
+                        selected = current == destination,
+                        onClick = { onDestination(destination) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingBarItem(
+    destination: MainDestination,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val color = if (selected) {
+        MiuixTheme.colorScheme.primary
+    } else {
+        MiuixTheme.colorScheme.onSurfaceVariantActions
+    }
+    Column(
+        modifier = Modifier
+            .width(50.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = destination.navIcon(selected),
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = stringResource(destination.labelRes),
+            color = color,
+            fontSize = 10.sp,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun ComposeCapsuleButton(
+    onClick: () -> Unit,
+    blurEnabled: Boolean,
+    backdrop: LayerBackdrop
+) {
+    // Squircle rather than a circle, so it reads as the capsule's own action.
+    val squircle = RoundedCornerShape(18.dp)
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 4.dp)
+            .size(52.dp)
+            .shadow(elevation = 6.dp, shape = squircle, clip = false)
+            .clip(squircle)
+            .then(
+                if (blurEnabled) {
+                    Modifier.drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { RectangleShape },
+                        effects = { blur(CapsuleBlurRadius, CapsuleBlurRadius) }
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .background(
+                MiuixTheme.colorScheme.primary.copy(alpha = if (blurEnabled) 0.78f else 1f)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Add,
+            contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+            tint = MiuixTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(26.dp)
+        )
+    }
 }

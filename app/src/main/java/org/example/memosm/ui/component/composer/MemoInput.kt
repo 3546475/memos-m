@@ -280,7 +280,10 @@ fun MemoInput(
                             val tweenFloat = tween<Float>(150)
                             val tweenSize = tween<IntSize>(150)
 
-                            if (initialState == SuggestionUIState.Hidden && targetState == SuggestionUIState.Icon) {
+                            // The card's drop shadow is drawn outside its bounds, so every clip along
+                            // the way has to be off: otherwise the card appears first and its shadow
+                            // pops in a beat later.
+                            (if (initialState == SuggestionUIState.Hidden && targetState == SuggestionUIState.Icon) {
                                 // Appear as Icon (Zoom In)
                                 (scaleIn(initialScale = 0f, animationSpec = tweenFloat) + fadeIn(
                                     animationSpec = tweenFloat
@@ -308,11 +311,13 @@ fun MemoInput(
                                 // Morph: Icon -> List (Expand)
                                 (fadeIn(animationSpec = tweenFloat) + androidx.compose.animation.expandIn(
                                     expandFrom = androidx.compose.ui.Alignment.Center,
-                                    animationSpec = tweenSize
+                                    animationSpec = tweenSize,
+                                    clip = false
                                 )).togetherWith(
                                     fadeOut(animationSpec = tweenFloat) + androidx.compose.animation.shrinkOut(
                                         shrinkTowards = androidx.compose.ui.Alignment.Center,
-                                        animationSpec = tweenSize
+                                        animationSpec = tweenSize,
+                                        clip = false
                                     )
                                 )
                             } else if (initialState == SuggestionUIState.List && targetState == SuggestionUIState.Icon) {
@@ -327,7 +332,7 @@ fun MemoInput(
                             } else {
                                 // Default or same state
                                 androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
-                            }
+                            }).using(androidx.compose.animation.SizeTransform(clip = false))
                         },
                     ) { state ->
                         when (state) {

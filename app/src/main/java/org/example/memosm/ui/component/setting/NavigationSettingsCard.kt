@@ -89,6 +89,16 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                     }
                 }
             )
+            SettingToggleRow(
+                label = stringResource(R.string.settings_floating_nav_bar),
+                checked = appearance.floatingNavBar,
+                onCheckedChange = { on -> scope.launch { dataStore.saveFloatingNavBar(on) } }
+            )
+            SettingToggleRow(
+                label = stringResource(R.string.settings_blur_enabled),
+                checked = appearance.blurEnabled,
+                onCheckedChange = { on -> scope.launch { dataStore.saveBlurEnabled(on) } }
+            )
         }
 
         SettingsGroup {
@@ -100,6 +110,8 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                         dataStore.saveNavDestinations(emptyList())
                         dataStore.saveNavBarScrollMode(NavBarScrollMode.HIDE_ON_SCROLL)
                         dataStore.saveTopBarScrollMode(TopBarScrollMode.ON_SCROLL)
+                        dataStore.saveFloatingNavBar(false)
+                        dataStore.saveBlurEnabled(true)
                     }
                 }
             )

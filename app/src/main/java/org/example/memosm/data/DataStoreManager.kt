@@ -51,6 +51,8 @@ class DataStoreManager(
     val APPEARANCE_NAV_SCROLL_MODE = stringPreferencesKey("appearance_nav_scroll_mode")
     val APPEARANCE_TOP_SCROLL_MODE = stringPreferencesKey("appearance_top_scroll_mode")
     val APPEARANCE_NAV_DESTINATIONS = stringPreferencesKey("appearance_nav_destinations")
+        val APPEARANCE_BLUR_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_blur_enabled")
+        val APPEARANCE_FLOATING_NAV_BAR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_floating_nav_bar")
         val ACCOUNTS_JSON = stringPreferencesKey("accounts_json")
         val SETUP_COMPLETED = androidx.datastore.preferences.core.booleanPreferencesKey("setup_completed")
         val PAGE_SIZE = intPreferencesKey("page_size")
@@ -268,6 +270,8 @@ class DataStoreManager(
             } ?: NavBarScrollMode.HIDE_ON_SCROLL,
             topBarScrollMode = topBarScrollModeOf(preferences[APPEARANCE_TOP_SCROLL_MODE])
                 ?: TopBarScrollMode.ON_SCROLL,
+            blurEnabled = preferences[APPEARANCE_BLUR_ENABLED] ?: true,
+            floatingNavBar = preferences[APPEARANCE_FLOATING_NAV_BAR] ?: false,
             navDestinations = preferences[APPEARANCE_NAV_DESTINATIONS]
                 ?.split(',')
                 ?.filter { it.isNotBlank() }
@@ -299,6 +303,14 @@ class DataStoreManager(
 
     suspend fun saveTopBarScrollMode(mode: TopBarScrollMode) {
         editPreferences { it[APPEARANCE_TOP_SCROLL_MODE] = mode.name }
+    }
+
+    suspend fun saveBlurEnabled(enabled: Boolean) {
+        editPreferences { it[APPEARANCE_BLUR_ENABLED] = enabled }
+    }
+
+    suspend fun saveFloatingNavBar(enabled: Boolean) {
+        editPreferences { it[APPEARANCE_FLOATING_NAV_BAR] = enabled }
     }
 
     /** Destinations are stored as one comma-joined string so the backup stays a single primitive. */
@@ -519,7 +531,7 @@ class DataStoreManager(
     private val portableKeys: List<Preferences.Key<*>> get() = listOf(
         APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_CUSTOM_HUE, APPEARANCE_FONT,
         APPEARANCE_THEME_STYLE, APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE,
-        APPEARANCE_NAV_DESTINATIONS,
+        APPEARANCE_NAV_DESTINATIONS, APPEARANCE_BLUR_ENABLED, APPEARANCE_FLOATING_NAV_BAR,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
         PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB
     )

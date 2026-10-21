@@ -1,6 +1,9 @@
 package org.example.memosm.ui.component
 
+import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
+import org.example.memosm.ui.theme.LocalThemeStyle
+import top.yukonga.miuix.kmp.window.WindowDialog as MiuixWindowDialog
 
 import android.os.Build
 import android.util.Log
@@ -124,6 +127,26 @@ fun LoginDialog(
     onDismiss: () -> Unit,
     editAccount: Account? = null
 ) {
+    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+        // Miuix owns the window dialog here, so the form sits on its surface and corner radius
+        // instead of the Material Surface used by the MD path.
+        MiuixWindowDialog(show = true, onDismissRequest = onDismiss) {
+            Box(Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close))
+                }
+                LoginContent(
+                    onLoginSuccess = onLoginSuccess,
+                    modifier = Modifier.padding(top = 8.dp),
+                    editAccount = editAccount
+                )
+            }
+        }
+        return
+    }
     Dialog(
         onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

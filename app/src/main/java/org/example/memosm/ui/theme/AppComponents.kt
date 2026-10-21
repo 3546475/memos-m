@@ -243,7 +243,8 @@ fun AppListItem(
         else -> null
     }
     if (usesMiuix) {
-        // Inside a grouped card the row is a plain rectangle: the card owns the corners.
+        // Inside a grouped card the row has no surface of its own: the card supplies both the
+        // colour and the corners, so rows in a group read as one block.
         val grouped = LocalGroupedRow.current
         BasicComponent(
             modifier = modifier
@@ -252,10 +253,11 @@ fun AppListItem(
                     if (grouped) {
                         Modifier
                     } else {
-                        Modifier.clip(RoundedCornerShape(MiuixTokens.RowCornerRadius))
+                        Modifier
+                            .clip(RoundedCornerShape(MiuixTokens.RowCornerRadius))
+                            .background(containerColor)
                     }
-                )
-                .background(containerColor),
+                ),
             title = title,
             summary = summary,
             startAction = leading,
