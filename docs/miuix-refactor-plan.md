@@ -650,14 +650,16 @@ AppTopBar(
   `MemosScaffold` 新增 `navBarInset`（`MemosScreen` 按 `onToggleNavBar != null && isNavBarVisible`
   算成 80dp 并做动画），透传给 `MemoDetailView`：FAB 加同高底部内边距，列表底部内边距同样加上。
 - **首页 FAB 改毛玻璃**：`MemosScaffold` 通过 `LocalListBackdrop` 把列表录制的那层背景暴露出来
-  （未开启模糊时为 null），FAB 用它做 `drawBackdrop`，容器色 `primary.copy(alpha = 0.72f)`，
-  另加 6dp 阴影。两个坑：
+  （未开启模糊时为 null）。毛玻璃版是**自绘圆钮**：`surface` 72% + 0.5dp 描边 + 8dp 阴影 +
+  `drawBackdrop(20px)`，图标用主色；纯色版（MD、API < 33）才回落 Miuix 组件。两个坑：
   1. Miuix `FloatingActionButton` **不能半透明**——它内部还画了一层 squircle，容器一透明就会浮出
      一个八边形环。所以毛玻璃版自绘圆钮（`Box` + `clip` + `drawBackdrop` + `background` + `clickable`），
      纯色版才回落到 Miuix 组件。
   2. `drawBackdrop` 采样的那层**不能包含自己**。试着复用它放在 `MainScreen` 内容层（底栏用的
      `navBackdrop`）会让录制 与 采样 互相递归，直接在 `libhwui RenderNode::prepareTreeImpl` 里
      栈溢出（native crash）。只能用 `MemosScaffold` 里只包住列表的那层。
+  3. 纯白卡片上模糊本来就看不出（糊白还是白），所以白玻璃版靠描边 + 阴影定形，模糊只在内容从
+     按钮下方经过时可见。
 
 | 问题 | 现状 / 决策 |
 | --- | --- |

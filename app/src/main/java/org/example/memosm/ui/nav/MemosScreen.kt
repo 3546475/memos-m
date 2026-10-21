@@ -14,6 +14,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
@@ -381,28 +382,30 @@ fun MemosScreen(
                     }
                     if (fabBackdrop != null) {
                         // Miuix's FAB paints an inner squircle that only shows once its container
-                        // goes translucent, so the frosted variant draws the surface itself.
+                        // goes translucent, so the frosted variant draws the surface itself. Same
+                        // material as the bottom bar: a translucent surface over the blurred list.
                         Box(
                             modifier = Modifier
                                 .testTag("memo_feed_compose")
                                 .align(Alignment.BottomEnd)
                                 .padding(end = 16.dp, bottom = fabBottomPadding)
                                 .size(56.dp)
-                                .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                                .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
                                 .clip(CircleShape)
                                 .drawBackdrop(
                                     backdrop = fabBackdrop,
                                     shape = { RectangleShape },
                                     effects = { blur(FabBlurRadius, FabBlurRadius) }
                                 )
-                                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.72f))
+                                .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.72f))
+                                .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f), CircleShape)
                                 .clickable(onClick = composeAction),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Add,
                                 contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-                                tint = MiuixTheme.colorScheme.onPrimary
+                                tint = MiuixTheme.colorScheme.primary
                             )
                         }
                     } else {
