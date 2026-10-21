@@ -644,7 +644,8 @@ AppTopBar(
   `TopBarScrollModeTest`。
 - **下拉刷新指示器被顶栏毛玻璃糊住**：Miuix `PullToRefresh` 的 `contentPadding.top` 只作用在
   `RefreshHeader` 的 `offset` 上（读的是字节码里的 `calculateTopPadding()`），所以
-  `AppPullToRefresh` 新增 `indicatorTopPadding`，首页 MIUIX 传 52dp，把转圈推到顶栏下方；内容布局
+  `AppPullToRefresh` 新增 `indicatorTopPadding`，首页 MIUIX 传 72dp（Miuix 的刷新头自带一根
+  ~105dp 的「试管」动画，52dp 时顶端仍会顶进顶栏被糊成色块），把转圈整体推到顶栏下方；内容布局
   不受影响。MD 分支忽略该参数。
 - **详情页「添加评论」被底栏盖住**：底栏是浮层（`Box(align = BottomCenter)`）而不是布局占位，所以
   `MemosScaffold` 新增 `navBarInset`（`MemosScreen` 按 `onToggleNavBar != null && isNavBarVisible`

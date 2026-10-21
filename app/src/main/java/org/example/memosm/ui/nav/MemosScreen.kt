@@ -292,7 +292,8 @@ fun MemosScreen(
                     bottom = bottomPadding
                 )
                 // Keep the pull-to-refresh spinner under the header instead of behind its frost.
-                val indicatorPadding = if (miuixFeed) 52.dp else 0.dp
+                // Miuix's refresh header is ~105dp tall, so the offset must clear the whole row.
+                val indicatorPadding = if (miuixFeed) 72.dp else 0.dp
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(
                         viewModel = viewModel,
