@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.outlined.ImportExport
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -43,12 +44,13 @@ enum class SettingsSection(
 ) {
     GENERAL(R.string.settings_group_general, Icons.Outlined.Settings, R.string.settings_summary_general),
     APPEARANCE(R.string.settings_appearance, Icons.Outlined.Palette, R.string.settings_summary_appearance),
+    EDITOR(R.string.settings_editor, Icons.Outlined.Code, R.string.settings_summary_editor),
     NAVIGATION(R.string.settings_navigation, Icons.Outlined.ViewAgenda, R.string.settings_navigation_summary),
     SHORTCUTS(R.string.profile_shortcuts, Icons.Outlined.Bookmarks),
     WEBHOOKS(R.string.profile_webhooks, Icons.Outlined.Link),
     OFFLINE(R.string.offline_settings_title, Icons.Outlined.CloudDownload, R.string.settings_summary_offline),
     RECOVERY(R.string.recovery_title, Icons.Outlined.ImportExport, R.string.settings_summary_recovery),
-    AUDIT(R.string.audit_log_title, Icons.Outlined.History),
+    AUDIT(R.string.audit_log_title, Icons.Outlined.History, R.string.settings_summary_audit),
     ABOUT(R.string.profile_about, Icons.Outlined.Info),
     INSTANCE(R.string.profile_instance_info, Icons.Outlined.Dns)
 }
@@ -58,7 +60,12 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
     // Every section is listed here: the profile page used to link four of them directly, which
     // gave the same screen two homes and left the remaining five reachable only from there.
     val groups = listOf(
-        listOf(SettingsSection.GENERAL, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
+        listOf(
+            SettingsSection.GENERAL,
+            SettingsSection.APPEARANCE,
+            SettingsSection.EDITOR,
+            SettingsSection.NAVIGATION
+        ),
         listOf(SettingsSection.SHORTCUTS, SettingsSection.WEBHOOKS, SettingsSection.INSTANCE),
         listOf(SettingsSection.OFFLINE, SettingsSection.RECOVERY, SettingsSection.AUDIT),
         listOf(SettingsSection.ABOUT)

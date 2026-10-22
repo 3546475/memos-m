@@ -1,5 +1,6 @@
 package org.example.memosm.ui.theme
 
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -17,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
@@ -91,8 +93,27 @@ fun MemosMTheme(
         colorScheme = colors,
         typography = typography,
         shapes = MemosShapes,
-        content = content
+        content = {
+            WindowBackgroundColor()
+            content()
+        }
     )
+}
+
+/**
+ * Paints the window itself in the page colour.
+ *
+ * The windows are edge-to-edge, so any pixel the composition does not cover (a few dp under the
+ * gesture bar, for instance) shows the platform window background — white — as a thin bright strip.
+ * Matching it to the page colour makes such a strip invisible in both themes.
+ */
+@Composable
+fun WindowBackgroundColor() {
+    val activity = LocalActivity.current ?: return
+    val color = MaterialTheme.colorScheme.background
+    SideEffect {
+        activity.window?.setBackgroundDrawable(ColorDrawable(color.toArgb()))
+    }
 }
 
 /** Each activity observes the same saved preferences, including changes made in another activity. */

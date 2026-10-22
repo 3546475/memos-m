@@ -69,7 +69,10 @@ fun MiuixMemosMTheme(
                 colorScheme = colors.toMaterialColorScheme(isDark),
                 typography = typography,
                 shapes = MiuixTokens.Shapes,
-                content = content
+                content = {
+                    WindowBackgroundColor()
+                    content()
+                }
             )
         }
     }

@@ -61,6 +61,7 @@
         <activity android:name=".ui.profile.DraftsActivity" android:exported="false" />
         <activity android:name=".ui.component.composer.MemoEditorActivity" android:exported="false" />
         <activity android:name=".ui.profile.ArchivedMemosActivity" android:exported="false" />
+        <activity android:name=".ui.profile.MemoTypeMemosActivity" android:exported="false" />
         <activity android:name=".ui.profile.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.setup.SetupActivity" android:exported="false" />
         <activity android:name=".ui.setup.SetupLoginActivity" android:exported="false" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize" />
@@ -108,6 +109,17 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/user_stats_widget_info" />
         </receiver>
+
+        <!-- Serves the PNG written for "share as image"; nothing else is exposed. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

@@ -89,6 +89,8 @@ fun SettingsScreen(
                                 }
                             )
                             AppPreferenceRows(viewModel, AppSettingsCategory.GENERAL)
+                            // Moved here from 导航栏: it is about memo-card interactions, not bars.
+                            EditGestureSettingRow()
                             if (Build.VERSION.SDK_INT >= 37) {
                                 AppPreferenceRows(viewModel, AppSettingsCategory.NETWORK)
                             }
@@ -100,6 +102,18 @@ fun SettingsScreen(
                         mapSupported = uiState.memoMap.capability == MapCapability.SUPPORTED
                     )
                 }
+                    SettingsSection.EDITOR -> settingsItem {
+                        EditorSettingsCard(
+                            codeLineNumbers = uiState.appSettings.codeLineNumbers,
+                            codeWrapLines = uiState.appSettings.codeWrapLines,
+                            paragraphIndent = uiState.appSettings.paragraphIndent,
+                            cjkSpacing = uiState.appSettings.cjkSpacing,
+                            onCodeLineNumbersChange = viewModel.appSettingsDelegate::updateCodeLineNumbers,
+                            onCodeWrapLinesChange = viewModel.appSettingsDelegate::updateCodeWrapLines,
+                            onParagraphIndentChange = viewModel.appSettingsDelegate::updateParagraphIndent,
+                            onCjkSpacingChange = viewModel.appSettingsDelegate::updateCjkSpacing
+                        )
+                    }
                     SettingsSection.SHORTCUTS -> {
                         settingsItem {
                             ShortcutsCard(

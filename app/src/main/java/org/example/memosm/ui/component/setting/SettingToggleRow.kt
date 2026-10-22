@@ -7,6 +7,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,6 +23,8 @@ internal fun SettingToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     description: String? = null,
     icon: ImageVector? = null,
+    /** A switch that cannot take effect is shown dimmed with the reason in [description]. */
+    enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh
 ) {
     AppListItem(
@@ -37,8 +40,11 @@ internal fun SettingToggleRow(
             }
         },
         trailing = { AppSwitch(checked = checked, onCheckedChange = null) },
-        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+        modifier = Modifier
+            .alpha(if (enabled) 1f else 0.45f)
+            .clip(RoundedCornerShape(4.dp)),
         containerColor = containerColor,
-        onClick = { onCheckedChange(!checked) }
+        enabled = enabled,
+        onClick = if (enabled) ({ onCheckedChange(!checked) }) else null
     )
 }

@@ -2,6 +2,7 @@ package org.example.memosm.ui.component
 
 import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
+import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.window.WindowDialog as MiuixWindowDialog
 
@@ -12,8 +13,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,6 +63,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -82,6 +86,14 @@ import org.example.memosm.ui.setup.SsoLoginActivity
 enum class LoginMode {
     PASSWORD, TOKEN, SSO
 }
+
+/** The label shown on the mode picker for each [LoginMode]. */
+private val LoginMode.labelRes: Int
+    get() = when (this) {
+        LoginMode.PASSWORD -> R.string.login_password
+        LoginMode.TOKEN -> R.string.login_token
+        LoginMode.SSO -> R.string.login_sso
+    }
 
 @Composable
 fun LoginScreen(
@@ -391,45 +403,92 @@ fun LoginContent(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
-        ) {
-            ToggleButton(
-                checked = loginMode == LoginMode.PASSWORD,
-                onCheckedChange = { loginMode = LoginMode.PASSWORD; errorMessage = null },
-                modifier = Modifier.weight(1f).semantics {
-                    role = Role.RadioButton
-                    selected = loginMode == LoginMode.PASSWORD
-                },
-                enabled = !busy,
-                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+        // Miuix has no connected button group: a segmented control built from joined shapes is a
+        // Material idiom. HyperOS expresses a small exclusive choice as separate pills, so the
+        // Miuix theme gets three equal chips and Material keeps its connected toggle group.
+        if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Max)
+                    .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.login_password))
+                LoginMode.entries.forEach { mode ->
+                    AppFilterChip(
+                        selected = loginMode == mode,
+                        onClick = {
+                            loginMode = mode
+                            errorMessage = null
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .semantics {
+                                role = Role.RadioButton
+                                selected = loginMode == mode
+                            },
+                        enabled = !busy
+                    ) {
+                        Text(
+                            text = stringResource(mode.labelRes),
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                    }
+                }
             }
-            ToggleButton(
-                checked = loginMode == LoginMode.TOKEN,
-                onCheckedChange = { loginMode = LoginMode.TOKEN; errorMessage = null },
-                modifier = Modifier.weight(1f).semantics {
-                    role = Role.RadioButton
-                    selected = loginMode == LoginMode.TOKEN
-                },
-                enabled = !busy,
-                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // The three segments must read as one control. A label that wraps (the Chinese
+                    // "令牌 (Token)", or any locale at a large font scale) would otherwise make its
+                    // pill taller than its neighbours; the intrinsic max height gives every segment
+                    // the same height as the tallest label.
+                    .height(IntrinsicSize.Max)
+                    .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.login_token))
-            }
-            ToggleButton(
-                checked = loginMode == LoginMode.SSO,
-                onCheckedChange = { loginMode = LoginMode.SSO; errorMessage = null },
-                modifier = Modifier.weight(1f).semantics {
-                    role = Role.RadioButton
-                    selected = loginMode == LoginMode.SSO
-                },
-                enabled = !busy,
-                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
-            ) {
-                Text(stringResource(R.string.login_sso))
+                ToggleButton(
+                    checked = loginMode == LoginMode.PASSWORD,
+                    onCheckedChange = { loginMode = LoginMode.PASSWORD; errorMessage = null },
+                    modifier = Modifier.weight(1f).fillMaxHeight().semantics {
+                        role = Role.RadioButton
+                        selected = loginMode == LoginMode.PASSWORD
+                    },
+                    enabled = !busy,
+                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+                ) {
+                    Text(stringResource(R.string.login_password))
+                }
+                ToggleButton(
+                    checked = loginMode == LoginMode.TOKEN,
+                    onCheckedChange = { loginMode = LoginMode.TOKEN; errorMessage = null },
+                    modifier = Modifier.weight(1f).fillMaxHeight().semantics {
+                        role = Role.RadioButton
+                        selected = loginMode == LoginMode.TOKEN
+                    },
+                    enabled = !busy,
+                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
+                ) {
+                    Text(stringResource(R.string.login_token))
+                }
+                ToggleButton(
+                    checked = loginMode == LoginMode.SSO,
+                    onCheckedChange = { loginMode = LoginMode.SSO; errorMessage = null },
+                    modifier = Modifier.weight(1f).fillMaxHeight().semantics {
+                        role = Role.RadioButton
+                        selected = loginMode == LoginMode.SSO
+                    },
+                    enabled = !busy,
+                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
+                ) {
+                    Text(stringResource(R.string.login_sso))
+                }
             }
         }
 
@@ -542,7 +601,7 @@ fun LoginContent(
             enabled = !busy && hostUrl.isNotBlank()
         ) {
             if (busy) {
-                AppCircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                AppCircularProgressIndicator(size = 24.dp, strokeWidth = 2.dp)
             } else {
                 Text(when {
                     loginMode == LoginMode.SSO -> stringResource(R.string.login_sso_find_providers)

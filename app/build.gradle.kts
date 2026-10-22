@@ -203,6 +203,7 @@ dependencies {
     implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
     implementation(libs.coil.svg)
+    implementation(libs.easycrop)
 
     // REST Networking (Retrofit)
     implementation(libs.retrofit)

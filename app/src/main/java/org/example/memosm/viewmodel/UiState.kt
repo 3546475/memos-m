@@ -82,6 +82,11 @@ data class AppSettings(
     val linkPreviewEnabled: Boolean = true,
     val pageSize: Int = 10,
     val headerScale: Float = 1.0f,
+    // --- Markdown rendering ("editor") settings; see docs/markdown-rendering.md ---
+    val codeLineNumbers: Boolean = false,
+    val codeWrapLines: Boolean = false,
+    val paragraphIndent: Boolean = false,
+    val cjkSpacing: Boolean = false,
     // --- Offline / pre-download settings ---
     val preDownloadText: Boolean = true,
     val preDownloadAttachments: Boolean = true,

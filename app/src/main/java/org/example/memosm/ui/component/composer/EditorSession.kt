@@ -55,7 +55,9 @@ data class EditorSnapshot(
     val selectionEnd: Int,
     val visibility: Visibility,
     val location: Location?,
-    val attachments: List<EditorAttachment>
+    val attachments: List<EditorAttachment>,
+    /** Names of the memos this one links to; null on sessions written before the field existed. */
+    val linkedMemoNames: List<String>? = null
 )
 data class StoredEditorSession(val request: EditorRequest, val snapshot: EditorSnapshot)
 
@@ -68,10 +70,12 @@ class ComposerState(snapshot: EditorSnapshot) {
     val visibility = mutableStateOf(snapshot.visibility)
     val location = mutableStateOf(snapshot.location)
     val attachments = mutableStateOf(snapshot.attachments.map { Uri.parse(it.uri) to it.attachment })
+    val linkedMemoNames = mutableStateOf(snapshot.linkedMemoNames.orEmpty())
 
     fun snapshot() = EditorSnapshot(content.value.text, content.value.selection.start,
         content.value.selection.end, visibility.value, location.value,
-        attachments.value.map { EditorAttachment(it.first.toString(), it.second) })
+        attachments.value.map { EditorAttachment(it.first.toString(), it.second) },
+        linkedMemoNames = linkedMemoNames.value)
 }
 
 /** Saves outlive the activity, so system Back can finish without intercepting its gesture. */
@@ -91,9 +95,15 @@ object EditorSessionStore {
         val text = request.memo?.content ?: request.draft?.content ?: request.content
         val attachments = (request.memo?.attachments ?: request.draft?.attachments).orEmpty()
             .map { EditorAttachment("", it) } + request.uris.map { EditorAttachment(it, null) }
+        // Editing an existing memo starts with its outgoing links, so the editor can remove them;
+        // saving rewrites only the outgoing links and keeps every other relation.
+        val existingLinks = request.memo?.relations.orEmpty()
+            .filter { it.memo.name == request.memo?.name }
+            .map { it.relatedMemo.name }
         write(id, StoredEditorSession(request, EditorSnapshot(text, text.length, text.length,
             request.memo?.visibility ?: request.draft?.visibility ?: request.parentMemo?.visibility ?: request.visibility,
-            request.memo?.location ?: request.draft?.location ?: request.location, attachments)))
+            request.memo?.location ?: request.draft?.location ?: request.location, attachments,
+            linkedMemoNames = existingLinks)))
         id
     }
 

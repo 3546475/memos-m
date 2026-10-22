@@ -2,7 +2,6 @@ package org.example.memosm.ui.component.item.markdown
 
 import org.example.memosm.ui.theme.AppDivider
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -28,14 +26,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Constraints
@@ -44,6 +45,12 @@ import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.ast.findChildOfType
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes
+
+/** One cell's rendered string plus the inline placeholders (math) it needs. */
+private data class TableCellContent(
+    val text: AnnotatedString,
+    val inlineContent: Map<String, InlineTextContent>
+)
 
 @Composable
 fun NativeMarkdownTable(
@@ -59,7 +66,6 @@ fun NativeMarkdownTable(
         rows.map { row -> row.children.filter { it.type == GFMTokenTypes.CELL } }
     }
 
-
     val columnCount = headerCells.size
     if (columnCount == 0) return
     val context = LocalContext.current
@@ -73,17 +79,53 @@ fun NativeMarkdownTable(
     val tableCellPadding = 8.dp
     val headerBackground = MaterialTheme.colorScheme.secondaryContainer
     val lineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f) // Subtle lines
-    4.dp
     val tableCornerSize = 8.dp
 
+    val darkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val styles = MarkdownStyles(
         codeBackground = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
         linkColor = MaterialTheme.colorScheme.primary,
         strikethroughStyle = SpanStyle(textDecoration = TextDecoration.LineThrough),
         boldStyle = SpanStyle(fontWeight = FontWeight.Bold),
         italicStyle = SpanStyle(fontStyle = FontStyle.Italic),
-        codeFontFamily = FontFamily.Monospace
+        codeFontFamily = FontFamily.Monospace,
+        highlightBackground = highlightBackground(darkTheme),
+        tagBackground = MaterialTheme.colorScheme.primary.copy(alpha = if (darkTheme) 0.28f else 0.14f),
+        tagTextColor = if (darkTheme) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
+        codeTickColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        cjkSpacing = LocalMarkdownFormat.current.cjkSpacing
     )
+    val cellStyle = MaterialTheme.typography.bodyMedium
+
+    // Every cell is built once here and reused by both passes below, so the table composes each
+    // cell exactly once per frame; the width pass only measures the string it already has.
+    val cellMatrix = remember(headerCells, rowCells, content, styles, onHashtagClick) {
+        (listOf(headerCells) + rowCells).map { row ->
+            row.map { cellNode ->
+                val inlineContent = mutableMapOf<String, InlineTextContent>()
+                TableCellContent(
+                    text = buildAnnotatedString {
+                        appendInlineChildren(
+                            cellNode,
+                            content,
+                            styles,
+                            context,
+                            density,
+                            fontSizePx,
+                            inlineContent,
+                            onHashtagClick
+                        )
+                    },
+                    inlineContent = inlineContent
+                )
+            }
+        }
+    }
+    val textMeasurer = rememberTextMeasurer()
 
     BoxWithConstraints(modifier = Modifier.padding(vertical = 8.dp)) {
         // Allow two viewport widths per column to retain horizontal scrolling,
@@ -102,38 +144,18 @@ fun NativeMarkdownTable(
                 val cellConstraints = Constraints(
                     maxWidth = (maxCellWidth - totalPadding).coerceAtLeast(1)
                 )
-                val allRows = listOf(headerCells) + rowCells
 
-                // 1. MEASURE PASS
-                allRows.forEach { row ->
-                    row.forEachIndexed { index, cellNode ->
+                // 1. MEASURE PASS — through TextMeasurer, without subcomposing the cells again.
+                cellMatrix.forEach { row ->
+                    row.forEachIndexed { index, cell ->
                         if (index < columnCount) {
-                            val placeable = subcompose("measure_${row.hashCode()}_$index") {
-                                val inlineContentMap =
-                                    remember { mutableMapOf<String, InlineTextContent>() }
-                                val styledText = buildAnnotatedString {
-                                    appendInlineChildren(
-                                        cellNode,
-                                        content,
-                                        styles,
-                                        context,
-                                        density,
-                                        fontSizePx,
-                                        inlineContentMap,
-                                        onHashtagClick
-                                    )
-                                }
-                                MarkdownText(
-                                    text = styledText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(bottom = 2.dp), // Layout fix
-                                    textAlign = align.getOrElse(index) { TextAlign.Start },
-                                    inlineContent = inlineContentMap
-                                )
-                            }.first().measure(cellConstraints)
-
+                            val layout = textMeasurer.measure(
+                                text = cell.text,
+                                style = cellStyle,
+                                constraints = cellConstraints
+                            )
                             columnWidths[index] =
-                                maxOf(columnWidths[index], placeable.width + totalPadding)
+                                maxOf(columnWidths[index], layout.size.width + totalPadding)
                         }
                     }
                 }
@@ -143,47 +165,41 @@ fun NativeMarkdownTable(
                 // 2. COMPOSITION PASS
                 val contentPlaceables = subcompose("content") {
                     Column {
-                        allRows.forEachIndexed { rowIndex, row ->
+                        cellMatrix.forEachIndexed { rowIndex, row ->
                             val isHeader = rowIndex == 0
                             Row(
                                 modifier = Modifier
-                                    .width(with(LocalDensity.current) { tableWidth.toDp() })
+                                    .width(with(density) { tableWidth.toDp() })
                                     .background(if (isHeader) headerBackground else Color.Transparent)
                                     .height(IntrinsicSize.Min)
                             ) {
-                                row.forEachIndexed { columnIndex, cellNode ->
+                                row.forEachIndexed { columnIndex, cell ->
                                     if (columnIndex < columnCount) {
                                         Box(
                                             modifier = Modifier
-                                                .width(with(LocalDensity.current) { columnWidths[columnIndex].toDp() })
+                                                .width(
+                                                    with(density) {
+                                                        columnWidths[columnIndex].toDp()
+                                                    }
+                                                )
                                                 .padding(tableCellPadding)
                                                 .fillMaxHeight(),
-                                            contentAlignment = when (align.getOrElse(columnIndex) { TextAlign.Start }) {
+                                            contentAlignment = when (
+                                                align.getOrElse(columnIndex) { TextAlign.Start }
+                                            ) {
                                                 TextAlign.Center -> Alignment.Center
                                                 TextAlign.End -> Alignment.CenterEnd
                                                 else -> Alignment.CenterStart
                                             }
                                         ) {
-                                            val inlineContentMap =
-                                                remember { mutableMapOf<String, InlineTextContent>() }
-                                            val styledText = buildAnnotatedString {
-                                                appendInlineChildren(
-                                                    cellNode,
-                                                    content,
-                                                    styles,
-                                                    context,
-                                                    density,
-                                                    fontSizePx,
-                                                    inlineContentMap,
-                                                    onHashtagClick
-                                                )
-                                            }
                                             MarkdownText(
-                                                text = styledText,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                textAlign = align.getOrElse(columnIndex) { TextAlign.Start },
+                                                text = cell.text,
+                                                style = cellStyle,
+                                                textAlign = align.getOrElse(columnIndex) {
+                                                    TextAlign.Start
+                                                },
                                                 modifier = Modifier.fillMaxWidth(),
-                                                inlineContent = inlineContentMap
+                                                inlineContent = cell.inlineContent
                                             )
                                         }
                                         // VERTICAL LINE: Add if it's not the last column
@@ -198,9 +214,9 @@ fun NativeMarkdownTable(
                                 }
                             }
                             // 2. Force the HorizontalDivider to match the calculated width
-                            if (rowIndex < allRows.lastIndex) {
+                            if (rowIndex < cellMatrix.lastIndex) {
                                 AppDivider(
-                                    modifier = Modifier.width(with(LocalDensity.current) { tableWidth.toDp() }),
+                                    modifier = Modifier.width(with(density) { tableWidth.toDp() }),
                                     thickness = 1.dp,
                                     color = lineColor
                                 )

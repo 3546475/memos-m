@@ -242,7 +242,7 @@ internal fun VideoPlaybackControls(
             }
         }
         if (active && !blocked && state.playbackState == Player.STATE_BUFFERING) {
-            AppCircularProgressIndicator(modifier = Modifier.align(Alignment.Center).padding(top = 100.dp).size(32.dp))
+            AppCircularProgressIndicator(modifier = Modifier.align(Alignment.Center).padding(top = 100.dp), size = 32.dp)
         }
         if (active && !blocked && state.hasError) {
             Column(

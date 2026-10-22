@@ -16,6 +16,10 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.parser.CancellationToken
 import org.intellij.markdown.parser.MarkdownParser
 
+// Three blank lines: enough scroll room under the last line for the floating action bar (~48dp plus
+// its padding) at any usual text size.
+private const val ComposerTrailingBlankLines = "\n\n\n"
+
 class MarkdownLanguageHandler(
     private val colorScheme: androidx.compose.material3.ColorScheme,
     private val typography: androidx.compose.material3.Typography
@@ -28,6 +32,12 @@ class MarkdownLanguageHandler(
         highlight(toString()).spanStyles.forEach { range ->
             addStyle(range.item, range.start, range.end)
         }
+        // The composer's action bar floats over the bottom of the page, so the text needs scroll
+        // room of its own after the last line; otherwise that line can never be scrolled clear of
+        // the bar. These newlines exist only in the visual text: they are appended on every
+        // transformation and never reach the stored value, and the offset mapping accounts for them
+        // because the buffer records the change.
+        if (length > 0) replace(length, length, ComposerTrailingBlankLines)
     }
 
     fun highlight(markdownText: String): AnnotatedString {
@@ -64,7 +74,10 @@ class MarkdownLanguageHandler(
                 addStyle(
                     SpanStyle(
                         fontWeight = FontWeight.Bold,
-                        color = colorScheme.secondary
+                        // Not `secondary`: in the light palettes that tone is nearly the page colour,
+                        // so a third-level heading became unreadable in the editor (where the text is
+                        // drawn on plain paper, without the card or tint a heading usually sits on).
+                        color = colorScheme.onSurfaceVariant
                     ), range.first, range.last
                 )
             }

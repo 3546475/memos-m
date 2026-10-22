@@ -109,7 +109,10 @@ fun MapScreen(
         viewModel.memoMapManager.open()
         onDispose { viewModel.memoMapManager.close() }
     }
-    BackHandler(place != null && !searchExpanded && ui.detailPane.selectedMemo == null) { place = null }
+    // Close an open selection first, then an open search panel. The pane scaffold inside
+    // MemosScaffold owns the memo-detail step itself.
+    BackHandler(enabled = place != null && !searchExpanded && ui.detailPane.selectedMemo == null) { place = null }
+    BackHandler(enabled = searchExpanded) { searchExpanded = false }
     MemosScaffold(
         viewModel = viewModel,
         memos = map.memos,

@@ -3,6 +3,7 @@ package org.example.memosm.ui.component.composer
 import android.content.Intent
 import android.content.Context
 import android.os.Bundle
+import android.view.WindowManager
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,6 +38,11 @@ class MemoEditorActivity : ProfileActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The editor places its action bar with imePadding(), so the window must not resize for the
+        // keyboard as well. On MIUI the resize happens anyway and the IME inset is then subtracted
+        // twice, which collapsed the composer into the top of the screen with a large blank area
+        // under it until a tap re-dispatched the insets.
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
         // Return the session id even for system Back, so the caller can await the final save.
         setResult(RESULT_CANCELED, Intent().putExtra(EXTRA_SESSION, intent.getStringExtra(EXTRA_SESSION)))
         editor.load(intent.getStringExtra(EXTRA_SESSION))

@@ -1,10 +1,12 @@
 package org.example.memosm.ui.nav
 
 import org.example.memosm.model.TopBarScrollMode
+import org.example.memosm.model.EditGesture
 
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
@@ -63,6 +65,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +81,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
@@ -92,14 +95,10 @@ import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
-import top.yukonga.miuix.kmp.basic.FloatingActionButton as MiuixFloatingActionButton
-import top.yukonga.miuix.kmp.blur.blur
-import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.data.sync.PreDownloadState
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
-import org.example.memosm.ui.component.LocalListBackdrop
 import org.example.memosm.ui.component.MemoSearchBar
 import org.example.memosm.ui.component.MemosScaffold
 import org.example.memosm.ui.component.SyncStatusBar
@@ -112,6 +111,7 @@ import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.profile.DraftsActivity
 import org.example.memosm.ui.profile.SettingsActivity
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -119,10 +119,10 @@ import org.example.memosm.ui.component.item.DraftsCard
 import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 // The frosted disc clips the blur, so the radius can be generous.
-private const val FabBlurRadius = 20f
 
 @Composable
 fun MemosScreen(
@@ -132,6 +132,7 @@ fun MemosScreen(
     isNavBarVisible: Boolean = true,
     navBarAlwaysVisible: Boolean = false,
     topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
+    memoEditGesture: EditGesture = EditGesture.NONE,
     openComposer: Boolean = false,
     onComposerOpened: () -> Unit = {},
     /** Off when the floating bottom bar carries its own compose button. */
@@ -145,6 +146,14 @@ fun MemosScreen(
     val memosListState = rememberLazyListState()
     val exploreListState = rememberLazyListState()
     val activeFeed = MemoFeed.entries[pagerState.currentPage]
+    val pagerScope = rememberCoroutineScope()
+    // 探索 is a page of this feed, so Back leaves it for 笔记 before it leaves the app. Registered
+    // here (inner composition) so it takes precedence over the destination-level handler.
+    BackHandler(enabled = activeFeed == MemoFeed.EXPLORE) {
+        pagerScope.launch {
+            pagerState.animateScrollToPage(MemoFeed.entries.indexOf(MemoFeed.MEMOS))
+        }
+    }
     val listState = if (activeFeed == MemoFeed.MEMOS) memosListState else exploreListState
     val activeMemos = if (activeFeed == MemoFeed.MEMOS) {
         uiState.userMemoList.list.items
@@ -249,6 +258,7 @@ fun MemosScreen(
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
         navBarAlwaysVisible = navBarAlwaysVisible,
+        memoEditGesture = memoEditGesture,
         navBarInset = navBarInset,
         navigationKey = activeFeed,
         openSearch = openSearch || searchFromSheet,
@@ -267,9 +277,19 @@ fun MemosScreen(
                 val rowVisible =
                     (topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar) && !searchExpanded
                 val tabsVisible = topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar
+                // Closing the search panel already fades it out above this row; growing the row
+                // back in at the same time read as a second, shrinking motion. It appears in
+                // place instead when the change was caused by the search panel closing.
+                var wasSearchExpanded by remember { mutableStateOf(searchExpanded) }
+                val returningFromSearch = wasSearchExpanded && !searchExpanded
+                LaunchedEffect(searchExpanded) { wasSearchExpanded = searchExpanded }
                 AnimatedVisibility(
-                    visible = rowVisible && !searchExpanded,
-                    enter = fadeIn() + expandVertically(),
+                    visible = rowVisible,
+                    enter = if (returningFromSearch) {
+                        EnterTransition.None
+                    } else {
+                        fadeIn() + expandVertically()
+                    },
                     // Expanding the search replaces the row outright, so it must not
                     // animate the pane downwards while the panel animates in.
                     exit = if (searchExpanded) ExitTransition.None else fadeOut() + shrinkVertically()
@@ -422,54 +442,35 @@ fun MemosScreen(
                 )
 
                 if (miuixFeed) {
-                    // Frosted like the bars: the compose button samples the list sliding behind it.
-                    val fabBackdrop = LocalListBackdrop.current
-                    if (fabBackdrop != null) {
-                        // Miuix's FAB paints an inner squircle that only shows once its container
-                        // goes translucent, so the frosted variant draws the surface itself. Same
-                        // material as the bottom bar: a translucent surface over the blurred list.
-                        Box(
-                            modifier = Modifier
-                                .testTag("memo_feed_compose")
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = fabBottomPadding)
-                                .fabLongPress { showQuickActions = true; fabLongPressConsumed = true }
-                                .size(56.dp)
-                                .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
-                                .clip(CircleShape)
-                                .drawBackdrop(
-                                    backdrop = fabBackdrop,
-                                    shape = { RectangleShape },
-                                    effects = { blur(FabBlurRadius, FabBlurRadius) }
-                                )
-                                .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.72f))
-                                .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f), CircleShape)
-                                .clickable(onClick = ::onFabTap),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Add,
-                                contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-                                tint = MiuixTheme.colorScheme.primary
-                            )
-                        }
-                    } else {
-                        MiuixFloatingActionButton(
-                            onClick = ::onFabTap,
-                            modifier = Modifier
-                                .testTag("memo_feed_compose")
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = fabBottomPadding)
-                                .fabLongPress { showQuickActions = true; fabLongPressConsumed = true },
-                            shape = CircleShape,
-                            containerColor = MiuixTheme.colorScheme.primary
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Add,
-                                contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-                                tint = MiuixTheme.colorScheme.onPrimary
-                            )
-                        }
+                    // The compose button is always drawn here, never with Miuix's own FAB (it paints
+                    // an inner squircle that shows up as a white block) and never frosted: the blur
+                    // effect masks itself with the same squircle, which left a visible seam inside
+                    // the circle. A small opaque circle on a shadow is what a FAB is anyway.
+                    Box(
+                        modifier = Modifier
+                            .testTag("memo_feed_compose")
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = fabBottomPadding)
+                            .fabLongPress { showQuickActions = true; fabLongPressConsumed = true }
+                            .size(56.dp)
+                            .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
+                            .clip(CircleShape)
+                            .background(MiuixTheme.colorScheme.primary)
+                            .clickable(onClick = ::onFabTap),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+                            // White on the day theme's dark green. The night primary is a light
+                            // green, where a white plus would all but disappear, so it falls back
+                            // to the palette's own content colour.
+                            tint = if (MiuixTheme.colorScheme.primary.luminance() < 0.5f) {
+                                Color.White
+                            } else {
+                                MiuixTheme.colorScheme.onPrimary
+                            }
+                        )
                     }
                 } else {
                     ExtendedFloatingActionButton(

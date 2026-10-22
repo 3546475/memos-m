@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.example.memosm.model.AppearancePreferences
+import org.example.memosm.model.DefaultNavDestinations
+import org.example.memosm.model.EditGesture
 import org.example.memosm.model.ThemeMode
 import org.example.memosm.model.ColorTheme
 import org.example.memosm.model.AppFont
@@ -51,6 +53,7 @@ class DataStoreManager(
     val APPEARANCE_NAV_SCROLL_MODE = stringPreferencesKey("appearance_nav_scroll_mode")
     val APPEARANCE_TOP_SCROLL_MODE = stringPreferencesKey("appearance_top_scroll_mode")
     val APPEARANCE_NAV_DESTINATIONS = stringPreferencesKey("appearance_nav_destinations")
+    val APPEARANCE_EDIT_GESTURE = stringPreferencesKey("appearance_edit_gesture")
         /**
          * The single switch the two per-bar switches replaced. Kept readable so preferences and
          * backups written by an older build still carry their choice over to both bars.
@@ -67,6 +70,19 @@ class DataStoreManager(
         const val DEFAULT_HEADER_SCALE = 1.0f
         val LINK_PREVIEW_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("link_preview_enabled")
         const val DEFAULT_LINK_PREVIEW_ENABLED = true
+
+        // --- Markdown rendering ("editor") settings ---
+        val CODE_LINE_NUMBERS =
+            androidx.datastore.preferences.core.booleanPreferencesKey("code_line_numbers")
+        const val DEFAULT_CODE_LINE_NUMBERS = false
+        val CODE_WRAP_LINES =
+            androidx.datastore.preferences.core.booleanPreferencesKey("code_wrap_lines")
+        const val DEFAULT_CODE_WRAP_LINES = false
+        val PARAGRAPH_INDENT =
+            androidx.datastore.preferences.core.booleanPreferencesKey("paragraph_indent")
+        const val DEFAULT_PARAGRAPH_INDENT = false
+        val CJK_SPACING = androidx.datastore.preferences.core.booleanPreferencesKey("cjk_spacing")
+        const val DEFAULT_CJK_SPACING = false
 
         // --- Offline / pre-download settings ---
         val PRE_DOWNLOAD_TEXT = androidx.datastore.preferences.core.booleanPreferencesKey("pre_download_text")
@@ -273,18 +289,21 @@ class DataStoreManager(
                 ?: ThemeStyle.MIUIX,
             navBarScrollMode = NavBarScrollMode.entries.firstOrNull {
                 it.name == preferences[APPEARANCE_NAV_SCROLL_MODE]
-            } ?: NavBarScrollMode.HIDE_ON_SCROLL,
+            } ?: NavBarScrollMode.ALWAYS_VISIBLE,
             topBarScrollMode = topBarScrollModeOf(preferences[APPEARANCE_TOP_SCROLL_MODE])
                 ?: TopBarScrollMode.ON_SCROLL,
             topBarBlur = preferences[APPEARANCE_TOP_BAR_BLUR]
-                ?: preferences[APPEARANCE_BLUR_ENABLED] ?: true,
+                ?: preferences[APPEARANCE_BLUR_ENABLED] ?: false,
             bottomBarBlur = preferences[APPEARANCE_BOTTOM_BAR_BLUR]
                 ?: preferences[APPEARANCE_BLUR_ENABLED] ?: true,
-            floatingNavBar = preferences[APPEARANCE_FLOATING_NAV_BAR] ?: false,
+            floatingNavBar = preferences[APPEARANCE_FLOATING_NAV_BAR] ?: true,
+            editGesture = EditGesture.entries.firstOrNull {
+                it.name == preferences[APPEARANCE_EDIT_GESTURE]
+            } ?: EditGesture.NONE,
             navDestinations = preferences[APPEARANCE_NAV_DESTINATIONS]
                 ?.split(',')
                 ?.filter { it.isNotBlank() }
-                ?: emptyList()
+                ?: DefaultNavDestinations
         )
     }.distinctUntilChanged()
 
@@ -324,6 +343,10 @@ class DataStoreManager(
 
     suspend fun saveFloatingNavBar(enabled: Boolean) {
         editPreferences { it[APPEARANCE_FLOATING_NAV_BAR] = enabled }
+    }
+
+    suspend fun saveEditGesture(gesture: EditGesture) {
+        editPreferences { it[APPEARANCE_EDIT_GESTURE] = gesture.name }
     }
 
     /** Destinations are stored as one comma-joined string so the backup stays a single primitive. */
@@ -369,6 +392,40 @@ class DataStoreManager(
 
     suspend fun saveLinkPreviewEnabled(enabled: Boolean) {
         dataStore.edit { it[LINK_PREVIEW_ENABLED] = enabled }
+    }
+
+    // --- Markdown rendering ("editor") settings ---
+
+    val codeLineNumbers: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[CODE_LINE_NUMBERS] ?: DEFAULT_CODE_LINE_NUMBERS
+    }
+
+    suspend fun saveCodeLineNumbers(enabled: Boolean) {
+        editPreferences { preferences -> preferences[CODE_LINE_NUMBERS] = enabled }
+    }
+
+    val codeWrapLines: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[CODE_WRAP_LINES] ?: DEFAULT_CODE_WRAP_LINES
+    }
+
+    suspend fun saveCodeWrapLines(enabled: Boolean) {
+        editPreferences { preferences -> preferences[CODE_WRAP_LINES] = enabled }
+    }
+
+    val paragraphIndent: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PARAGRAPH_INDENT] ?: DEFAULT_PARAGRAPH_INDENT
+    }
+
+    suspend fun saveParagraphIndent(enabled: Boolean) {
+        editPreferences { preferences -> preferences[PARAGRAPH_INDENT] = enabled }
+    }
+
+    val cjkSpacing: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[CJK_SPACING] ?: DEFAULT_CJK_SPACING
+    }
+
+    suspend fun saveCjkSpacing(enabled: Boolean) {
+        editPreferences { preferences -> preferences[CJK_SPACING] = enabled }
     }
 
     val preDownloadText: Flow<Boolean> = dataStore.data.map { preferences ->
@@ -547,7 +604,8 @@ class DataStoreManager(
         APPEARANCE_NAV_DESTINATIONS, APPEARANCE_BLUR_ENABLED, APPEARANCE_FLOATING_NAV_BAR,
         APPEARANCE_TOP_BAR_BLUR, APPEARANCE_BOTTOM_BAR_BLUR,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
-        PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB
+        PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB,
+        CODE_LINE_NUMBERS, CODE_WRAP_LINES, PARAGRAPH_INDENT, CJK_SPACING
     )
 
     suspend fun backupSettings(): com.google.gson.JsonObject {

@@ -2,6 +2,7 @@ package org.example.memosm.ui.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -63,6 +66,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
@@ -71,6 +75,7 @@ import kotlin.math.roundToInt
 import org.example.memosm.model.ThemeStyle
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.CardDefaults as MiuixCardDefaults
@@ -184,18 +189,43 @@ fun AppFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    /**
+     * The recorded layer behind this button. Passing one switches the button to the floating bar's
+     * frosted material: the rim alone is not the material, the blur behind it is.
+     */
+    backdrop: Backdrop? = null,
     content: @Composable () -> Unit
 ) {
     if (usesMiuix) {
         // Miuix's FAB does not hand a content colour down, so an untinted Icon would draw in the
         // Material onSurface (black) on top of the accent fill.
-        CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onPrimary) {
-            MiuixFab(
-                onClick = onClick,
-                modifier = modifier,
-                containerColor = MiuixTheme.colorScheme.primary,
-                content = content
-            )
+        if (backdrop != null) {
+            val glass = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.86f)
+            CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onSurface) {
+                Box(
+                    modifier = modifier
+                        .size(56.dp)
+                        // The glass still has to sit above the page: without a shadow it read as a
+                        // flat disc pasted onto the content.
+                        .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
+                        .capsuleGlass(backdrop, glass, isLightSurface(MiuixTheme.colorScheme.surface), CircleShape)
+                        .clickable(onClick = onClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    content()
+                }
+            }
+        } else {
+            CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onPrimary) {
+                MiuixFab(
+                    onClick = onClick,
+                    modifier = modifier.capsuleHighlight(
+                        lightSurface = isLightSurface(MiuixTheme.colorScheme.surface)
+                    ),
+                    containerColor = MiuixTheme.colorScheme.primary,
+                    content = content
+                )
+            }
         }
     } else {
         FloatingActionButton(
@@ -212,10 +242,33 @@ fun AppButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    /** Tonal styling: a quiet fill instead of the accent one, for the secondary action. */
+    secondary: Boolean = false,
     content: @Composable RowScope.() -> Unit
 ) {
     if (usesMiuix) {
-        MiuixButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
+        // MiuixButton paints its own container but does not publish a Material content colour, so
+        // a Material Text inside drew in the default on-surface black and vanished on the accent
+        // fill. The button's own content colour is forwarded explicitly.
+        val colors = if (secondary) {
+            // Defaults are the quiet secondary fill; the primary preset is the accent one.
+            MiuixButtonDefaults.buttonColors()
+        } else {
+            MiuixButtonDefaults.buttonColorsPrimary()
+        }
+        MiuixButton(
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled,
+            colors = colors,
+            content = {
+                CompositionLocalProvider(LocalContentColor provides colors.contentColor) {
+                    content()
+                }
+            }
+        )
+    } else if (secondary) {
+        FilledTonalButton(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
     } else {
         Button(onClick = onClick, modifier = modifier, enabled = enabled, content = content)
     }
@@ -464,6 +517,8 @@ fun AppTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     isError: Boolean = false,
     supportingText: String? = null,
+    /** Shows a value the user can read and copy but not type into. */
+    readOnly: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null
 ) {
@@ -476,6 +531,7 @@ fun AppTextField(
                 label = label.ifEmpty { placeholder },
                 useLabelAsPlaceholder = label.isEmpty() && placeholder.isNotEmpty(),
                 enabled = enabled,
+                readOnly = readOnly,
                 singleLine = singleLine,
                 minLines = minLines,
                 maxLines = maxLines,
@@ -491,6 +547,7 @@ fun AppTextField(
             onValueChange = onValueChange,
             modifier = modifier,
             enabled = enabled,
+            readOnly = readOnly,
             singleLine = singleLine,
             minLines = minLines,
             maxLines = maxLines,
@@ -612,7 +669,13 @@ fun AppCircularProgressIndicator(
     modifier: Modifier = Modifier,
     progress: Float? = null,
     strokeWidth: Dp? = null,
-    color: Color? = null
+    color: Color? = null,
+    /**
+     * Diameter of the spinner. Miuix draws its ring from this parameter instead of the layout
+     * size, so passing a size through [modifier] alone leaves the ring off-centre and at the wrong
+     * diameter; every call site that needs a specific size sets this instead.
+     */
+    size: Dp? = null
 ) {
     if (usesMiuix) {
         // Miuix reads the spinner tint from a ProgressIndicatorColors bundle rather than a bare
@@ -623,19 +686,23 @@ fun AppCircularProgressIndicator(
             colors = MiuixProgressDefaults.progressIndicatorColors(
                 foregroundColor = color ?: MiuixTheme.colorScheme.primary
             ),
-            strokeWidth = strokeWidth ?: MiuixProgressDefaults.DefaultCircularProgressIndicatorStrokeWidth
+            strokeWidth = strokeWidth ?: MiuixProgressDefaults.DefaultCircularProgressIndicatorStrokeWidth,
+            size = size ?: MiuixProgressDefaults.DefaultCircularProgressIndicatorSize
         )
-    } else if (progress == null) {
-        if (color != null) {
-            CircularProgressIndicator(modifier = modifier, color = color)
-        } else {
-            CircularProgressIndicator(modifier = modifier)
-        }
     } else {
-        if (color != null) {
-            CircularProgressIndicator(progress = { progress }, modifier = modifier, color = color)
+        val sizedModifier = if (size != null) modifier.size(size) else modifier
+        if (progress == null) {
+            if (color != null) {
+                CircularProgressIndicator(modifier = sizedModifier, color = color)
+            } else {
+                CircularProgressIndicator(modifier = sizedModifier)
+            }
         } else {
-            CircularProgressIndicator(progress = { progress }, modifier = modifier)
+            if (color != null) {
+                CircularProgressIndicator(progress = { progress }, modifier = sizedModifier, color = color)
+            } else {
+                CircularProgressIndicator(progress = { progress }, modifier = sizedModifier)
+            }
         }
     }
 }
@@ -651,25 +718,30 @@ fun AppFilterChip(
 ) {
     if (usesMiuix) {
         val shape = RoundedCornerShape(MiuixTokens.PillCornerRadius)
+        val containerColor =
+            if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh
+        val contentColor =
+            if (selected) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurfaceContainer
         MiuixTheme(colors = LocalMiuixColors.current) {
             MiuixSurface(
                 modifier = modifier
                     .clip(shape)
                     .clickable(enabled = enabled, onClick = onClick),
                 shape = shape,
-                color = if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh,
-                contentColor = if (selected) {
-                    MiuixTheme.colorScheme.onPrimary
-                } else {
-                    MiuixTheme.colorScheme.onSurfaceContainer
-                }
+                color = containerColor,
+                contentColor = contentColor
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    content = content
-                )
+                // MiuixSurface forwards its own content colour, but Material's Text reads
+                // LocalContentColor; without this the label fell back to the default on-surface
+                // black and was unreadable on a dark selected fill.
+                CompositionLocalProvider(LocalContentColor provides contentColor) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        content = content
+                    )
+                }
             }
         }
     } else {
@@ -929,23 +1001,53 @@ fun AppExtendedFloatingActionButton(
     expanded: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    /** See [AppFloatingActionButton]: a backdrop turns this into the frosted bar material. */
+    backdrop: Backdrop? = null,
     icon: @Composable () -> Unit,
     text: @Composable () -> Unit
 ) {
     if (usesMiuix) {
-        MiuixTheme(colors = LocalMiuixColors.current) {
-            MiuixButton(
-                onClick = onClick,
-                modifier = modifier,
-                colors = MiuixButtonDefaults.buttonColorsPrimary(),
-                content = {
-                    CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onPrimary) {
-                        icon()
-                        Spacer(Modifier.width(8.dp))
-                        text()
-                    }
+        if (backdrop != null) {
+            val glass = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.86f)
+            CompositionLocalProvider(LocalContentColor provides MiuixTheme.colorScheme.onSurface) {
+                Row(
+                    modifier = modifier
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = RoundedCornerShape(percent = 50),
+                            clip = false
+                        )
+                        .capsuleGlass(backdrop, glass, isLightSurface(MiuixTheme.colorScheme.surface), RoundedCornerShape(percent = 50))
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    icon()
+                    Spacer(Modifier.width(8.dp))
+                    text()
                 }
-            )
+            }
+        } else {
+            MiuixTheme(colors = LocalMiuixColors.current) {
+                MiuixButton(
+                    onClick = onClick,
+                    // Same glass bead as the floating bar: the extended action ("add comment",
+                    // "save") is part of the same material family.
+                    modifier = modifier.capsuleHighlight(
+                        lightSurface = isLightSurface(MiuixTheme.colorScheme.surface)
+                    ),
+                    colors = MiuixButtonDefaults.buttonColorsPrimary(),
+                    content = {
+                        CompositionLocalProvider(
+                            LocalContentColor provides MiuixTheme.colorScheme.onPrimary
+                        ) {
+                            icon()
+                            Spacer(Modifier.width(8.dp))
+                            text()
+                        }
+                    }
+                )
+            }
         }
     } else {
         ExtendedFloatingActionButton(

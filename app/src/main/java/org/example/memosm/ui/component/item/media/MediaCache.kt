@@ -12,6 +12,7 @@ import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import coil3.SingletonImageLoader
 import okhttp3.OkHttpClient
 import org.example.memosm.data.DataStoreManager
 import java.io.File
@@ -19,6 +20,12 @@ import java.util.concurrent.ConcurrentHashMap
 
 @OptIn(UnstableApi::class)
 object MediaCache {
+    /** media3's stream cache (audio/video). */
+    private const val StreamCacheDir = "media_cache"
+
+    /** Coil's image disk cache; the name is Coil's own default. */
+    private const val ImageCacheDir = "coil3_disk_cache"
+
     private val aspectRatios = ConcurrentHashMap<String, Float>()
     private var simpleCache: SimpleCache? = null
 
@@ -65,7 +72,7 @@ object MediaCache {
             simpleCache = null
         }
         if (simpleCache == null) {
-            val cacheDir = File(context.cacheDir, "media_cache")
+            val cacheDir = File(context.cacheDir, StreamCacheDir)
             // 0 (or negative) = unlimited: NoOpCacheEvictor never evicts.
             val evictor = if (cacheLimitMb <= 0) {
                 NoOpCacheEvictor()
@@ -80,17 +87,19 @@ object MediaCache {
     }
 
     /**
-     * Total bytes currently stored in the coil media cache directory.
-     * Runs on the calling thread - wrap in Dispatchers.IO.
+     * Total bytes the media pipeline keeps on disk: media3's stream cache plus Coil's image disk
+     * cache.
+     *
+     * Images dominate the footprint, and they live in Coil's own directory (its default), so
+     * counting only `media_cache` reported 0 B on a device full of cached previews.
      */
     fun sizeBytes(context: Context): Long {
-        val dir = File(context.cacheDir, "media_cache")
-        if (!dir.exists()) return 0L
-        return dir.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+        return cacheDirs(context).filter { it.exists() }
+            .sumOf { dir -> dir.walkBottomUp().filter { it.isFile }.sumOf { it.length() } }
     }
 
     /**
-     * Delete the entire coil media cache (files + index DB).
+     * Delete every media cache: the stream cache, the image cache and Coil's index.
      */
     @Synchronized
     fun clear(context: Context) {
@@ -100,14 +109,26 @@ object MediaCache {
         }
         simpleCache = null
         builtWithLimitMb = -1
-        val dir = File(context.cacheDir, "media_cache")
-        if (dir.exists()) {
-            try {
-                dir.deleteRecursively()
-            } catch (_: Exception) {
+        // Drop the index through Coil first: deleting directories underneath a running loader
+        // leaves its journal pointing at files that no longer exist.
+        try {
+            SingletonImageLoader.get(context).diskCache?.clear()
+        } catch (_: Exception) {
+        }
+        cacheDirs(context).forEach { dir ->
+            if (dir.exists()) {
+                try {
+                    dir.deleteRecursively()
+                } catch (_: Exception) {
+                }
             }
         }
     }
+
+    private fun cacheDirs(context: Context): List<File> = listOf(
+        File(context.cacheDir, StreamCacheDir),
+        File(context.cacheDir, ImageCacheDir)
+    )
 
     fun createDataSourceFactory(context: Context, token: String?, accountId: String?): DataSource.Factory {
         val httpDataSourceFactory: HttpDataSource.Factory = if (token != null) {

@@ -108,7 +108,7 @@ fun LocationIconButton(
     ) {
         if (isFetching) {
             AppCircularProgressIndicator(
-                modifier = Modifier.size(iconSize),
+                size = iconSize,
                 strokeWidth = 2.dp
             )
         } else {

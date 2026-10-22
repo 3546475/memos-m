@@ -13,12 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,7 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppButton
+import org.example.memosm.ui.theme.AppSurface
 
+/**
+ * The first screen of a fresh install. It draws with the app's own button and surface wrappers so
+ * the Miuix theme styles it like the rest of the app; plain Material buttons kept their filled
+ * shape and elevation and read as a different design language.
+ */
 @Composable
 fun SetupScreen(
     onLogin: () -> Unit,
@@ -34,7 +38,7 @@ fun SetupScreen(
     modifier: Modifier = Modifier,
     onClose: (() -> Unit)? = null
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    AppSurface(modifier = modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
             val wideLayout = maxWidth >= 600.dp
             val useLargeText = wideLayout && maxHeight >= 480.dp
@@ -51,22 +55,30 @@ fun SetupScreen(
                 Column(Modifier.padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         stringResource(R.string.setup_get_started),
-                        style = if (useLargeText) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge
+                        style = if (useLargeText) {
+                            MaterialTheme.typography.displayMedium
+                        } else {
+                            MaterialTheme.typography.headlineLarge
+                        }
                     )
                     Text(
                         stringResource(R.string.app_name),
-                        style = if (useLargeText) MaterialTheme.typography.displayLarge else MaterialTheme.typography.displayMedium
+                        style = if (useLargeText) {
+                            MaterialTheme.typography.displayLarge
+                        } else {
+                            MaterialTheme.typography.displayMedium
+                        }
                     )
                 }
                 Column(
                     modifier = Modifier.align(Alignment.End).widthIn(max = 432.dp).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val buttonModifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                    Button(onClick = onLogin, modifier = buttonModifier) {
+                    val buttonModifier = Modifier.fillMaxWidth()
+                    AppButton(onClick = onLogin, modifier = buttonModifier) {
                         Text(stringResource(R.string.login_button))
                     }
-                    FilledTonalButton(onClick = onImport, modifier = buttonModifier) {
+                    AppButton(onClick = onImport, modifier = buttonModifier, secondary = true) {
                         Text(stringResource(R.string.recovery_import))
                     }
                 }

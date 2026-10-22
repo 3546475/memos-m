@@ -62,9 +62,11 @@ fun MemoComposerScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .navigationBarsPadding()
-                .imePadding(),
+                .padding(padding),
+            // Neither the gesture bar nor the keyboard inset is applied here. Both are consumed
+            // inside the composer: the text pads for the keyboard, the action bar pads for whichever
+            // of the two is larger. Doing it in one place keeps the bar from jumping when the
+            // keyboard closes (it used to drop below its resting place and snap back).
             contentAlignment = Alignment.TopCenter
         ) {
             androidx.compose.foundation.layout.Column(Modifier.widthIn(max = 800.dp).fillMaxSize()) {
@@ -86,12 +88,15 @@ fun MemoComposerScreen(
                             }
                             when {
                                 initialMemo != null -> viewModel.memoActionDelegate.updateMemo(
-                                    initialMemo, content, visibility, attachments, location, onError = failed, onSuccess = onSubmitted)
+                                    initialMemo, content, visibility, attachments, location,
+                                    linkedMemoNames = editorSession.state.linkedMemoNames.value,
+                                    onError = failed, onSuccess = onSubmitted)
                                 parentMemo != null -> viewModel.memoActionDelegate.createComment(
                                     parentMemo, content, onError = failed, onSuccess = onSubmitted)
                                 else -> viewModel.memoActionDelegate.createMemo(content, visibility,
                                     attachments, location,
                                     memoId = java.util.UUID.nameUUIDFromBytes(editorSession.request.draftId.toByteArray()).toString(),
+                                    linkedMemoNames = editorSession.state.linkedMemoNames.value,
                                     onError = failed, onSuccess = onSubmitted)
                             }
                         }
@@ -104,6 +109,7 @@ fun MemoComposerScreen(
                     hostUrl = hostUrl,
                     isPosting = uiState.isPosting || editorSession.busy,
                     editorState = editorSession.state,
+                    linkableMemos = uiState.userMemoList.list.items,
                     mode = mode,
                     modifier = Modifier
                         .weight(1f)

@@ -178,7 +178,7 @@ fun MemoImage(
 
         if (isLoading && !isRound) {
             AppCircularProgressIndicator(
-                modifier = Modifier.size(24.dp), strokeWidth = 2.dp
+                size = 24.dp, strokeWidth = 2.dp
             )
         }
 

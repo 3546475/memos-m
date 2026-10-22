@@ -10,6 +10,25 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -40,12 +60,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import org.example.memosm.ui.theme.bottomBarBlurSupported
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTextField
 import org.example.memosm.data.base64ToTempUri
 import org.example.memosm.data.uriToBase64Attachment
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Location
+import org.example.memosm.model.Memo
+import org.example.memosm.ui.component.item.markdown.plainLabel
 import org.example.memosm.model.Visibility
 import org.example.memosm.ui.findActivity
 import org.example.memosm.ui.getFileSize
@@ -66,6 +91,7 @@ enum class ComposerMode {
     COMMENT
 }
 
+
 @Composable
 fun MemoComposer(
     modifier: Modifier = Modifier,
@@ -76,7 +102,11 @@ fun MemoComposer(
     hostUrl: String,
     mode: ComposerMode,
     isPosting: Boolean = false,
+    /** Request the keyboard on open. Off by default: entering the editor is not a typing gesture. */
+    autoFocus: Boolean = false,
     editorState: ComposerState,
+    /** The user's own memos, for the "link memo" picker. */
+    linkableMemos: List<Memo> = emptyList(),
     onDiscardQueuedUpload: (String) -> Unit = {}
 
 ) {
@@ -97,6 +127,14 @@ fun MemoComposer(
     var uploadingUris by remember { mutableStateOf(setOf<Uri>()) }
     var isUploadingCount by remember { mutableIntStateOf(0) }
     var showLocationEditDialog by remember { mutableStateOf(false) }
+    var linkedMemoNames by editorState.linkedMemoNames
+    var showLinkPicker by remember { mutableStateOf(false) }
+    // Height of the action bar, so the link chips can float just above it.
+    var barHeightPx by remember { mutableIntStateOf(0) }
+    // The chip needs something readable: the memo's first line, falling back to its server name.
+    val linkedMemos = linkedMemoNames.map { name ->
+        name to (linkableMemos.firstOrNull { it.name == name }?.plainLabel() ?: name)
+    }
 
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -198,7 +236,18 @@ fun MemoComposer(
 
     var componentWidth by remember { mutableStateOf(0.dp) }
 
-    Column(
+    // The editor content runs to the bottom of the screen and the action bar floats over it, so the
+    // bar sits on the text instead of on a column and can frost it.
+    val composerBackdrop = rememberLayerBackdrop()
+    val blurAvailable = bottomBarBlurSupported()
+    // The bar clears the gesture bar, and the keyboard when it is up. One value derived from the
+    // insets themselves — not a branch on "is the keyboard visible" — so the bar moves with the
+    // animation instead of dropping past its resting place and snapping back.
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    val barBottomInset = maxOf(navBarBottom, imeBottom)
+
+    Box(
         modifier = modifier
             .onSizeChanged {
                 componentWidth = with(density) { it.width.toDp() }
@@ -211,18 +260,60 @@ fun MemoComposer(
                 else Color.Transparent, RoundedCornerShape(8.dp)
             )
     ) {
-        MemoInput(
-            contentState = contentState,
-            onContentChange = { contentState = it },
-            placeholder = placeholder,
-            availableTags = availableTags,
-            enabled = !isPosting,
-            autoFocus = true,
-            modifier = Modifier.weight(1f),
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (blurAvailable) Modifier.layerBackdrop(composerBackdrop) else Modifier
+                )
+                // Painted *after* layerBackdrop, so the page colour is part of the recorded layer.
+                // Without it the layer holds only the glyphs and is transparent everywhere else;
+                // blurring those pixels means averaging black against transparent, which the blur
+                // premultiplies into a near-black backdrop — the grey block. The feed's recorded
+                // layer is opaque because its pane paints a surface inside it.
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            MemoInput(
+                contentState = contentState,
+                onContentChange = { contentState = it },
+                placeholder = placeholder,
+                availableTags = availableTags,
+                enabled = !isPosting,
+                // Opening the editor does not pop the keyboard: the user decides when to type.
+                autoFocus = autoFocus,
+                // Full bleed: the bar floats over the text, and the scroll room it needs after the
+                // last line comes from the trailing blank lines the markdown transformation adds,
+                // not from an inset here (which would stop the text at the bar's edge).
+                // The text keeps clear of the keyboard; the bar floats over the page instead of
+                // being pushed up by a padding on the whole screen.
+                modifier = Modifier.fillMaxSize().imePadding(),
+            )
+        }
+
+        // Link chips live outside the action bar: they show state, the bar holds actions. Floating
+        // them above the bar's measured height keeps them off both the text and the bar's surface.
+        if (linkedMemos.isNotEmpty() && barHeightPx > 0) {
+            LinkedMemoChips(
+                linkedMemos = linkedMemos,
+                onRemove = { name -> linkedMemoNames = linkedMemoNames - name },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(
+                        // barHeightPx already includes the bar's own bottom inset.
+                        bottom = with(density) { barHeightPx.toDp() } + 4.dp
+                    )
+            )
+        }
 
         MemoComposerBottomBar(
-            modifier = Modifier,
+            backdrop = if (blurAvailable) composerBackdrop else null,
+            modifier = Modifier
+                .onSizeChanged { barHeightPx = it.height }
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = barBottomInset),
             draftAttachments = draftAttachments,
             uploadingUris = uploadingUris,
             location = location,
@@ -237,6 +328,7 @@ fun MemoComposer(
             isUploadingCount = isUploadingCount,
             onRemoveLocation = { location = null },
             onLocationClick = { showLocationEditDialog = true },
+            onLinkMemoClick = { showLinkPicker = true },
             onVisibilityChange = { visibility = it },
             onRemoveAttachment = { index ->
                 if (index in draftAttachments.indices) {
@@ -339,6 +431,21 @@ fun MemoComposer(
             })
     }
 
+    if (showLinkPicker) {
+        MemoLinkPickerDialog(
+            memos = linkableMemos,
+            excludedNames = linkedMemoNames.toSet(),
+            onDismiss = { showLinkPicker = false },
+            onSelect = { memo ->
+                val name = memo.name
+                if (name != null && name !in linkedMemoNames) {
+                    linkedMemoNames = linkedMemoNames + name
+                }
+                showLinkPicker = false
+            }
+        )
+    }
+
     if (showLocationEditDialog && location != null) {
         var tempPlaceholder by remember { mutableStateOf(location?.placeholder ?: "") }
         var tempLatitude by remember { mutableStateOf(location?.latitude?.toString() ?: "") }
@@ -396,3 +503,53 @@ fun MemoComposer(
         }
     }
 }
+
+/** Chips for the memos this one links to; four characters is all a chip is worth. */
+@Composable
+private fun LinkedMemoChips(
+    linkedMemos: List<Pair<String, String>>,
+    onRemove: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        items(linkedMemos, key = { it.first }) { (name, label) ->
+            InputChip(
+                selected = true,
+                onClick = {},
+                shape = CircleShape,
+                label = {
+                    Text(
+                        text = if (label.length > ChipLabelLength) {
+                            label.take(ChipLabelLength) + "…"
+                        } else {
+                            label
+                        },
+                        maxLines = 1
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Link,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = stringResource(R.string.memo_composer_remove_link),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .noRippleClickable { onRemove(name) }
+                    )
+                }
+            )
+        }
+    }
+}
+
+private const val ChipLabelLength = 4

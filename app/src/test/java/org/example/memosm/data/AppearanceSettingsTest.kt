@@ -11,7 +11,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.example.memosm.data.backup.BackupCategory
 import org.example.memosm.data.backup.BackupManifest
+import org.example.memosm.model.DefaultNavDestinations
+import org.example.memosm.model.NavBarScrollMode
 import org.example.memosm.model.ThemeStyle
+import org.example.memosm.model.TopBarScrollMode
+import org.example.memosm.ui.component.setting.enabledDestinations
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -49,16 +53,40 @@ class AppearanceSettingsTest {
 
     @Test
     fun `frosting is stored per bar`() = withSettings { settings ->
+        // Only the bottom bar ships frosted; the header is a thin row.
+        assertEquals(false, settings.appearance.first().topBarBlur)
+        assertEquals(true, settings.appearance.first().bottomBarBlur)
+
+        settings.saveTopBarBlur(true)
         assertEquals(true, settings.appearance.first().topBarBlur)
         assertEquals(true, settings.appearance.first().bottomBarBlur)
 
-        settings.saveTopBarBlur(false)
-        assertEquals(false, settings.appearance.first().topBarBlur)
-        assertEquals(true, settings.appearance.first().bottomBarBlur)
-
         settings.saveBottomBarBlur(false)
-        assertEquals(false, settings.appearance.first().topBarBlur)
+        assertEquals(true, settings.appearance.first().topBarBlur)
         assertEquals(false, settings.appearance.first().bottomBarBlur)
+    }
+
+    @Test
+    fun `a fresh install starts with the floating two-item bar`() = withSettings { settings ->
+        val appearance = settings.appearance.first()
+        assertEquals(NavBarScrollMode.ALWAYS_VISIBLE, appearance.navBarScrollMode)
+        assertEquals(TopBarScrollMode.ON_SCROLL, appearance.topBarScrollMode)
+        assertEquals(true, appearance.floatingNavBar)
+        assertEquals(DefaultNavDestinations, appearance.navDestinations)
+
+        // Only notes and profile are in the bar, and in that order.
+        val available = listOf(
+            org.example.memosm.ui.MainDestination.MEMOS,
+            org.example.memosm.ui.MainDestination.ATTACHMENTS,
+            org.example.memosm.ui.MainDestination.PROFILE
+        )
+        assertEquals(
+            listOf(
+                org.example.memosm.ui.MainDestination.MEMOS,
+                org.example.memosm.ui.MainDestination.PROFILE
+            ),
+            enabledDestinations(appearance.navDestinations, available)
+        )
     }
 
     @Test

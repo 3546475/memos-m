@@ -155,7 +155,15 @@ fun MemoInput(
 
     Column(modifier = modifier) {
         val interactionSource = remember { MutableInteractionSource() }
-        val paddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+        // No bottom inset: the text is meant to run under the floating action bar and under the
+        // gesture bar, so the page is covered to the last pixel. A bottom padding here used to stop
+        // the text 12dp short and leave a bare strip at the bottom of the screen.
+        val paddingValues = PaddingValues(
+            start = 16.dp,
+            top = 12.dp,
+            end = 16.dp,
+            bottom = 0.dp
+        )
         val textStyle = LocalTextStyle.current
 
         var boxPositionInWindow by remember { mutableStateOf(IntOffset.Zero) }

@@ -15,6 +15,13 @@ interface AppSettingsDelegate {
     fun loadLinkPreviewEnabled()
     fun updateLinkPreviewEnabled(enabled: Boolean)
 
+    // Markdown rendering ("editor") settings
+    fun loadEditorSettings()
+    fun updateCodeLineNumbers(enabled: Boolean)
+    fun updateCodeWrapLines(enabled: Boolean)
+    fun updateParagraphIndent(enabled: Boolean)
+    fun updateCjkSpacing(enabled: Boolean)
+
     // Offline / pre-download settings
     fun loadOfflineSettings()
     fun updatePreDownloadText(enabled: Boolean)
@@ -77,6 +84,49 @@ class AppSettingsDelegateImpl(
             dataStoreManager.saveHeaderScale(scale)
             uiState.update { it.copy(appSettings = it.appSettings.copy(headerScale = scale)) }
         }
+    }
+
+    override fun loadEditorSettings() {
+        scope.launch {
+            dataStoreManager.codeLineNumbers.collect { enabled ->
+                uiState.update { it.copy(appSettings = it.appSettings.copy(codeLineNumbers = enabled)) }
+            }
+        }
+        scope.launch {
+            dataStoreManager.codeWrapLines.collect { enabled ->
+                uiState.update { it.copy(appSettings = it.appSettings.copy(codeWrapLines = enabled)) }
+            }
+        }
+        scope.launch {
+            dataStoreManager.paragraphIndent.collect { enabled ->
+                uiState.update { it.copy(appSettings = it.appSettings.copy(paragraphIndent = enabled)) }
+            }
+        }
+        scope.launch {
+            dataStoreManager.cjkSpacing.collect { enabled ->
+                uiState.update { it.copy(appSettings = it.appSettings.copy(cjkSpacing = enabled)) }
+            }
+        }
+    }
+
+    override fun updateCodeLineNumbers(enabled: Boolean) {
+        uiState.update { it.copy(appSettings = it.appSettings.copy(codeLineNumbers = enabled)) }
+        scope.launch { dataStoreManager.saveCodeLineNumbers(enabled) }
+    }
+
+    override fun updateCodeWrapLines(enabled: Boolean) {
+        uiState.update { it.copy(appSettings = it.appSettings.copy(codeWrapLines = enabled)) }
+        scope.launch { dataStoreManager.saveCodeWrapLines(enabled) }
+    }
+
+    override fun updateParagraphIndent(enabled: Boolean) {
+        uiState.update { it.copy(appSettings = it.appSettings.copy(paragraphIndent = enabled)) }
+        scope.launch { dataStoreManager.saveParagraphIndent(enabled) }
+    }
+
+    override fun updateCjkSpacing(enabled: Boolean) {
+        uiState.update { it.copy(appSettings = it.appSettings.copy(cjkSpacing = enabled)) }
+        scope.launch { dataStoreManager.saveCjkSpacing(enabled) }
     }
 
     override fun loadOfflineSettings() {

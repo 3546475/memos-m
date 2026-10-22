@@ -1,6 +1,12 @@
 package org.example.memosm.ui.component.composer
 
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import org.example.memosm.ui.theme.capsuleGlass
+import org.example.memosm.ui.theme.capsuleShadow
+import org.example.memosm.ui.theme.isLightSurface
+import org.example.memosm.ui.theme.capsuleHighlight
 
 import org.example.memosm.ui.theme.flatCardElevation
 import android.net.Uri
@@ -23,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -31,6 +38,7 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +64,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -82,6 +91,8 @@ import org.example.memosm.ui.getVisibilityLabel
 @Composable
 fun MemoComposerBottomBar(
     modifier: Modifier = Modifier,
+    /** The editor layer behind this bar; non-null switches the pill and the action to frosted. */
+    backdrop: LayerBackdrop? = null,
     draftAttachments: List<Pair<Uri, Attachment?>>,
     uploadingUris: Set<Uri>,
     location: Location?,
@@ -102,6 +113,7 @@ fun MemoComposerBottomBar(
     onRemoveAttachment: (Int) -> Unit,
     onRecordingFinished: (Uri, Attachment?) -> Unit,
     onLocationFounded: (Location) -> Unit,
+    onLinkMemoClick: () -> Unit = {},
 ) {
     LocalContext.current
     var showActionOverflowMenu by remember { mutableStateOf(false) }
@@ -128,9 +140,67 @@ fun MemoComposerBottomBar(
         verticalAlignment = Alignment.CenterVertically) {
         // "Everything else" Card — pill when empty, rounded card when content is present
         val hasContent = draftAttachments.isNotEmpty() || location != null
+        // The floating navigation bar is filled with Miuix's surfaceContainer, not the Material
+        // surface colour, so the same number here keeps both bars the same material.
+        val miuixSurfaceContainer = MiuixTheme.colorScheme.surfaceContainer
         AppCard(
-            modifier = Modifier.weight(1f),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .weight(1f)
+                // Same ambient shadow as the floating navigation bar, drawn under the glass.
+                .capsuleShadow(
+                    lightSurface = MaterialTheme.colorScheme.surface.luminance() > 0.5f,
+                    // Fixed radii, never the measured height: a first draw from a tiny measured
+                    // height produced a solid square shadow before the pill settled.
+                    cornerRadius = if (hasContent) {
+                        MiuixTokens.CardCornerRadius
+                    } else {
+                        MiuixTokens.PillCornerRadius
+                    }
+                )
+                // With a backdrop the pill is real frosted glass: the editor text scrolling under
+                // it is blurred. Without one it keeps the rim over a translucent fill.
+                .then(
+                    if (backdrop != null) {
+                        Modifier.capsuleGlass(
+                            backdrop = backdrop,
+                            // Identical to the floating navigation bar: the capsule surface colour at
+                            // 0.86 and the same 24px blur, with no extra colour grading. A different
+                            // recipe here is what made the editor's bar read as a grey block rather
+                            // than as the same material.
+                            surfaceColor = miuixSurfaceContainer.copy(alpha = 0.86f),
+                            lightSurface = isLightSurface(MiuixTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(
+                                if (hasContent) {
+                                    MiuixTokens.CardCornerRadius
+                                } else {
+                                    MiuixTokens.PillCornerRadius
+                                }
+                            ),
+                            // null = stadium, exactly like the bar's own capsule shape.
+                            cornerRadius = if (hasContent) MiuixTokens.CardCornerRadius else null,
+                            blurRadius = 24f
+                        )
+                    } else {
+                        Modifier.capsuleHighlight(
+                            lightSurface = MaterialTheme.colorScheme.surface.luminance() > 0.5f,
+                            cornerRadius = if (hasContent) {
+                                MiuixTokens.CardCornerRadius
+                            } else {
+                                MiuixTokens.PillCornerRadius
+                            }
+                        )
+                    }
+                ),
+            // With a backdrop the inside is painted by the glass itself (blurred content + one
+            // 86% fill). Letting the card paint its own 86% fill on top of that composites twice,
+            // which lands at ~98% and read as a solid white pill with no glass at all.
+            containerColor = if (backdrop != null) {
+                Color.Transparent
+            } else {
+                // Blur off: the floating bar goes fully opaque in surfaceContainer, so this does too,
+                // instead of keeping a translucent tinted card.
+                miuixSurfaceContainer
+            },
             cornerRadius = if (hasContent) MiuixTokens.CardCornerRadius else MiuixTokens.PillCornerRadius
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
@@ -169,7 +239,7 @@ fun MemoComposerBottomBar(
                                             ), contentAlignment = Alignment.Center
                                     ) {
                                         AppCircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp), color = Color.White
+                                            size = 24.dp, color = Color.White
                                         )
                                     }
                                 }
@@ -358,6 +428,22 @@ fun MemoComposerBottomBar(
                                             // The button handles the click.
                                         }, enabled = !isPosting && location == null
                                     )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Link,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(stringResource(R.string.memo_composer_link_memo))
+                                            }
+                                        }, onClick = {
+                                            showActionOverflowMenu = false
+                                            onLinkMemoClick()
+                                        }, enabled = !isPosting
+                                    )
                                 }
                             }
                         } else {
@@ -397,6 +483,17 @@ fun MemoComposerBottomBar(
                                 location = location,
                                 onLocationFounded = onLocationFounded
                             )
+                            IconButton(
+                                onClick = onLinkMemoClick,
+                                enabled = !isPosting,
+                                modifier = Modifier.size(actionButtonSize)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Link,
+                                    contentDescription = stringResource(R.string.memo_composer_link_memo),
+                                    modifier = Modifier.size(actionIconSize)
+                                )
+                            }
                         }
                     } // End Left Actions Row
 
@@ -465,10 +562,13 @@ fun MemoComposerBottomBar(
                 expanded = true,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                // The editor text scrolls under this bar, so the action wears the same frosted
+                // material as the bar itself.
+                backdrop = backdrop,
                 icon = {
                     if (isPosting) {
                         AppCircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            size = 24.dp,
                             color = LocalContentColor.current,
                             strokeWidth = 2.dp
                             )
@@ -486,11 +586,12 @@ fun MemoComposerBottomBar(
             AppFloatingActionButton(
                 onClick = onPublishClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
+                backdrop = backdrop,
                 modifier = Modifier
             ) {
                 if (isPosting) {
                     AppCircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        size = 24.dp,
                         color = LocalContentColor.current,
                         strokeWidth = 2.dp
                         )

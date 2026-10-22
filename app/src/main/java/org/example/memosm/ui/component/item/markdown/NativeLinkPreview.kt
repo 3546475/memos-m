@@ -34,6 +34,7 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -69,7 +70,12 @@ fun NativeLinkPreview(
                 text = remember(url, color) {
                     buildAnnotatedString {
                         pushLink(LinkAnnotation.Url(url))
-                        withStyle(SpanStyle(color = color)) { append(url) }
+                        withStyle(
+                            SpanStyle(
+                                color = color,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) { append(url) }
                         pop()
                     }
                 },

@@ -17,6 +17,9 @@ interface SyncAuditDao {
     @Query("SELECT COUNT(*) FROM sync_audit_log")
     suspend fun count(): Int
 
+    @Query("DELETE FROM sync_audit_log")
+    suspend fun clear()
+
     @Query("DELETE FROM sync_audit_log WHERE id IN (SELECT id FROM sync_audit_log ORDER BY occurredAt ASC LIMIT :count)")
     suspend fun deleteOldest(count: Int)
 }

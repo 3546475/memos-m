@@ -24,12 +24,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.example.memosm.data.DataStoreManager
+import org.example.memosm.model.MemoContentType
 import org.example.memosm.ui.component.ArchivedMemosScreen
 import org.example.memosm.ui.component.ConflictDialog
 import org.example.memosm.ui.component.LocalNetworkPermission
+import org.example.memosm.ui.component.MemoTypeMemosScreen
 import org.example.memosm.ui.component.NotificationsScreen
 import org.example.memosm.ui.component.item.markdown.LinkPreviewEnvironment
 import org.example.memosm.ui.component.item.markdown.LocalLinkPreviews
+import org.example.memosm.ui.component.item.markdown.LocalMarkdownFormat
+import org.example.memosm.ui.component.item.markdown.MarkdownFormat
 import org.example.memosm.ui.component.item.media.AccountMediaIdentity
 import org.example.memosm.ui.component.item.media.LocalAccountMediaIdentity
 import org.example.memosm.ui.component.rememberLocalNetworkPermission
@@ -88,7 +92,20 @@ abstract class ProfileActivity : ComponentActivity() {
                         LocalAccountMediaIdentity provides active?.let {
                             AccountMediaIdentity(it.id, uiState.accountGeneration)
                         },
-                        LocalLinkPreviews provides previewEnvironment
+                        LocalLinkPreviews provides previewEnvironment,
+                        LocalMarkdownFormat provides remember(
+                            uiState.appSettings.codeLineNumbers,
+                            uiState.appSettings.codeWrapLines,
+                            uiState.appSettings.paragraphIndent,
+                            uiState.appSettings.cjkSpacing
+                        ) {
+                            MarkdownFormat(
+                                codeLineNumbers = uiState.appSettings.codeLineNumbers,
+                                codeWrapLines = uiState.appSettings.codeWrapLines,
+                                paragraphIndent = uiState.appSettings.paragraphIndent,
+                                cjkSpacing = uiState.appSettings.cjkSpacing
+                            )
+                        }
                     ) {
                         Surface(modifier = Modifier.fillMaxSize()) {
                             if (!sessionReady || !accountMatches) {
@@ -134,6 +151,24 @@ class ArchivedMemosActivity : ProfileActivity() {
     @Composable
     override fun Destination(viewModel: MemosViewModel, onBack: () -> Unit) {
         ArchivedMemosScreen(viewModel = viewModel, onBack = onBack)
+    }
+}
+
+/** The memos of one kind (links, code, todos), filtered on this device. */
+class MemoTypeMemosActivity : ProfileActivity() {
+    @Composable
+    override fun Destination(viewModel: MemosViewModel, onBack: () -> Unit) {
+        val type = MemoContentType.entries
+            .firstOrNull { it.name == intent.getStringExtra(EXTRA_TYPE) }
+            ?: MemoContentType.LINK
+        MemoTypeMemosScreen(viewModel = viewModel, type = type, onBack = onBack)
+    }
+
+    companion object {
+        private const val EXTRA_TYPE = "memo_content_type"
+
+        fun createIntent(context: Context, type: MemoContentType): Intent =
+            Intent(context, MemoTypeMemosActivity::class.java).putExtra(EXTRA_TYPE, type.name)
     }
 }
 

@@ -1,5 +1,6 @@
 package org.example.memosm.ui
 
+import androidx.activity.compose.BackHandler
 import org.example.memosm.model.NavBarScrollMode
 
 import org.example.memosm.model.AppearancePreferences
@@ -45,6 +46,7 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
@@ -96,6 +98,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppSurface
+import org.example.memosm.ui.theme.capsuleHighlight
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.NavigationBar as MiuixNavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem as MiuixNavigationBarItem
@@ -139,6 +142,8 @@ import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.component.item.media.MemoImage
 import org.example.memosm.ui.component.item.markdown.LocalLinkPreviews
+import org.example.memosm.ui.component.item.markdown.LocalMarkdownFormat
+import org.example.memosm.ui.component.item.markdown.MarkdownFormat
 import org.example.memosm.ui.component.item.markdown.LinkPreviewEnvironment
 import org.example.memosm.ui.component.resolveResourceUrl
 import org.example.memosm.ui.nav.AttachmentsScreen
@@ -158,6 +163,9 @@ enum class MainDestination(
 }
 
 private const val NavBlurRadius = 24f
+
+/** Opacity of the capsule's own surface over its blur, the same in the light and dark themes. */
+private const val CapsuleSurfaceAlpha = 0.86f
 
 @Composable
 fun MainScreen(
@@ -186,9 +194,23 @@ fun MainScreen(
     val mediaIdentity = uiState.accounts.firstOrNull { it.isActive }?.let {
         AccountMediaIdentity(it.id, uiState.accountGeneration)
     }
+    val markdownFormat = remember(
+        uiState.appSettings.codeLineNumbers,
+        uiState.appSettings.codeWrapLines,
+        uiState.appSettings.paragraphIndent,
+        uiState.appSettings.cjkSpacing
+    ) {
+        MarkdownFormat(
+            codeLineNumbers = uiState.appSettings.codeLineNumbers,
+            codeWrapLines = uiState.appSettings.codeWrapLines,
+            paragraphIndent = uiState.appSettings.paragraphIndent,
+            cjkSpacing = uiState.appSettings.cjkSpacing
+        )
+    }
     CompositionLocalProvider(
         LocalAccountMediaIdentity provides mediaIdentity,
-        LocalLinkPreviews provides linkPreviews
+        LocalLinkPreviews provides linkPreviews,
+        LocalMarkdownFormat provides markdownFormat
     ) {
         key(uiState.accountGeneration) {
             MainScreenContent(viewModel, uiState, destination, onLogout, appearance, modifier,
@@ -217,6 +239,12 @@ private fun MainScreenContent(
     onOpenSearchRequestConsumed: () -> Unit
 ) {
     var currentDestination by destination
+    // Back returns to the notes feed instead of leaving the app from any other destination. It is
+    // declared before the content so the inner handlers (search panel, map selection, memo detail)
+    // are registered later and therefore get the first chance to consume the gesture.
+    BackHandler(enabled = currentDestination != MainDestination.MEMOS) {
+        currentDestination = MainDestination.MEMOS
+    }
     val mapSupported = uiState.memoMap.capability == MapCapability.SUPPORTED
     // The user can hide, reorder and drop bottom-bar destinations; MAP only exists when supported.
     val availableDestinations = remember(mapSupported) {
@@ -558,6 +586,7 @@ private fun MainScreenContent(
                                     onToggleNavBar = setNavBarVisible,
                                     isNavBarVisible = isNavBarVisible,
                                     navBarAlwaysVisible = navBarAlwaysVisible,
+                                    memoEditGesture = appearance.editGesture,
                                     // The floating bar carries the compose action already.
                                     showComposeFab = !(
                                         LocalThemeStyle.current == ThemeStyle.MIUIX &&
@@ -580,7 +609,11 @@ private fun MainScreenContent(
                                     onLogout = onLogout,
                                     onAddAccount = { isAddingAccount = true },
                                     onToggleNavBar = toggleNavBar,
-                                    isNavBarVisible = isNavBarVisible
+                                    isNavBarVisible = isNavBarVisible,
+                                    onOpenMemos = {
+                                        handleDestinationClick(MainDestination.MEMOS)
+                                        feedPagerState.requestScrollToPage(MemoFeed.MEMOS.ordinal)
+                                    }
                                 )
                             }
                         }
@@ -630,7 +663,7 @@ private fun MainScreenContent(
                                 // A translucent bar lets the list frost through; without blur it
                                 // stays the plain opaque surface.
                                 color = if (navBlurEnabled) {
-                                    MiuixTheme.colorScheme.surface.copy(alpha = 0.72f)
+                                    MiuixTheme.colorScheme.surface.copy(alpha = CapsuleSurfaceAlpha)
                                 } else {
                                     MiuixTheme.colorScheme.surface
                                 },
@@ -700,7 +733,7 @@ private fun MainScreenContent(
 }
 
 /** Miuix navigation items take a vector icon, so the avatar stays on the profile page itself. */
-private fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this) {
+internal fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this) {
     MainDestination.MAP -> if (selected) Icons.Filled.Map else Icons.Outlined.Map
     MainDestination.MEMOS ->
         if (selected) Icons.AutoMirrored.Filled.LibraryBooks else Icons.AutoMirrored.Outlined.LibraryBooks
@@ -712,13 +745,11 @@ private fun MainDestination.navIcon(selected: Boolean): ImageVector = when (this
 private const val CapsuleBlurRadius = 18f
 
 /** Thickness of the crisp specular line that outlines the capsule. */
-private val CapsuleEdgeWidth = 1.dp
 
 /**
  * Width of the soft inner rim just inside that line. The reference material has a ~2dp bevel,
  * brightest along the top edge and fading into the surface.
  */
-private val CapsuleGlowWidth = 2.dp
 
 /** Spread of the soft ambient shadow that lifts the capsule off the page. */
 private val CapsuleShadowSpread = 34.dp
@@ -726,11 +757,14 @@ private val CapsuleShadowSpread = 34.dp
 /** The shadow is nudged down so it reads as a light source above the bar. */
 private val CapsuleShadowOffsetY = 4.dp
 
+/** The capsule's own height; the shadow's corner radius is derived from it. */
+private val CapsuleBarHeight = 64.dp
+
 /**
  * Gap between the capsule and the navigation-bar inset. The system gesture handle lives inside
  * that inset and must stay free of the bar's background (and of its shadow).
  */
-private val CapsuleNavigationGap = 14.dp
+private val CapsuleNavigationGap = 7.dp
 
 /**
  * Steps in the stacked shadow. Kept moderate: with dozens of very faint layers the per-layer
@@ -777,42 +811,13 @@ private fun FloatingBottomBar(
     val refreshTick = blurRefresh.value
     // The capsule is the card color, not the page surface: white in the day theme and #242424 in
     // the dark one, matching the reference. With blur on, that same color goes translucent so the
-    // feed still frosts through.
+    // feed still frosts through; the same alpha in both themes keeps the material identical.
     val lightSurface = MiuixTheme.colorScheme.surface.luminance() > 0.5f
     val barColor = MiuixTheme.colorScheme.surfaceContainer.copy(
-        alpha = when {
-            !blurEnabled -> 1f
-            lightSurface -> 0.72f
-            else -> 0.86f
-        }
+        alpha = if (blurEnabled) CapsuleSurfaceAlpha else 1f
     )
-    // The reference edge is a narrow bevel, not a thick border. Day is a quiet white line on the
-    // white capsule; night is the bright rim that separates the bar from the black background.
-    val edgeBrush = if (lightSurface) {
-        Brush.verticalGradient(
-            0f to Color.White.copy(alpha = 0.55f),
-            0.45f to Color.White.copy(alpha = 0.18f),
-            1f to Color.White.copy(alpha = 0.08f)
-        )
-    } else {
-        Brush.verticalGradient(
-            0f to Color.White.copy(alpha = 0.35f),
-            0.4f to Color.White.copy(alpha = 0.15f),
-            1f to Color.White.copy(alpha = 0.20f)
-        )
-    }
-    val glowBrush = if (lightSurface) {
-        Brush.verticalGradient(
-            0f to Color.White.copy(alpha = 0.05f),
-            1f to Color.White.copy(alpha = 0f)
-        )
-    } else {
-        Brush.verticalGradient(
-            0f to Color.White.copy(alpha = 0.10f),
-            0.5f to Color.White.copy(alpha = 0.03f),
-            1f to Color.White.copy(alpha = 0.05f)
-        )
-    }
+    // The bevel and its glow live in ui/theme/CapsuleMaterial so the composer, the detail page and
+    // the docked FAB can wear the same glass without copying the gradients.
     // Day keeps a soft ambient shadow: stronger than the version that vanished, still well below
     // the one that read as a second capsule. Night gets none: the reference bar is separated from
     // black by its rim, and a dark halo over gray cards was exactly the effect to avoid.
@@ -820,6 +825,14 @@ private fun FloatingBottomBar(
     // Each of the stacked capsules is faint; together they reach `shadowMaxAlpha` at the bar and
     // fade to nothing at the edge of the spread.
     val shadowLayerAlpha = 1f - (1f - shadowMaxAlpha).pow(1f / CapsuleShadowLayers)
+    // The shadow fades in with the bar. It is drawn from a fixed capsule height below, so a frame
+    // where the row has not been measured yet can no longer paint a full-strength rectangle; and
+    // ramping it in means even a partial one is invisible.
+    val shadowAppear by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(220),
+        label = "capsuleShadowAppear"
+    )
     Box(
         modifier = modifier
             .padding(horizontal = 20.dp)
@@ -859,10 +872,12 @@ private fun FloatingBottomBar(
                         if (refreshTick < 0f || blurRefresh.value < 0f) {
                             return@drawWithContent
                         }
-                        if (shadowMaxAlpha > 0f) {
+                        if (shadowMaxAlpha > 0f && shadowAppear > 0f && size.height > 0f) {
                             val spread = CapsuleShadowSpread.toPx()
                             val offsetY = CapsuleShadowOffsetY.toPx()
-                            val radius = size.height / 2f
+                            // Fixed bar height, not the measured one: a first draw before layout
+                            // would otherwise produce a square-cornered block instead of a capsule.
+                            val radius = CapsuleBarHeight.toPx() / 2f
                             val step = spread / CapsuleShadowLayers
                             // Let the shadow fade naturally through the gesture inset. Cutting
                             // it off at the inset line left the row below visibly brighter than
@@ -870,7 +885,7 @@ private fun FloatingBottomBar(
                             for (i in CapsuleShadowLayers downTo 1) {
                                 val grow = step * i
                                 drawRoundRect(
-                                    color = Color.Black.copy(alpha = shadowLayerAlpha),
+                                    color = Color.Black.copy(alpha = shadowLayerAlpha * shadowAppear),
                                     topLeft = Offset(-grow, -grow + offsetY),
                                     size = Size(size.width + grow * 2f, size.height + grow * 2f),
                                     cornerRadius = CornerRadius(radius + grow)
@@ -892,30 +907,8 @@ private fun FloatingBottomBar(
                         }
                     )
                     .background(barColor)
-                    // The bevel is two strokes: a narrow inner glaze and the crisp edge line. The
-                    // gradients run from a bright top to a dimmer bottom, matching the reference's
-                    // lit-from-above rim. Drawing after the content keeps it crisp while pressed.
-                    .drawWithContent {
-                        drawContent()
-                        val edgePx = CapsuleEdgeWidth.toPx()
-                        val glowPx = CapsuleGlowWidth.toPx()
-                        drawRoundRect(
-                            brush = glowBrush,
-                            topLeft = Offset(glowPx / 2f, glowPx / 2f),
-                            size = Size(size.width - glowPx, size.height - glowPx),
-                            cornerRadius = CornerRadius((size.height - glowPx) / 2f),
-                            style = Stroke(width = glowPx)
-                        )
-                        // Drawn inset, so the whole stroke shows instead of being half clipped
-                        // away by the capsule clip.
-                        drawRoundRect(
-                            brush = edgeBrush,
-                            topLeft = Offset(edgePx / 2f, edgePx / 2f),
-                            size = Size(size.width - edgePx, size.height - edgePx),
-                            cornerRadius = CornerRadius((size.height - edgePx) / 2f),
-                            style = Stroke(width = edgePx)
-                        )
-                    }
+                    // The rim is drawn after the fill so it stays crisp while pressed.
+                    .capsuleHighlight(lightSurface = lightSurface)
                     // The capsule floats over the feed, so a tap on the parts of it that are not
                     // a destination must not reach the memo underneath. The destinations are
                     // children of this row and keep their own clicks; this only makes the bar
@@ -925,7 +918,7 @@ private fun FloatingBottomBar(
                             awaitFirstDown(requireUnconsumed = false).consume()
                         }
                     }
-                    .height(64.dp)
+                    .height(CapsuleBarHeight)
                     .padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

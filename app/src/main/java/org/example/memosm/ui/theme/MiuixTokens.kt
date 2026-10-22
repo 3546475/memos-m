@@ -47,6 +47,9 @@ object MiuixTokens {
     /** Hairline divider thickness. */
     val DividerThickness = 0.5.dp
 
+    /** Chevron on a row that opens another page; quiet enough not to compete with the title. */
+    val ChevronColor = androidx.compose.ui.graphics.Color(0xFFADADAD)
+
     /**
      * Material [Shapes] used while MIUIX is active. Components that cannot be replaced (Material 3
      * dialogs, sliders, text fields) still read corners from here, so they match Miuix cards.

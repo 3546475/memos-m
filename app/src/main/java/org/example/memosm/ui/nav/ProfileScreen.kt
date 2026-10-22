@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import org.example.memosm.ui.profile.EditProfileActivity
+import org.example.memosm.ui.profile.MemoTypeMemosActivity
 import org.example.memosm.ui.profile.EditAccountCredentialsActivity
 import org.example.memosm.ui.profile.ArchivedMemosActivity
 import org.example.memosm.ui.profile.DraftsActivity
@@ -66,10 +67,16 @@ import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.model.InstanceProfile
+import org.example.memosm.model.MemoContentType
+import org.example.memosm.model.Shortcut
 import org.example.memosm.model.UserSnapshot
 import org.example.memosm.model.toUserSnapshot
 import org.example.memosm.ui.component.ErrorView
 import org.example.memosm.ui.component.ProfileHeader
+import org.example.memosm.ui.component.ProfileStatsRow
+import org.example.memosm.ui.component.TagTreeDialog
+import org.example.memosm.ui.component.rememberLocalMemoCatalog
+import org.example.memosm.model.matchesContentType
 import org.example.memosm.ui.component.StatsActivityCard
 import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.ui.component.setting.SettingsGroup
@@ -87,7 +94,9 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onAddAccount: () -> Unit,
     onToggleNavBar: ((Boolean) -> Unit)? = null,
-    isNavBarVisible: Boolean = true
+    isNavBarVisible: Boolean = true,
+    /** Switches the app back to the notes feed, used by the stat card shortcuts. */
+    onOpenMemos: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val archived = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -118,6 +127,7 @@ fun ProfileScreen(
             onEditProfile = { editProfile.launch(Intent(context, EditProfileActivity::class.java)) },
             onToggleNavBar = onToggleNavBar,
             isNavBarVisible = isNavBarVisible,
+            onOpenMemos = onOpenMemos,
             listState = listState
         )
     }
@@ -136,6 +146,7 @@ private fun ProfileListPane(
     onEditProfile: () -> Unit,
     onToggleNavBar: ((Boolean) -> Unit)? = null,
     isNavBarVisible: Boolean = true,
+    onOpenMemos: () -> Unit = {},
     listState: LazyListState
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -144,6 +155,7 @@ private fun ProfileListPane(
     val accounts = uiState.accounts
     val networkPermission = LocalNetworkPermission.current
     val scope = rememberCoroutineScope()
+    val catalog = rememberLocalMemoCatalog(viewModel)
 
     // Scroll direction tracking for nav bar visibility
     rememberScrollContext(
@@ -186,6 +198,7 @@ private fun ProfileListPane(
     // Get current account for profile editing
     val activeAccount = accounts.find { it.isActive }
 
+
     if (showAccountSwitcher) {
         ActionSheet(onDismissRequest = { showAccountSwitcher = false }) {
             AccountsList(
@@ -197,6 +210,10 @@ private fun ProfileListPane(
                             showAccountSwitcher = false
                         }
                     }
+                },
+                onActiveAccountClick = {
+                    showAccountSwitcher = false
+                    onEditProfile()
                 },
                 onLogoutAccount = { viewModel.userDelegate.removeAccount(it) },
                 onEditAccount = { account ->
@@ -236,7 +253,7 @@ private fun ProfileListPane(
                 .fillMaxWidth()
 
             item {
-                Box(itemModifier) {
+                Column(modifier = itemModifier) {
                     val hostUrl = uiState.session.hostUrl
                     if (user != null) {
                         val rawAvatarUrl = user.avatarUrl
@@ -248,9 +265,7 @@ private fun ProfileListPane(
                             user = user.toUserSnapshot(
                                 token = uiState.session.token
                             ).copy(avatarUrl = avatarUrl),
-                            userStats = stats,
-                            onClick = { showAccountSwitcher = true },
-                            onEditClick = onEditProfile)
+                            onClick = { showAccountSwitcher = true })
                     } else {
                         if (activeAccount != null) {
                             val rawAvatarUrl = activeAccount.avatarUrl
@@ -266,9 +281,7 @@ private fun ProfileListPane(
                                     avatarUrl = avatarUrl,
                                     token = uiState.session.token
                                 ),
-                                userStats = stats,
-                                onClick = { showAccountSwitcher = true },
-                                onEditClick = onEditProfile)
+                                onClick = { showAccountSwitcher = true })
                         } else if (uiState.userMemoList.list.isLoading) {
                             Box(
                                 modifier = Modifier
@@ -279,6 +292,16 @@ private fun ProfileListPane(
                                 AppCircularProgressIndicator()
                             }
                         }
+                    }
+                    // Directly under the identity block, on the page background.
+                    if (user != null || accounts.any { it.isActive }) {
+                        ProfileStatsRow(
+                            userStats = stats,
+                            linkCount = catalog.count { it.matchesContentType(MemoContentType.LINK) },
+                            codeCount = catalog.count { it.matchesContentType(MemoContentType.CODE) },
+                            todoCount = catalog.count { it.matchesContentType(MemoContentType.TODO) },
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
             }

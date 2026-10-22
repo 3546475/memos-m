@@ -25,8 +25,12 @@ import org.example.memosm.data.sync.SyncManager
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Location
 import org.example.memosm.model.Memo
+import org.example.memosm.model.MemoRelation
+import org.example.memosm.model.MemoRelationWire
+import org.example.memosm.model.MemoSnippet
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.Reaction
+import org.example.memosm.model.SetMemoRelationsRequest
 import org.example.memosm.model.UpsertMemoReactionRequest
 import org.example.memosm.model.User
 import org.example.memosm.model.Visibility
@@ -58,7 +62,9 @@ interface MemoActionDelegate {
         location: Location? = null,
         memoId: String? = null,
         onError: () -> Unit = {},
-        onSuccess: () -> Unit = {}
+        onSuccess: () -> Unit = {},
+        /** Memos the new memo links to (the composer's "link memo" action). */
+        linkedMemoNames: List<String> = emptyList()
     )
 
     fun updateMemo(
@@ -69,11 +75,16 @@ interface MemoActionDelegate {
         location: Location? = null,
         state: MemoState? = null,
         onError: () -> Unit = {},
-        onSuccess: () -> Unit = {}
+        onSuccess: () -> Unit = {},
+        /** Outgoing links to store; null leaves the server's relation list untouched. */
+        linkedMemoNames: List<String>? = null
     )
 
     fun deleteMemo(memo: Memo, onSuccess: () -> Unit = {})
     fun updateMemoPinned(memo: Memo, pinned: Boolean, onSuccess: () -> Unit = {})
+
+    /** Drops one outgoing "link memo" relation, leaving the memo's other relations alone. */
+    fun removeMemoLink(memo: Memo, targetName: String)
     fun createComment(parentMemo: Memo, content: String, onError: () -> Unit = {}, onSuccess: () -> Unit = {})
     suspend fun uploadAttachment(uri: Uri, context: Context): Attachment?
 
@@ -143,6 +154,72 @@ class MemoActionDelegateImpl(
 
     private fun currentUser(): User? = uiState.value.session.currUser
 
+    /**
+     * "Link memo": records the relations of a freshly created memo.
+     *
+     * Best effort by design — the memo exists at this point, so a rejected relation must not turn
+     * the submission into a failure. The detail page only shows links the server accepted.
+     */
+    private suspend fun linkMemos(api: MemosApi, memoName: String?, targets: List<String>) {
+        val name = memoName ?: return
+        if (targets.isEmpty()) return
+        writeLinkedMemos(api, name, emptyList(), targets)
+    }
+
+    /**
+     * Rewrites the outgoing links of a memo.
+     *
+     * The API replaces the whole relation list, so every other relation is carried over verbatim —
+     * comment relations are owned by the comments, and dropping them would silently detach them.
+     */
+    private suspend fun writeLinkedMemos(
+        api: MemosApi,
+        memoName: String,
+        currentRelations: List<MemoRelation>,
+        targets: List<String>
+    ) {
+        val currentOutgoing = currentRelations
+            .filter { it.memo.name == memoName }
+            .map { it.relatedMemo.name }
+        val desired = targets.filter { it.isNotBlank() && it != memoName }.distinct()
+        // Skip only when nothing changed. An empty result is a real instruction — it is what
+        // unlinking the last memo means — so it must still reach the server.
+        if (currentOutgoing.sorted() == desired.sorted()) return
+        val others = currentRelations
+            .filter { it.memo.name != memoName }
+            .map(MemoRelationWire::from)
+        val links = desired.map { target ->
+            MemoRelationWire.reference(
+                memo = MemoSnippet(name = memoName),
+                related = MemoSnippet(name = target)
+            )
+        }
+        try {
+            api.setMemoRelations(
+                memoName,
+                SetMemoRelationsRequest(name = memoName, relations = others + links)
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
+            Log.w("MemosViewModel", "Could not update memo links", e)
+        }
+    }
+
+    override fun removeMemoLink(memo: Memo, targetName: String) {
+        val context = accountSession.current ?: return
+        val name = memo.name ?: return
+        val api = context.connection.api
+        // Everything except the link being removed, in the order the server returned it.
+        val remaining = memo.relations.orEmpty()
+            .filter { it.memo.name == name && it.relatedMemo.name != targetName }
+            .map { it.relatedMemo.name }
+        scope.launch {
+            writeLinkedMemos(api, name, memo.relations.orEmpty(), remaining)
+            if (accountSession.isCurrent(context)) listUpdater.refreshUserMemos()
+        }
+    }
+
     override fun selectMemo(memo: Memo?) {
         val context = accountSession.current ?: return
         accountSession.update(uiState, context) {
@@ -162,7 +239,8 @@ class MemoActionDelegateImpl(
         location: Location?,
         memoId: String?,
         onError: () -> Unit,
-        onSuccess: () -> Unit
+        onSuccess: () -> Unit,
+        linkedMemoNames: List<String>
     ) {
         val context = accountSession.current ?: return
         val connection = context.connection
@@ -220,6 +298,8 @@ class MemoActionDelegateImpl(
             try {
                 accountSession.update(uiState, context) { it.copy(isPosting = true) }
                 val created = api.createMemo(memo, clientId)
+                // Link after the create: the relation needs the server name of the new memo.
+                linkMemos(api, created.name, linkedMemoNames)
                 draftIdToDelete?.let { draftManager.deleteDraft(context.account.id, it) }
                 if (accountSession.isCurrent(context) && uiState.value.draft.currentEditingDraftId == draftIdToDelete) {
                     draftDelegate.setCurrentEditingDraft(null)
@@ -303,7 +383,8 @@ class MemoActionDelegateImpl(
         location: Location?,
         state: MemoState?,
         onError: () -> Unit,
-        onSuccess: () -> Unit
+        onSuccess: () -> Unit,
+        linkedMemoNames: List<String>?
     ) {
         val context = accountSession.current ?: return
         val connection = context.connection
@@ -342,6 +423,14 @@ class MemoActionDelegateImpl(
 
             try {
                 val updated = api.updateMemo(name, update, mask)
+                // Only when the caller manages the links (the composer): other update paths — pin,
+                // inline text edit — must not touch the relation list.
+                if (linkedMemoNames != null) {
+                    writeLinkedMemos(api, name, memo.relations.orEmpty(), linkedMemoNames)
+                    // The relation list is a separate resource: re-read the memo so the detail
+                    // page stops showing a link that was just removed.
+                    if (accountSession.isCurrent(context)) listUpdater.refreshUserMemos()
+                }
                 // Handle local list moves if state changed
                 val oldState = memo.state ?: MemoState.NORMAL
                 val newState = updated.state ?: MemoState.NORMAL

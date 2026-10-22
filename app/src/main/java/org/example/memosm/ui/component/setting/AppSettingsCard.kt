@@ -39,6 +39,7 @@ import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppSlider
 import org.example.memosm.ui.theme.AppListItem
+import org.example.memosm.ui.theme.MiuixTokens
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTextField
 
@@ -76,7 +77,7 @@ fun AppSettingsCard(
                         if (networkPermission.granted) R.string.local_network_permission_allowed
                         else R.string.local_network_permission_description
                     ),
-                    trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                    trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MiuixTokens.ChevronColor) },
                     modifier = Modifier.clip(RoundedCornerShape(4.dp)),
                     onClick = {
                         if (networkPermission.granted) networkPermission.openSettings()
@@ -89,7 +90,7 @@ fun AppSettingsCard(
             AppListItem(
                 title = stringResource(R.string.profile_app_settings_page_size),
                 summary = pageSize.toString(),
-                trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MiuixTokens.ChevronColor) },
                 modifier = Modifier.clip(RoundedCornerShape(4.dp)),
                 onClick = { showPageSizeDialog = true }
             )

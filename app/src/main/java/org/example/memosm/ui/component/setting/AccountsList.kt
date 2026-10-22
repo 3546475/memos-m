@@ -86,6 +86,8 @@ fun AccountsList(
     onSwitchAccount: (Account) -> Unit,
     onLogoutAccount: (Account) -> Unit,
     onEditAccount: ((Account) -> Unit)? = null,
+    /** Tapping the account already in use: switching to itself is a no-op, so callers edit it. */
+    onActiveAccountClick: ((Account) -> Unit)? = null,
     onAddAccount: () -> Unit,
 ) {
     var accountToRemove by remember { mutableStateOf<Account?>(null) }
@@ -359,7 +361,12 @@ fun AccountsList(
                             else
                                 MaterialTheme.colorScheme.surfaceContainerHigh
                         ),
-                        onClick = { if (!account.isActive) onSwitchAccount(account) }
+                        onClick = {
+                            // The active row used to swallow the tap, so nothing could be done with
+                            // the account in use. It now reports separately instead of switching.
+                            if (account.isActive) onActiveAccountClick?.invoke(account)
+                            else onSwitchAccount(account)
+                        }
                     ) {
                         val avatarUrl = account.avatarUrl
                         val fullAvatarUrl =

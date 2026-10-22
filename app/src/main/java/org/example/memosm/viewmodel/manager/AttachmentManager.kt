@@ -309,7 +309,15 @@ class AttachmentManager(
 
         fun resolveResourceUrl(hostUrl: String, relativeUrl: String?): String? {
             if (relativeUrl.isNullOrBlank()) return null
-            if (relativeUrl.startsWith("http")) return relativeUrl
+            // Absolute and inline URIs (avatars are data URIs) are already loadable.
+            if (
+                relativeUrl.startsWith("http") ||
+                relativeUrl.startsWith("data:") ||
+                relativeUrl.startsWith("content:") ||
+                relativeUrl.startsWith("file:")
+            ) {
+                return relativeUrl
+            }
 
             val cleanHost = hostUrl.trimEnd('/')
             val cleanRelative = relativeUrl.trimStart('/')

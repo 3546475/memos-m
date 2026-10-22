@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import org.example.memosm.ui.theme.AppListItem
+import org.example.memosm.ui.theme.MiuixTokens
 
 @Composable
 internal fun SettingsNavigationRow(
@@ -30,7 +31,13 @@ internal fun SettingsNavigationRow(
         supporting = supportingContent,
         leading = icon?.let { { Icon(it, contentDescription = null) } },
         trailing = if (showChevron) {
-            { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null) }
+            {
+                Icon(
+                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MiuixTokens.ChevronColor
+                )
+            }
         } else null,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         enabled = enabled,

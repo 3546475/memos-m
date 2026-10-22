@@ -1,5 +1,6 @@
 package org.example.memosm.ui.component
 
+import androidx.activity.compose.BackHandler
 import org.example.memosm.ui.theme.LocalThemeStyle
 import org.example.memosm.ui.theme.isMiuixMotion
 
@@ -16,6 +17,8 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 
 import top.yukonga.miuix.kmp.blur.drawBackdrop
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 
 import top.yukonga.miuix.kmp.blur.blur
 
@@ -74,6 +77,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -94,6 +98,7 @@ import org.example.memosm.R
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.User
+import org.example.memosm.model.EditGesture
 import org.example.memosm.ui.MemoKey
 import org.example.memosm.ui.component.composer.ComposerMode
 import org.example.memosm.ui.component.composer.EditorRequest
@@ -107,6 +112,12 @@ val LocalMemoEditor = compositionLocalOf<(Memo) -> Unit> { { } }
 val LocalMemoCommenter = compositionLocalOf<(Memo) -> Unit> { { } }
 
 /**
+ * Which gesture on a memo card opens the editor directly. The card menu always offers 编辑, so
+ * this only decides whether a tap, a double tap or a long press can skip the menu.
+ */
+val LocalMemoEditGesture = compositionLocalOf { EditGesture.NONE }
+
+/**
  * The list content, recorded as a backdrop layer, so anything floating above it (the frosted
  * header, the compose button) can sample and blur what is scrolling underneath. Null when the
  * blur is unavailable, which is every MD session and every device below API 33.
@@ -114,6 +125,13 @@ val LocalMemoCommenter = compositionLocalOf<(Memo) -> Unit> { { } }
 val LocalListBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
 private const val HeaderBlurRadius = 24f
+
+/**
+ * Full strength at the very top, zero at the bottom of the header band. A [ProgressiveBlur.curve]
+ * below 1 spends the falloff early and leaves a long soft tail, so the frost thins out gradually
+ * instead of holding full strength through most of the header and then dropping off a cliff.
+ */
+private val HeaderProgressiveBlur = ProgressiveBlur.Top.copy(curve = 0.7f)
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -128,6 +146,8 @@ fun MemosScaffold(
     isNavBarVisible: Boolean = true,
     /** "Always visible" only pins the bar against scroll hiding, not against detail/search. */
     navBarAlwaysVisible: Boolean = false,
+    /** Which card gesture opens the editor directly; see [LocalMemoEditGesture]. */
+    memoEditGesture: EditGesture = EditGesture.NONE,
     /** Space the floating bottom bar covers, so panes can keep their own floating controls clear. */
     navBarInset: Dp = 0.dp,
     navigationKey: Any? = null,
@@ -152,6 +172,11 @@ fun MemosScaffold(
         rememberListDetailPaneScaffoldNavigator<MemoKey>(scaffoldDirective = scaffoldDirective)
     }
 
+    // Opening a memo from the detail of another one ("linked memo") navigates within the same pane
+    // role, which the scaffold treats as a replacement. Remember where the user came from so Back
+    // returns to that memo instead of dropping to the list.
+    val detailBackStack = remember(navigationKey) { mutableStateListOf<MemoKey>() }
+
     // Workaround for Compose Material 3 Adaptive Navigator not automatically updating the inner state
     // when scaffoldValue changes (e.g. on window resize).
     LaunchedEffect(navigator, scaffoldDirective) {
@@ -160,6 +185,18 @@ fun MemosScaffold(
 
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+
+    // One Back step inside the detail pane: the memo we came from, or the list when there is none.
+    val leaveDetail: () -> Unit = {
+        val previous = detailBackStack.removeLastOrNull()
+        scope.launch {
+            if (previous != null) {
+                navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, previous)
+            } else {
+                navigator.navigateBack()
+            }
+        }
+    }
 
     // Capture initial focus to prevent child inputs (like composer or search) from auto-focusing
     LaunchedEffect(Unit) {
@@ -238,6 +275,15 @@ fun MemosScaffold(
 
     val showSearchBar = showNavBarByScroll
 
+    // System back unwinds this screen before it reaches the activity. Without these, back from an
+    // open search panel or an open memo dropped straight out to the launcher, because the pane
+    // scaffold and the search panel keep their own state instead of a navigation back stack.
+    BackHandler(enabled = isSearchExpanded) { isSearchExpanded = false }
+    BackHandler(enabled = isDetailVisible) {
+        focusManager.clearFocus()
+        leaveDetail()
+    }
+
     val openEditor = rememberMemoEditorLauncher(viewModel)
     val editMemo: (Memo) -> Unit = { memo ->
         uiState.accounts.firstOrNull { it.isActive }?.let { account ->
@@ -252,6 +298,7 @@ fun MemosScaffold(
     CompositionLocalProvider(
         LocalMemoEditor provides editMemo,
         LocalMemoCommenter provides commentMemo,
+        LocalMemoEditGesture provides memoEditGesture,
         LocalListBackdrop provides if (fabBlurEnabled) headerBackdrop else null
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -290,6 +337,7 @@ fun MemosScaffold(
                                 ) {
                                     listPane { memo ->
                                         focusManager.clearFocus()
+                                        detailBackStack.clear()
                                         scope.launch {
                                             val id = memo.name ?: memo.content.hashCode().toString()
                                             navigator.navigateTo(
@@ -304,10 +352,14 @@ fun MemosScaffold(
                                 Column(modifier = Modifier.fillMaxSize()) {
                                     Box(
                                         modifier = if (headerBlurEnabled) {
-                                            Modifier.drawBackdrop(
+                                            // A gradient frost: strongest at the top edge and gone at
+                                            // the bottom, so the list fades into the header instead of
+                                            // ending against a visible blur edge.
+                                            Modifier.progressiveTextureBlur(
                                                 backdrop = headerBackdrop,
-                                                shape = { RectangleShape },
-                                                effects = { blur(HeaderBlurRadius, HeaderBlurRadius) }
+                                                shape = RectangleShape,
+                                                blurRadius = HeaderBlurRadius,
+                                                gradient = HeaderProgressiveBlur
                                             )
                                         } else {
                                             // Blur off must not leave the list showing through the
@@ -321,6 +373,7 @@ fun MemosScaffold(
                                         overlay(
                                             { memo ->
                                                 focusManager.clearFocus()
+                                                detailBackStack.clear()
                                                 scope.launch {
                                                     val id = memo.name ?: memo.content.hashCode().toString()
                                                     navigator.navigateTo(
@@ -367,13 +420,35 @@ fun MemosScaffold(
                                             )
                                         }
                                     } else {
-                                        (slideInVertically(
-                                            initialOffsetY = { it }, animationSpec = appSlideSpec(miuixMotion, 300)
-                                        ) + fadeIn()).togetherWith(
-                                            slideOutVertically(
-                                                targetOffsetY = { it }, animationSpec = appSlideSpec(miuixMotion, 300)
-                                            ) + fadeOut()
-                                        )
+                                        // Phone layout: a vertical push. Opening brings the detail
+                                        // up from the bottom while the list leaves through the top;
+                                        // closing plays the same motion backwards (list returns from
+                                        // the top, detail leaves downwards). Both directions used to
+                                        // start from the bottom, so entering and leaving did not
+                                        // mirror each other.
+                                        val slide = appSlideSpec(miuixMotion, 300)
+                                        val detailOpening = targetState != null
+                                        if (detailOpening) {
+                                            (slideInVertically(
+                                                initialOffsetY = { it },
+                                                animationSpec = slide
+                                            ) + fadeIn()).togetherWith(
+                                                slideOutVertically(
+                                                    targetOffsetY = { -it },
+                                                    animationSpec = slide
+                                                ) + fadeOut()
+                                            )
+                                        } else {
+                                            (slideInVertically(
+                                                initialOffsetY = { -it },
+                                                animationSpec = slide
+                                            ) + fadeIn()).togetherWith(
+                                                slideOutVertically(
+                                                    targetOffsetY = { it },
+                                                    animationSpec = slide
+                                                ) + fadeOut()
+                                            )
+                                        }
                                     }
                                 }, label = "DetailPaneTransition"
                             ) { memoKey ->
@@ -398,14 +473,31 @@ fun MemosScaffold(
                                         showBackButton = navigator.canNavigateBack(),
                                         onBack = {
                                             focusManager.clearFocus()
-                                            scope.launch {
-                                                navigator.navigateBack()
-                                            }
+                                            leaveDetail()
                                         },
                                         viewModel = viewModel,
                                         reactionOptions = uiState.session.instanceSettings?.memoRelatedSetting?.reactions
                                             ?: emptyList(),
-                                        bottomBarInset = navBarInset
+                                        bottomBarInset = navBarInset,
+                                        // Only navigate when the target is already loaded: the
+                                        // detail pane resolves its memo from the current list.
+                                        onOpenLinkedMemo = { name ->
+                                            val current = navigator.currentDestination?.contentKey
+                                            if (current != null && current.id != name &&
+                                                memos.any { it.name == name }
+                                            ) {
+                                                detailBackStack.add(current)
+                                                scope.launch {
+                                                    navigator.navigateTo(
+                                                        ListDetailPaneScaffoldRole.Detail,
+                                                        MemoKey(name)
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onRemoveLinkedMemo = { name ->
+                                            viewModel.memoActionDelegate.removeMemoLink(memo, name)
+                                        }
                                     )
                                 } else if (isDualPane) {
                                     MemoDetailPlaceholder()
@@ -641,7 +733,16 @@ fun MemoPreviewItem(
 
 fun resolveResourceUrl(hostUrl: String, relativeUrl: String?): String? {
     if (relativeUrl.isNullOrBlank()) return null
-    if (relativeUrl.startsWith("http")) return relativeUrl
+    // Absolute URLs and inline URIs (avatars are stored as data URIs) must not be joined to the
+    // host, or the result stops being loadable.
+    if (
+        relativeUrl.startsWith("http") ||
+        relativeUrl.startsWith("data:") ||
+        relativeUrl.startsWith("content:") ||
+        relativeUrl.startsWith("file:")
+    ) {
+        return relativeUrl
+    }
 
     val cleanHost = hostUrl.trimEnd('/')
     val cleanRelative = relativeUrl.trimStart('/')

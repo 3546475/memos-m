@@ -1,6 +1,6 @@
 <resources>
     <string name="login_title">登入到 Memos</string>
-    <string name="login_token">權杖 (Token)</string>
+    <string name="login_token">權杖</string>
     <string name="login_password">密碼</string>
     <string name="login_username">使用者名稱</string>
     <string name="login_host_url">伺服器網址</string>
@@ -64,7 +64,15 @@
 
     <string name="profile_about">關於 MemosM</string>
     <string name="profile_about_version">應用程式版本</string>
-    <string name="profile_about_git_hash">Git 雜湊</string>
+    <string name="profile_about_git_hash_copied">已將 Git 雜湊複製到剪貼簿</string>
+    <string name="profile_about_build_info">建置資訊</string>
+    <string name="profile_about_support">說明與診斷</string>
+    <string name="audit_log_copy">複製全部</string>
+    <string name="audit_log_copy_done">已複製 %1$d 筆</string>
+    <string name="audit_log_clear">清空</string>
+    <string name="audit_log_clear_confirm">會刪除全部已記錄的日誌，無法復原。</string>
+    <string name="audit_log_empty_hint">只有離線佇列、同步重試、附件上傳與備份還原會寫入記錄。</string>
+    <string name="settings_summary_audit">離線佇列、同步重試、附件上傳與備份還原的稽核記錄</string>
     <string name="profile_about_version_copied">已將版本號複製到剪貼簿</string>
     <string name="profile_about_repo">原始碼</string>
     <string name="profile_about_issues">回報問題</string>
@@ -78,6 +86,11 @@
     <string name="profile_display_name">顯示名稱</string>
     <string name="profile_email">電子郵件</string>
     <string name="profile_avatar_url">頭像 URL</string>
+    <string name="profile_avatar_generated">已使用圖片產生頭像</string>
+    <string name="profile_avatar_use_url">改用連結</string>
+    <string name="profile_avatar_change_hint">點擊圖片可上傳新頭像</string>
+    <string name="profile_avatar_upload_failed">頭像上傳失敗</string>
+    <string name="profile_account_management">帳號管理</string>
     <string name="profile_description">簡介</string>
     <string name="profile_new_password">新密碼</string>
     <string name="profile_password_hint">留空則保持目前密碼</string>
@@ -89,6 +102,10 @@
     <string name="memo_action_unarchive">取消歸檔</string>
     <string name="memo_action_pin">置頂</string>
     <string name="memo_action_unpin">取消置頂</string>
+                <string name="memo_share_image_save">儲存</string>
+    <string name="memo_share_image_saved">已儲存到相簿</string>
+    <string name="memo_share_image_title">分享預覽</string>
+    <string name="memo_action_share_image">分享</string>
     <string name="memo_action_delete">刪除</string>
     <string name="memo_action_more">更多</string>
     <string name="memo_action_open_web">在網頁上開啟</string>
@@ -108,6 +125,15 @@
     <string name="memo_composer_remove_location">移除位置</string>
     <string name="memo_composer_attach_file">附加檔案</string>
     <string name="memo_composer_add_image">新增圖片</string>
+        <string name="memo_composer_link_memo">連結備忘錄</string>
+    <string name="memo_composer_remove_link">移除連結</string>
+        <string name="memo_detail_linked_hint">長按項目可移除關聯</string>
+    <string name="memo_unlink_title">移除這條關聯？</string>
+    <string name="memo_unlink_confirm">這則備忘錄不再指向它，對方不會被刪除。</string>
+    <string name="memo_link_picker_title">選擇要連結的備忘錄</string>
+    <string name="memo_link_picker_summary">儲存後，這則備忘錄會指向你選取的那一則。</string>
+    <string name="memo_link_picker_search">搜尋我的備忘錄</string>
+    <string name="memo_link_picker_empty">沒有符合的備忘錄</string>
     <string name="memo_composer_add_location">新增位置</string>
     <string name="memo_composer_edit_location">編輯位置</string>
     <string name="memo_composer_location_name">名稱</string>
@@ -141,6 +167,7 @@
     <string name="memo_dialog_raw_title">原文</string>
 
     <string name="memo_detail_title">筆記詳情</string>
+        <string name="memo_detail_linked">關聯備忘錄</string>
     <string name="memo_detail_comments">評論 (%1$d)</string>
     <string name="memo_detail_no_comments">暫無評論</string>
     <string name="memo_detail_add_comment">新增評論</string>
@@ -154,8 +181,14 @@
     <string name="memo_visibility_unspecified">未知</string>
 
     <string name="common_save">儲存</string>
+    <string name="common_done">完成</string>
+    <string name="profile_avatar_crop_title">裁切頭像</string>
     <string name="common_share">分享</string>
     <string name="common_cancel">取消</string>
+    <string name="tags_expand_all">全部展開</string>
+    <string name="tags_collapse_all">全部收合</string>
+    <string name="tags_expand">展開</string>
+    <string name="tags_collapse">收合</string>
     <string name="common_close">關閉</string>
     <string name="common_not_available">無</string>
     <string name="common_remove">移除</string>
@@ -326,7 +359,7 @@
     <string name="audit_log_account">帳戶：%1$s</string>
     <string name="audit_log_empty">目前沒有記錄。</string>
     <string name="audit_log_target">目標：%1$s</string>
-    <string name="audit_log_title">同步記錄</string>
+    <string name="audit_log_title">同步診斷</string>
     <string name="audit_log_view">檢視</string>
     <string name="common_error_failed_to_load_notifications">無法載入通知</string>
     <string name="common_no_active_account">找不到使用中的帳戶</string>
@@ -344,6 +377,20 @@
     <string name="login_error_invalid_instance">Memos 伺服器或網址無效</string>
     <string name="login_error_invalid_url">URL 格式無效</string>
     <string name="login_error_verification_failed">權杖驗證失敗</string>
+    <string name="login_sso">SSO</string>
+    <string name="login_sso_description">尋找你的 Memos 伺服器已設定的登入方式。</string>
+    <string name="login_sso_find_providers">尋找登入方式</string>
+    <string name="login_sso_continue_with">使用 %1$s 繼續</string>
+    <string name="login_sso_no_providers">此伺服器沒有設定可用的 SSO 登入方式。</string>
+    <string name="login_sso_discovery_failed">無法載入登入方式，請檢查伺服器位址後再試一次。</string>
+    <string name="login_sso_waiting">正在完成 SSO 登入…</string>
+    <string name="login_sso_invalid_provider">此登入方式的設定有誤，請聯絡管理員。</string>
+    <string name="login_sso_invalid_callback">無法驗證登入結果，請重新發起 SSO 登入。</string>
+    <string name="login_sso_expired">登入工作階段已過期，請重新發起 SSO 登入。</string>
+    <string name="login_sso_denied">此登入方式拒絕了本次登入，你可以再試一次。</string>
+    <string name="login_sso_no_browser">沒有可用的瀏覽器，請安裝或啟用瀏覽器後再試一次。</string>
+    <string name="login_sso_failed">SSO 登入失敗，請再試一次。管理員可能需要登記應用程式的回呼位址。</string>
+    <string name="login_sso_token_failed">已登入成功，但無法建立存取權杖，請再試一次。</string>
     <string name="markdown_equation_error_message">無法顯示公式</string>
     <string name="markdown_equation_error_title">公式錯誤</string>
     <string name="memo_catch_finished">接得漂亮！</string>
@@ -467,4 +514,19 @@
     <string name="viewer_back">返回</string>
     <string name="video_playback_speed">影片播放速度</string>
     <string name="video_playback_error">無法播放此影片。</string>
+    <string name="code_block_copy">複製程式碼</string>
+    <string name="code_block_copied">已複製</string>
+    <string name="code_block_expand">展開剩餘 %1$d 行</string>
+    <string name="code_block_collapse">收合</string>
+    <string name="code_block_line_copied">已複製第 %1$d 行</string>
+    <string name="settings_editor">編輯器</string>
+    <string name="settings_summary_editor">筆記正文與程式碼區塊的顯示方式</string>
+    <string name="settings_editor_line_numbers">程式碼行號</string>
+    <string name="settings_editor_line_numbers_description">在程式碼行左側顯示行號；自動換行時隱藏</string>
+    <string name="settings_editor_wrap_lines">程式碼自動換行</string>
+    <string name="settings_editor_wrap_lines_description">長行折行顯示，不再橫向捲動</string>
+    <string name="settings_editor_paragraph_indent">首行縮排</string>
+    <string name="settings_editor_paragraph_indent_description">每段首行縮排兩個字元</string>
+    <string name="settings_editor_cjk_spacing">中文與英數之間加空格</string>
+    <string name="settings_editor_cjk_spacing_description">在中文與字母、數字之間插入細空隙</string>
 </resources>

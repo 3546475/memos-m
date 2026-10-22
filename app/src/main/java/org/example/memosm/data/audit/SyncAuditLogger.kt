@@ -37,6 +37,17 @@ class SyncAuditLogger(private val dao: SyncAuditDao) {
 
     fun observeRecent(limit: Int = 50) = dao.observeRecent(limit.coerceIn(1, 200))
 
+    /** Drops the whole trail, for the "clear" action on the sync log page. */
+    suspend fun clear() {
+        try {
+            dao.clear()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not clear audit entries", e)
+        }
+    }
+
     companion object {
         private const val TAG = "SyncAuditLogger"
         private const val MAX_ENTRIES = 500

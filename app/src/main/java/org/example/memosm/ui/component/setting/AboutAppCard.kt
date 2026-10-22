@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -84,92 +86,132 @@ fun AboutAppCard(onOpenLicenses: () -> Unit, onOpenLogs: () -> Unit, onShowSetup
         }
     }
 
-    SettingsGroup {
-        AppListItem(
-            title = stringResource(R.string.profile_about_version),
-            summary = versionName,
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .combinedClickable(onClick = {
-                    currentToast.value?.cancel()
-                    versionTaps++
-                    if (versionTaps == 10) {
-                        versionTaps = 0
-                        showMemoCatch = true
-                    } else kaomojis.randomOrNull()?.let { item ->
-                        val toast = Toast.makeText(
-                            context, "${item.text} ${item.kaomoji}", Toast.LENGTH_SHORT
+    // Two cards: what this build is, and where to go when something is wrong. Both used to be a
+    // single list where the version string sat next to the issue tracker.
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SettingsLabel(stringResource(R.string.profile_about_build_info))
+            SettingsGroup {
+                AppListItem(
+                    title = stringResource(R.string.profile_about_version),
+                    summary = versionName,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .combinedClickable(onClick = {
+                            currentToast.value?.cancel()
+                            versionTaps++
+                            if (versionTaps == 10) {
+                                versionTaps = 0
+                                showMemoCatch = true
+                            } else kaomojis.randomOrNull()?.let { item ->
+                                val toast = Toast.makeText(
+                                    context, "${item.text} ${item.kaomoji}", Toast.LENGTH_SHORT
+                                )
+                                currentToast.value = toast
+                                toast.show()
+                            }
+                        }, onLongClick = {
+                            copyToClipboard(context, versionLabel, versionName, versionCopiedMessage)
+                                .also { currentToast.value = it }
+                        })
+                )
+
+                val gitHashCopiedMessage = stringResource(R.string.profile_about_git_hash_copied)
+                AppListItem(
+                    title = stringResource(R.string.profile_about_git_hash),
+                    summary = BuildConfig.GIT_HASH,
+                    // Same affordance as the version above: tap or long press copies. A commit hash
+                    // is exactly the kind of thing that gets pasted into a bug report.
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .combinedClickable(
+                            onClick = {
+                                copyToClipboard(
+                                    context,
+                                    BuildConfig.GIT_HASH,
+                                    BuildConfig.GIT_HASH,
+                                    gitHashCopiedMessage
+                                ).also { currentToast.value = it }
+                            },
+                            onLongClick = {
+                                copyToClipboard(
+                                    context,
+                                    BuildConfig.GIT_HASH,
+                                    BuildConfig.GIT_HASH,
+                                    gitHashCopiedMessage
+                                ).also { currentToast.value = it }
+                            }
                         )
-                        currentToast.value = toast
-                        toast.show()
+                )
+
+                val repoUrl = stringResource(R.string.profile_about_repo_url)
+                val issuesUrl = stringResource(R.string.profile_about_issues_url)
+
+                AppListItem(
+                    title = stringResource(R.string.profile_about_repo),
+                    leading = { Icon(Icons.Outlined.Code, contentDescription = null) },
+                    trailing = {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, repoUrl.toUri())
+                        context.startActivity(intent)
                     }
-                }, onLongClick = {
-                    val clipboard =
-                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText(versionLabel, versionName)
-                    clipboard.setPrimaryClip(clip)
-
-                    currentToast.value?.cancel()
-                    val toast =
-                        Toast.makeText(context, versionCopiedMessage, Toast.LENGTH_SHORT)
-                    currentToast.value = toast
-                    toast.show()
-                })
-        )
-
-        AppListItem(
-            title = stringResource(R.string.profile_about_git_hash),
-            summary = BuildConfig.GIT_HASH
-        )
-
-        val repoUrl = stringResource(R.string.profile_about_repo_url)
-        val issuesUrl = stringResource(R.string.profile_about_issues_url)
-
-        AppListItem(
-            title = stringResource(R.string.profile_about_repo),
-            leading = { Icon(Icons.Outlined.Code, contentDescription = null) },
-            trailing = {
-                Icon(
-                    Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null
                 )
-            },
-            onClick = {
-                val intent = Intent(Intent.ACTION_VIEW, repoUrl.toUri())
-                context.startActivity(intent)
-            }
-        )
 
-        AppListItem(
-            title = stringResource(R.string.profile_about_issues),
-            leading = { Icon(Icons.Outlined.BugReport, contentDescription = null) },
-            trailing = {
-                Icon(
-                    Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null
+                AppListItem(
+                    title = stringResource(R.string.profile_about_issues),
+                    leading = { Icon(Icons.Outlined.BugReport, contentDescription = null) },
+                    trailing = {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, issuesUrl.toUri())
+                        context.startActivity(intent)
+                    }
                 )
-            },
-            onClick = {
-                val intent = Intent(Intent.ACTION_VIEW, issuesUrl.toUri())
-                context.startActivity(intent)
             }
-        )
+        }
 
-        SettingsNavigationRow(
-            title = stringResource(R.string.setup_show),
-            icon = Icons.Outlined.WavingHand,
-            onClick = onShowSetup
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SettingsLabel(stringResource(R.string.profile_about_support))
+            SettingsGroup {
+                SettingsNavigationRow(
+                    title = stringResource(R.string.setup_show),
+                    icon = Icons.Outlined.WavingHand,
+                    onClick = onShowSetup
+                )
 
-        SettingsNavigationRow(
-            title = stringResource(R.string.audit_log_title),
-            icon = Icons.Outlined.History,
-            onClick = onOpenLogs
-        )
+                SettingsNavigationRow(
+                    title = stringResource(R.string.audit_log_title),
+                    icon = Icons.Outlined.History,
+                    onClick = onOpenLogs
+                )
 
-        AppListItem(
-            title = stringResource(R.string.profile_about_licenses),
-            leading = { Icon(Icons.Outlined.Balance, contentDescription = null) },
-            onClick = onOpenLicenses
-        )
+                AppListItem(
+                    title = stringResource(R.string.profile_about_licenses),
+                    leading = { Icon(Icons.Outlined.Balance, contentDescription = null) },
+                    onClick = onOpenLicenses
+                )
+            }
+        }
     }
+}
 
+/** Copies [value] and returns the toast that reports it, so the caller keeps one shared toast. */
+private fun copyToClipboard(
+    context: Context,
+    label: String,
+    value: String,
+    message: String
+): Toast {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+    val toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
+    toast.show()
+    return toast
 }

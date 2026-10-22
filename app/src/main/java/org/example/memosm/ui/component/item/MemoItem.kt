@@ -1,6 +1,8 @@
 package org.example.memosm.ui.component.item
 
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppDropdownMenu
+import org.example.memosm.ui.theme.AppDropdownMenuItem
 import org.example.memosm.ui.theme.AppReactionChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.flatCardElevation
@@ -8,7 +10,11 @@ import android.content.Intent
 import android.net.Uri
 import android.text.format.DateUtils
 import android.util.Log
+import androidx.compose.foundation.background
+import org.example.memosm.ui.component.item.markdown.hashtagsIn
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,8 +78,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import android.widget.Toast
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.launch
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -85,14 +107,14 @@ import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.network.httpHeaders
 import org.example.memosm.R
+import org.example.memosm.model.EditGesture
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoRelationType
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.Reaction
 import org.example.memosm.model.User
 import org.example.memosm.ui.VisibilityIcon
-import org.example.memosm.ui.component.ActionSheet
-import org.example.memosm.ui.component.ActionSheetItem
+import org.example.memosm.ui.component.LocalMemoEditGesture
 import org.example.memosm.ui.component.item.markdown.NativeComposeMarkdown
 import org.example.memosm.ui.component.item.media.AttachmentOrigins
 import org.example.memosm.ui.component.item.media.attachmentOrigin
@@ -100,7 +122,7 @@ import org.example.memosm.ui.component.item.media.FullScreenAttachmentViewer
 import org.example.memosm.ui.component.resolveResourceUrl
 
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MemoItem(
     modifier: Modifier = Modifier,
@@ -127,11 +149,25 @@ fun MemoItem(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showReactionPicker by remember { mutableStateOf(false) }
-    var showRawTextDialog by remember { mutableStateOf(false) }
+    // The card is recorded into a layer only while a share is being prepared, so scrolling a long
+    // list does not pay for an offscreen pass on every frame.
+    val shareLayer = rememberGraphicsLayer()
+    var capturingForShare by remember { mutableStateOf(false) }
+    // True when the body had to be clipped, i.e. some of it (and its inline tags) is not on screen.
+    var contentTruncated by remember { mutableStateOf(false) }
+    // The composed image waits here until the user confirms the preview.
+    var sharePreview by remember { mutableStateOf<ImageBitmap?>(null) }
+    val scope = rememberCoroutineScope()
+    val pageColor = MaterialTheme.colorScheme.background
+    val editGesture = LocalMemoEditGesture.current
+    // The detail page is already the editing surface, so the shortcut gesture only applies to the
+    // cards in the lists.
+    val cardEditGesture = if (isDetailView) EditGesture.NONE else editGesture
     val attachmentOrigins = remember { AttachmentOrigins() }
     var showFullScreenViewer by remember { mutableStateOf(false) }
     var fullScreenInitialIndex by remember { mutableStateOf(0) }
     val context = LocalContext.current
+    val density = LocalDensity.current
 
     val unknownTime = stringResource(R.string.memo_unknown_time)
 
@@ -152,14 +188,41 @@ fun MemoItem(
 
 
     AppCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .drawWithContent {
+                if (capturingForShare) {
+                    shareLayer.record { this@drawWithContent.drawContent() }
+                    drawLayer(shareLayer)
+                } else {
+                    drawContent()
+                }
+            },
         containerColor = colors.containerColor,
         cornerRadius = 16.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .then(
+                    // The configured edit gesture short-circuits the card: it opens the editor
+                    // instead of the detail page, or alongside a plain tap as a modifier.
+                    when {
+                        onEdit == null ->
+                            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+                        cardEditGesture == EditGesture.SINGLE_TAP -> Modifier.clickable { onEdit() }
+                        cardEditGesture == EditGesture.DOUBLE_TAP -> Modifier.combinedClickable(
+                            onClick = { onClick?.invoke() },
+                            onDoubleClick = { onEdit() }
+                        )
+                        cardEditGesture == EditGesture.LONG_PRESS -> Modifier.combinedClickable(
+                            onClick = { onClick?.invoke() },
+                            onLongClick = { onEdit() }
+                        )
+                        else ->
+                            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+                    }
+                )
                 .padding(
                     start = 12.dp,
                     top = if (user != null) 12.dp else 4.dp,
@@ -311,23 +374,142 @@ fun MemoItem(
                 }
 
                 if (onEdit != null || onDelete != null || onUpsertReaction != null || memo.name != null) {
-                    IconButton(
-                        onClick = { showMenu = true }, modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = stringResource(R.string.memo_action_more),
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Reacting and pinning happen often enough to be one tap away; only the
+                        // rarely used actions stay behind the overflow.
+                        if (onUpsertReaction != null) {
+                            Box {
+                                IconButton(
+                                    onClick = { showReactionPicker = true },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AddReaction,
+                                        contentDescription = stringResource(R.string.memo_action_add_reaction),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                // A grid that wraps its content: two rows of four, still anchored in
+                                // place instead of a sheet sliding over the card it belongs to.
+                                if (showReactionPicker) {
+                                    val choices = reactionOptions.ifEmpty { listOf("\uD83D\uDE2D") }
+                                    Popup(
+                                        alignment = Alignment.TopEnd,
+                                        offset = IntOffset(
+                                            0,
+                                            with(LocalDensity.current) { ReactionPopupOffset.roundToPx() }
+                                        ),
+                                        onDismissRequest = { showReactionPicker = false },
+                                        properties = PopupProperties(focusable = true)
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(18.dp),
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            shadowElevation = 8.dp
+                                        ) {
+                                            FlowRow(
+                                                modifier = Modifier
+                                                    .heightIn(max = ReactionGridMaxHeight)
+                                                    .verticalScroll(rememberScrollState())
+                                                    .padding(8.dp),
+                                                maxItemsInEachRow = 4,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                choices.forEach { emoji ->
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .clip(CircleShape)
+                                                            .clickable {
+                                                                showReactionPicker = false
+                                                                onUpsertReaction(emoji)
+                                                            },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = emoji,
+                                                            fontSize = 20.sp
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (onPin != null && memo.state == MemoState.NORMAL) {
+                            val isPinned = memo.pinned == true
+                            IconButton(
+                                onClick = { onPin(!isPinned) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.PushPin,
+                                    contentDescription = stringResource(
+                                        if (isPinned) R.string.memo_action_unpin else R.string.memo_action_pin
+                                    ),
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (isPinned) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        LocalContentColor.current
+                                    }
+                                )
+                            }
+                        }
+                        // The menu is anchored to this button so it opens in place, next to the card
+                        // it belongs to, instead of as a sheet sliding up from the bottom edge.
+                        Box {
+                            IconButton(
+                                onClick = { showMenu = true }, modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = stringResource(R.string.memo_action_more),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            MemoActionsMenu(
+                                expanded = showMenu,
+                                memo = memo,
+                                hostUrl = hostUrl,
+                                onDismissRequest = { showMenu = false },
+                                onOpenWeb = { memoId ->
+                                    val baseUrl = if (hostUrl.endsWith("/")) hostUrl else "$hostUrl/"
+                                    val webUrl = "${baseUrl}memos/$memoId"
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, webUrl.toUri()))
+                                    } catch (e: Exception) {
+                                        Log.e("MemoItem", "Failed to open web URL: $webUrl", e)
+                                    }
+                                },
+                                onShareImage = if (memo.content.isNotBlank()) {
+                                    { capturingForShare = true }
+                                } else null,
+                                onEdit = onEdit,
+                                onArchive = onArchive,
+                                onUnarchive = onUnarchive,
+                                onDelete = onDelete
+                            )
+                        }
                     }
                 }
             }
             Spacer(modifier = Modifier.height(if (user != null) 10.dp else 2.dp))
 
             Column(modifier = Modifier.padding(start = 0.dp, end = 0.dp)) {
+                val captureHeightCap = remember(maxHeight) {
+                    if (maxHeight != Dp.Unspecified) maxHeight else Dp.Infinity
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .onSizeChanged { size ->
+                            contentTruncated = maxHeight != Dp.Unspecified &&
+                                size.height >= with(density) { captureHeightCap.toPx() } - 1f
+                        }
                         .then(
                             if (maxHeight != Dp.Unspecified) {
                                 Modifier
@@ -361,6 +543,27 @@ fun MemoItem(
                             .padding(start = 12.dp, end = 16.dp, bottom = 8.dp),
                         headerScale = headerScale
                     )
+                }
+
+                // Tags also live outside the text: the inline pills can sit behind the truncation
+                // (or inside the detail page's selection container), and filtering must not depend
+                // on hitting a word inside the body.
+                val tags = remember(memo.content) { hashtagsIn(memo.content) }
+                // Only clipped cards need this row: on a short card the inline tags are already on
+                // screen, and a second copy under the text would just be noise.
+                if (!isDetailView && contentTruncated && tags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.padding(start = 12.dp, end = 16.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        tags.forEach { tag ->
+                            MemoTagChip(
+                                tag = tag,
+                                onClick = onHashtagClick?.let { handler -> { handler(tag) } }
+                            )
+                        }
+                    }
                 }
 
                 memo.location?.let { loc ->
@@ -535,159 +738,52 @@ fun MemoItem(
         }
     }
 
-    if (showMenu) {
-        ActionSheet(
-            onDismissRequest = { showMenu = false }
-        ) {
-            if (memo.name != null && hostUrl.isNotBlank()) {
-                ActionSheetItem(
-                    text = { Text(stringResource(R.string.memo_action_open_web)) },
-                    onClick = {
-                        showMenu = false
-                        val memoId = memo.name.removePrefix("memos/")
-                        val baseUrl =
-                            if (hostUrl.endsWith("/")) hostUrl else "$hostUrl/"
-                        val webUrl = "${baseUrl}memos/$memoId"
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, webUrl.toUri())
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Log.e(
-                                "MemoItem", "Failed to open web URL: $webUrl", e
-                            )
+
+    // The capture waits for the frame that records the card, then composes the final image and
+    // shows it: sharing is irreversible once pasted somewhere, so it is previewed first.
+    LaunchedEffect(capturingForShare) {
+        if (!capturingForShare) return@LaunchedEffect
+        withFrameNanos { }
+        withFrameNanos { }
+        val captured = runCatching { shareLayer.toImageBitmap() }.getOrNull()
+        capturingForShare = false
+        sharePreview = captured?.let { image ->
+            runCatching { composeMemoCardImage(image, pageColor) }
+                .onFailure { Log.e("MemoItem", "Could not compose the memo image", it) }
+                .getOrNull()
+        }
+    }
+
+    val previewImage = sharePreview
+    if (previewImage != null) {
+        MemoSharePreviewDialog(
+            image = previewImage,
+            onShare = {
+                sharePreview = null
+                scope.launch {
+                    runCatching { shareMemoImage(context, previewImage, memo.name) }
+                        .onFailure {
+                            Log.e("MemoItem", "Could not share the memo image", it)
+                            Toast.makeText(
+                                context, R.string.common_operation_failed, Toast.LENGTH_SHORT
+                            ).show()
                         }
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.Language, contentDescription = null)
-                    })
-            }
-
-            ActionSheetItem(
-                text = { Text(stringResource(R.string.memo_action_show_raw)) },
-                onClick = {
-                    showMenu = false
-                    showRawTextDialog = true
-                },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Description, contentDescription = null)
-                })
-
-
-            if (onUpsertReaction != null) {
-                ActionSheetItem(
-                    text = { Text(stringResource(R.string.memo_action_add_reaction)) },
-                    onClick = {
-                        showMenu = false
-                        showReactionPicker = true
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.AddReaction, contentDescription = null)
-                    })
-            }
-            if (onEdit != null) {
-                ActionSheetItem(
-                    text = { Text(stringResource(R.string.memo_action_edit)) },
-                    onClick = {
-                        showMenu = false
-                        onEdit()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Edit, contentDescription = null
-                        )
-                    })
-            }
-            if (onPin != null && memo.state == MemoState.NORMAL) {
-                val isPinned = memo.pinned == true
-                ActionSheetItem(
-                    text = { Text(stringResource(if (isPinned) R.string.memo_action_unpin else R.string.memo_action_pin)) },
-                    onClick = {
-                        showMenu = false
-                        onPin(!isPinned)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.PushPin, contentDescription = null
-                        )
-                    })
-            }
-            if (onArchive != null && memo.state == MemoState.NORMAL) {
-                ActionSheetItem(
-                    text = { Text(stringResource(R.string.memo_action_archive)) },
-                    onClick = {
-                        showMenu = false
-                        onArchive()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Archive, contentDescription = null
-                        )
-                    })
-            }
-            if (onUnarchive != null && memo.state == MemoState.ARCHIVED) {
-                ActionSheetItem(
-                    text = { Text(stringResource(R.string.memo_action_unarchive)) },
-                    onClick = {
-                        showMenu = false
-                        onUnarchive()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Unarchive, contentDescription = null
-                        )
-                    })
-            }
-            if (onDelete != null) {
-                ActionSheetItem(
-                    text = { Text(stringResource(R.string.memo_action_delete)) },
-                    onClick = {
-                        showMenu = false
-                        onDelete()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Delete, contentDescription = null
-                        )
-                    },
-                    destructive = true
-                )
-            }
-        }
-    }
-
-    if (showReactionPicker) {
-        ReactionPickerDialog(
-            reactionOptions = reactionOptions,
-            onDismiss = { showReactionPicker = false },
-            onReactionSelected = { emoji ->
-                onUpsertReaction?.invoke(emoji)
-                showReactionPicker = false
-            })
-    }
-
-    if (showRawTextDialog) {
-        AppDialog(
-            show = true,
-            title = stringResource(R.string.memo_dialog_raw_title),
-            onDismissRequest = { showRawTextDialog = false },
-            buttons = {
-                AppTextButton(
-                    text = stringResource(R.string.common_close),
-                    modifier = Modifier.weight(1f),
-                    onClick = { showRawTextDialog = false }
-                )
-            }
-        ) {
-            SelectionContainer {
-                Text(
-                    text = memo.content,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState())
-                )
-            }
-        }
+                }
+            },
+            onSave = {
+                sharePreview = null
+                scope.launch {
+                    val saved = runCatching { saveMemoImage(context, previewImage, memo.name) }
+                        .getOrDefault(false)
+                    Toast.makeText(
+                        context,
+                        if (saved) R.string.memo_share_image_saved else R.string.common_operation_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onDismiss = { sharePreview = null }
+        )
     }
 
     if (showFullScreenViewer) {
@@ -701,4 +797,115 @@ fun MemoItem(
             originBounds = attachmentOrigins::boundsFor
         )
     }
+}
+
+/**
+ * The card's overflow menu, anchored to the button that opened it. It opens in place rather than as
+ * a sheet from the bottom edge, so the actions stay next to the card they act on.
+ */
+@Composable
+private fun MemoActionsMenu(
+    expanded: Boolean,
+    memo: Memo,
+    hostUrl: String,
+    onDismissRequest: () -> Unit,
+    onOpenWeb: (String) -> Unit,
+    onShareImage: (() -> Unit)?,
+    onEdit: (() -> Unit)?,
+    onArchive: (() -> Unit)?,
+    onUnarchive: (() -> Unit)?,
+    onDelete: (() -> Unit)?
+) {
+    if (!expanded) return
+    AppDropdownMenu(expanded = true, onDismissRequest = onDismissRequest) {
+        if (memo.name != null && hostUrl.isNotBlank()) {
+            AppDropdownMenuItem(
+                text = stringResource(R.string.memo_action_open_web),
+                onClick = {
+                    onDismissRequest()
+                    onOpenWeb(memo.name.removePrefix("memos/"))
+                },
+                leadingIcon = { Icon(Icons.Outlined.Language, contentDescription = null) }
+            )
+        }
+
+        if (onEdit != null) {
+            AppDropdownMenuItem(
+                text = stringResource(R.string.memo_action_edit),
+                onClick = {
+                    onDismissRequest()
+                    onEdit()
+                },
+                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) }
+            )
+        }
+        if (onShareImage != null) {
+            AppDropdownMenuItem(
+                text = stringResource(R.string.memo_action_share_image),
+                onClick = {
+                    onDismissRequest()
+                    onShareImage()
+                },
+                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) }
+            )
+        }
+        if (onArchive != null && memo.state == MemoState.NORMAL) {
+            AppDropdownMenuItem(
+                text = stringResource(R.string.memo_action_archive),
+                onClick = {
+                    onDismissRequest()
+                    onArchive()
+                },
+                leadingIcon = { Icon(Icons.Outlined.Archive, contentDescription = null) }
+            )
+        }
+        if (onUnarchive != null && memo.state == MemoState.ARCHIVED) {
+            AppDropdownMenuItem(
+                text = stringResource(R.string.memo_action_unarchive),
+                onClick = {
+                    onDismissRequest()
+                    onUnarchive()
+                },
+                leadingIcon = { Icon(Icons.Outlined.Unarchive, contentDescription = null) }
+            )
+        }
+        if (onDelete != null) {
+            AppDropdownMenuItem(
+                text = stringResource(R.string.memo_action_delete),
+                onClick = {
+                    onDismissRequest()
+                    onDelete()
+                },
+                destructive = true,
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            )
+        }
+    }
+}
+/** Offset of the reaction grid below its anchor button. */
+private val ReactionPopupOffset = 36.dp
+
+/** Two rows of 40dp cells plus padding; more reactions scroll. */
+private val ReactionGridMaxHeight = 96.dp
+
+/** A tag as a tappable pill; without a handler it stays readable but inert. */
+@Composable
+private fun MemoTagChip(tag: String, onClick: (() -> Unit)?) {
+    Text(
+        text = tag,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    )
 }

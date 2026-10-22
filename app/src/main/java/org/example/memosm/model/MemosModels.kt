@@ -174,6 +174,32 @@ data class ListMemoRelationsResponse(
     val relations: List<MemoRelation>?, val nextPageToken: String?
 )
 
+/**
+ * Wire shape of a relation. The server spells the outgoing type `REFERENCE`, while the model calls
+ * it [MemoRelationType.REPLY]; sending the enum name directly makes the request fail.
+ */
+data class MemoRelationWire(
+    val memo: MemoSnippet, val relatedMemo: MemoSnippet, val type: String
+) {
+    companion object {
+        const val REFERENCE = "REFERENCE"
+        const val COMMENT = "COMMENT"
+
+        fun reference(memo: MemoSnippet, related: MemoSnippet) =
+            MemoRelationWire(memo = memo, relatedMemo = related, type = REFERENCE)
+
+        fun from(relation: MemoRelation) = MemoRelationWire(
+            memo = relation.memo,
+            relatedMemo = relation.relatedMemo,
+            type = when (relation.type) {
+                MemoRelationType.COMMENT -> COMMENT
+                MemoRelationType.REPLY -> REFERENCE
+                MemoRelationType.TYPE_UNSPECIFIED -> "TYPE_UNSPECIFIED"
+            }
+        )
+    }
+}
+
 data class SetMemoRelationsRequest(
-    val name: String, val relations: List<MemoRelation>
+    val name: String, val relations: List<MemoRelationWire>
 )

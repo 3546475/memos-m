@@ -1,0 +1,26 @@
+/*段落间距优化*/
+div.cm-line {
+    padding-top: 0.3em !important;
+    padding-bottom: 0.3em !important;
+}
+
+div.HyperMD-header.cm-line{
+    padding-top: 0.5em !important;
+    padding-bottom: 0.5em !important;
+}
+
+div.HyperMD-list-line.cm-line{
+    padding-top: 0.1em !important;
+    padding-bottom: 0.1em !important;
+}
+
+div.HyperMD-codeblock.cm-line{
+    padding-top: 0em !important;
+    padding-bottom: 0em !important;
+}
+
+p>br {
+    content: '';
+    margin-top: 0.5em;
+    display: block;
+}

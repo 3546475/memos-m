@@ -7,6 +7,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -513,6 +514,7 @@ class MemosViewModel(
             if (org.example.memosm.data.backup.BackupCoordinator.recoveryError.value == null) userDelegate.updateCurrentAccountInList()
             appSettingsDelegate.loadPageSize()
             appSettingsDelegate.loadHeaderScale()
+            appSettingsDelegate.loadEditorSettings()
             appSettingsDelegate.loadLinkPreviewEnabled()
             appSettingsDelegate.loadOfflineSettings()
 
@@ -816,6 +818,34 @@ class MemosViewModel(
     }
 
     fun loadMoreUserMemos() = userMemoManager.loadMore()
+
+    /**
+     * Pages through the whole user feed so a caller can filter it locally. The feed only keeps the
+     * pages it has loaded, so anything derived from it (the profile's per-kind lists and counts)
+     * used to miss every memo past the first page. [maxPages] bounds the work for large accounts.
+     */
+    suspend fun loadAllUserMemos(maxPages: Int = 20) {
+        var pages = 0
+        var idleTries = 0
+        while (pages < maxPages) {
+            val list = _uiState.value.userMemoList.list
+            if (list.nextPageToken == null) return
+            if (list.isLoading) {
+                delay(80)
+                continue
+            }
+            val tokenBefore = list.nextPageToken
+            userMemoManager.loadMore()
+            pages++
+            // Wait for the page to settle; a stalled request must not spin here forever.
+            while (_uiState.value.userMemoList.list.isLoading) delay(60)
+            if (_uiState.value.userMemoList.list.nextPageToken == tokenBefore) {
+                if (++idleTries >= 2) return
+            } else {
+                idleTries = 0
+            }
+        }
+    }
 
     fun fetchExploreMemos(refresh: Boolean = false) {
         if (refresh) {

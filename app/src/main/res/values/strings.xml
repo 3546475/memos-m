@@ -72,9 +72,18 @@
     <string name="profile_about_git_hash">Git Hash</string>
     <string name="profile_about_version_copied">Version copied to clipboard</string>
     <string name="profile_about_repo">Source Code</string>
-    <string name="profile_about_repo_url" translatable="false">https://github.com/yamada-sexta/memos-m</string>
+    <string name="profile_about_repo_url" translatable="false">https://github.com/3546475/memos-m</string>
     <string name="profile_about_issues">Report an Issue</string>
-    <string name="profile_about_issues_url" translatable="false">https://github.com/yamada-sexta/memos-m/issues</string>
+    <string name="profile_about_issues_url" translatable="false">https://github.com/3546475/memos-m/issues</string>
+    <string name="profile_about_git_hash_copied">Git hash copied to clipboard</string>
+    <string name="profile_about_build_info">Build</string>
+    <string name="profile_about_support">Help &amp; diagnostics</string>
+    <string name="audit_log_copy">Copy all</string>
+    <string name="audit_log_copy_done">Copied %1$d entries</string>
+    <string name="audit_log_clear">Clear</string>
+    <string name="audit_log_clear_confirm">Every recorded entry is deleted. This cannot be undone.</string>
+    <string name="audit_log_empty_hint">Only offline queues, sync retries, attachment uploads and backup/restore write entries here.</string>
+    <string name="settings_summary_audit">Audit trail of offline queues, retries, uploads and restores</string>
     <string name="profile_about_licenses">Open Source Licenses</string>
     <string name="profile_add_account">Add Account</string>
     <string name="profile_accounts">Accounts</string>
@@ -85,6 +94,11 @@
     <string name="profile_display_name">Display Name</string>
     <string name="profile_email">Email</string>
     <string name="profile_avatar_url">Avatar URL</string>
+    <string name="profile_avatar_generated">Avatar set from a picture</string>
+    <string name="profile_avatar_use_url">Use a URL instead</string>
+    <string name="profile_avatar_change_hint">Tap the picture to upload a new avatar</string>
+    <string name="profile_avatar_upload_failed">Could not upload the avatar</string>
+    <string name="profile_account_management">Account management</string>
     <string name="profile_description">Description</string>
     <string name="profile_new_password">New Password</string>
     <string name="profile_password_hint">Leave blank to keep current password</string>
@@ -96,6 +110,10 @@
     <string name="memo_action_unarchive">Unarchive</string>
     <string name="memo_action_pin">Pin</string>
     <string name="memo_action_unpin">Unpin</string>
+                <string name="memo_share_image_save">Save</string>
+    <string name="memo_share_image_saved">Saved to Photos</string>
+    <string name="memo_share_image_title">Share as image</string>
+    <string name="memo_action_share_image">Share</string>
     <string name="memo_action_delete">Delete</string>
     <string name="memo_action_more">More</string>
     <string name="memo_action_open_web">Open on Web</string>
@@ -127,6 +145,15 @@
     <string name="memo_composer_remove_location">Remove Location</string>
     <string name="memo_composer_attach_file">Attach File</string>
     <string name="memo_composer_add_image">Add Image</string>
+        <string name="memo_composer_link_memo">Link memo</string>
+    <string name="memo_composer_remove_link">Remove link</string>
+        <string name="memo_detail_linked_hint">Long press a row to unlink</string>
+    <string name="memo_unlink_title">Remove this link?</string>
+    <string name="memo_unlink_confirm">This memo stops pointing at it. The other memo is not deleted.</string>
+    <string name="memo_link_picker_title">Link a memo</string>
+    <string name="memo_link_picker_summary">The saved memo points at the one you pick.</string>
+    <string name="memo_link_picker_search">Search your memos</string>
+    <string name="memo_link_picker_empty">No matching memos</string>
     <string name="memo_composer_add_location">Add Location</string>
     <string name="memo_composer_edit_location">Edit Location</string>
     <string name="memo_composer_location_name">Name</string>
@@ -160,6 +187,7 @@
     <string name="memo_dialog_raw_title">Raw Text</string>
 
     <string name="memo_detail_title">Memo Details</string>
+        <string name="memo_detail_linked">Linked memos</string>
     <string name="memo_detail_comments">Comments (%1$d)</string>
     <string name="memo_detail_no_comments">No comments yet</string>
     <string name="memo_detail_add_comment">Add Comment</string>
@@ -173,8 +201,14 @@
     <string name="memo_visibility_unspecified">Unknown</string>
 
     <string name="common_save">Save</string>
+    <string name="common_done">Done</string>
+    <string name="profile_avatar_crop_title">Crop avatar</string>
     <string name="common_share">Share</string>
     <string name="common_cancel">Cancel</string>
+    <string name="tags_expand_all">Expand all</string>
+    <string name="tags_collapse_all">Collapse all</string>
+    <string name="tags_expand">Expand</string>
+    <string name="tags_collapse">Collapse</string>
     <string name="common_close">Close</string>
     <string name="common_not_available">N/A</string>
     <string name="common_remove">Remove</string>
@@ -280,7 +314,7 @@
     <string name="recovery_delete_message">Delete %1$s? This cannot be undone.</string>
     <string name="recovery_import_confirm_title">Import archive</string>
     <string name="recovery_import_confirm_message">Import %1$s? This may overwrite local data.</string>
-    <string name="audit_log_title">Sync log</string>
+    <string name="audit_log_title">Sync diagnostics</string>
     <string name="audit_log_view">View</string>
     <string name="audit_log_empty">No audit entries recorded yet.</string>
     <string name="audit_log_account">Account: %1$s</string>
@@ -497,4 +531,34 @@
     <string name="settings_nav_move_up">Move up</string>
     <string name="settings_nav_move_down">Move down</string>
     <string name="settings_nav_reset">Reset to defaults</string>
+    <string name="settings_nav_reset_confirm">Bottom bar shape, scrolling, frosting and items go back to their defaults.</string>
+    <string name="settings_nav_section_bottom">Bottom bar</string>
+    <string name="settings_nav_section_top">Top bar</string>
+    <string name="settings_nav_style">Style</string>
+    <string name="settings_nav_style_docked">Edge to edge</string>
+    <string name="settings_nav_style_floating">Floating capsule</string>
+    <string name="settings_nav_items_edit">Edit</string>
+    <string name="settings_nav_items_hint">At least one item stays on. Use the arrows to reorder.</string>
+    <string name="settings_blur_needs_android13">Needs Android 13 or newer</string>
+    <string name="settings_blur_needs_miuix">Only available in the Miuix theme</string>
+    <string name="settings_edit_gesture">Edit gesture</string>
+    <string name="settings_edit_gesture_none">None</string>
+    <string name="settings_edit_gesture_single_tap">Single tap</string>
+    <string name="settings_edit_gesture_double_tap">Double tap</string>
+    <string name="settings_edit_gesture_long_press">Long press</string>
+    <string name="code_block_copy">Copy code</string>
+    <string name="code_block_copied">Copied</string>
+    <string name="code_block_expand">Show %1$d more lines</string>
+    <string name="code_block_collapse">Collapse</string>
+    <string name="code_block_line_copied">Copied line %1$d</string>
+    <string name="settings_editor">Editor</string>
+    <string name="settings_summary_editor">How note text and code blocks are drawn</string>
+    <string name="settings_editor_line_numbers">Code line numbers</string>
+    <string name="settings_editor_line_numbers_description">Show numbers beside each code line; hidden while long lines wrap</string>
+    <string name="settings_editor_wrap_lines">Wrap long code lines</string>
+    <string name="settings_editor_wrap_lines_description">Fold long lines instead of scrolling sideways</string>
+    <string name="settings_editor_paragraph_indent">Indent the first line</string>
+    <string name="settings_editor_paragraph_indent_description">Start every paragraph two characters in, as Chinese typesetting does</string>
+    <string name="settings_editor_cjk_spacing">Space between Chinese and Latin</string>
+    <string name="settings_editor_cjk_spacing_description">Insert a thin gap between Chinese characters and Latin letters or digits</string>
 </resources>

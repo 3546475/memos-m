@@ -39,6 +39,7 @@ import org.example.memosm.model.Visibility
 import org.example.memosm.ui.getVisibilityLabel
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppListItem
+import org.example.memosm.ui.theme.MiuixTokens
 import org.example.memosm.ui.theme.AppTextButton
 
 private val LANGUAGE_NAMES = mapOf(
@@ -111,7 +112,7 @@ private fun SettingsSelectionItem(
     AppListItem(
         title = label,
         summary = labelProvider(currentValue),
-        trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+        trailing = { Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MiuixTokens.ChevronColor) },
         modifier = Modifier.clip(RoundedCornerShape(4.dp)),
         onClick = { showDialog = true }
     )
