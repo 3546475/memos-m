@@ -94,6 +94,7 @@ import org.example.memosm.ui.component.filter.filterDatePresetOf
 import org.example.memosm.ui.component.filter.memoFilterTokens
 import org.example.memosm.ui.component.filter.sortLabel
 import org.example.memosm.model.Shortcut
+import org.example.memosm.model.MemoContentType
 import org.example.memosm.model.filter.MemoSort
 import org.example.memosm.model.filter.normalizeTag
 import org.example.memosm.ui.component.setting.ShortcutEditDialog
@@ -195,6 +196,11 @@ fun MemosScreen(
             ?: stringResource(R.string.memo_filter_date_custom)
     }
     val sortTokenLabel = if (feedFilter.sort == MemoSort.PINNED_DESC) null else feedFilter.sort.sortLabel()
+    val typeLabels = mapOf(
+        MemoContentType.LINK to stringResource(R.string.profile_stats_links),
+        MemoContentType.CODE to stringResource(R.string.profile_stats_code),
+        MemoContentType.TODO to stringResource(R.string.profile_stats_todo)
+    )
     // Tag suggestions come from both sources: the profile stats know tags the feed has not loaded
     // yet, and the loaded feed knows tags the stats snapshot may be missing (offline, new notes).
     val tagCounts = remember(uiState.session.userStats?.tagCount, uiState.userMemoList.list.items) {
@@ -209,14 +215,15 @@ fun MemosScreen(
         }
     }
     val filterTokens = remember(
-        feedFilter, selectedView, fallbackViewLabel, dateTokenLabel, sortTokenLabel
+        feedFilter, selectedView, fallbackViewLabel, dateTokenLabel, sortTokenLabel, typeLabels
     ) {
         memoFilterTokens(
             filter = feedFilter,
             view = selectedView,
             fallbackLabel = fallbackViewLabel,
             dateLabel = dateTokenLabel,
-            sortLabel = sortTokenLabel
+            sortLabel = sortTokenLabel,
+            typeLabels = typeLabels
         )
     }
     val removeFilterToken: (FeedFilterToken) -> Unit = { token ->
@@ -227,6 +234,9 @@ fun MemosScreen(
             FeedFilterToken.Kind.SORT -> viewModel.filterDelegate.apply(
                 feedFilter.copy(sort = MemoSort.PINNED_DESC)
             )
+            FeedFilterToken.Kind.TYPE -> token.type?.let { type ->
+                viewModel.filterDelegate.apply(feedFilter.copy(types = feedFilter.types - type))
+            }
         }
     }
     val feedFilterButton: @Composable () -> Unit = {

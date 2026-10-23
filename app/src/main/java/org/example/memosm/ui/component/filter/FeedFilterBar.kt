@@ -19,7 +19,10 @@ import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Tag
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.model.MemoContentType
 import org.example.memosm.model.Shortcut
 import org.example.memosm.model.filter.MemoFilter
 import org.example.memosm.model.filter.MemoSort
@@ -54,23 +58,26 @@ data class FeedFilterToken(
     val icon: ImageVector,
     val kind: Kind,
     /** Tag name (without `#`) for [Kind.TAG] tokens. */
-    val tag: String? = null
+    val tag: String? = null,
+    /** Memo kind for [Kind.TYPE] tokens. */
+    val type: MemoContentType? = null
 ) {
-    enum class Kind { VIEW, TAG, DATE, SORT }
+    enum class Kind { VIEW, TAG, DATE, SORT, TYPE }
 }
 
 /**
  * Turns the structured filter into the summary bar's tokens. [view] is the saved view the filter
  * was built from, when it is still in the shortcut list; [fallbackLabel] covers a persisted view
- * that the server no longer returns. [dateLabel] and [sortLabel] are null when the UI has nothing
- * to show for them (a custom range, or the default order).
+ * that the server no longer returns. [dateLabel], [sortLabel] and [typeLabels] are what the UI can
+ * render: null (or a missing entry) simply omits that token.
  */
 fun memoFilterTokens(
     filter: MemoFilter,
     view: Shortcut?,
     fallbackLabel: String,
     dateLabel: String?,
-    sortLabel: String?
+    sortLabel: String?,
+    typeLabels: Map<MemoContentType, String>
 ): List<FeedFilterToken> = buildList {
     if (filter.hasLegacyClause) {
         val label = view?.title?.takeIf { it.isNotBlank() }
@@ -113,6 +120,21 @@ fun memoFilterTokens(
                 label = sortLabel,
                 icon = Icons.AutoMirrored.Outlined.Sort,
                 kind = FeedFilterToken.Kind.SORT
+            )
+        )
+    }
+    filter.types.sortedBy { it.ordinal }.forEach { type ->
+        add(
+            FeedFilterToken(
+                id = "type:${type.name}",
+                label = typeLabels[type] ?: type.name,
+                icon = when (type) {
+                    MemoContentType.LINK -> Icons.Outlined.Link
+                    MemoContentType.CODE -> Icons.Outlined.Code
+                    MemoContentType.TODO -> Icons.Outlined.TaskAlt
+                },
+                kind = FeedFilterToken.Kind.TYPE,
+                type = type
             )
         )
     }

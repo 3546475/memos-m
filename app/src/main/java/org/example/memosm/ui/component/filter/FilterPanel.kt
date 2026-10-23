@@ -18,10 +18,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,11 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 import org.example.memosm.R
+import org.example.memosm.model.MemoContentType
 import org.example.memosm.model.Shortcut
+import org.example.memosm.model.filter.MemoDateRange
 import org.example.memosm.model.filter.MemoFilter
 import org.example.memosm.model.filter.MemoSort
 import org.example.memosm.model.filter.TagMatch
@@ -52,10 +60,11 @@ import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppTextField
 
 /**
- * The structured filter panel: saved views, tags (AND/OR), a created-time window and the feed
- * order. It edits a draft and only commits on "apply", so toggling several conditions costs one
- * request instead of one per tap.
+ * The structured filter panel: saved views, tags (AND/OR), the memo kind, a created-time window
+ * and the feed order. It edits a draft and only commits on "apply", so toggling several
+ * conditions costs one request instead of one per tap.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterPanel(
     show: Boolean,
@@ -71,6 +80,10 @@ fun FilterPanel(
     // Reopening the panel starts from what is actually applied; closing throws the draft away.
     var draft by remember(show, filter) { mutableStateOf(filter) }
     var tagQuery by remember(show) { mutableStateOf("") }
+    // Custom range flow: start date first, then the end date.
+    var showStartPicker by remember(show) { mutableStateOf(false) }
+    var showEndPicker by remember(show) { mutableStateOf(false) }
+    var pendingStart by remember(show) { mutableStateOf<LocalDate?>(null) }
     val today = remember(show) { LocalDate.now() }
     val zone = remember(show) { ZoneId.systemDefault() }
     val locale = remember(show) { Locale.getDefault() }
@@ -232,9 +245,36 @@ fun FilterPanel(
                 }
             }
 
+            item(key = "types") {
+                Column {
+                    SectionLabel(stringResource(R.string.memo_filter_section_types))
+                    ChipRow {
+                        MemoContentType.entries.forEach { type ->
+                            AppFilterChip(
+                                selected = type in draft.types,
+                                onClick = {
+                                    draft = draft.copy(
+                                        types = if (type in draft.types) {
+                                            draft.types - type
+                                        } else {
+                                            draft.types + type
+                                        }
+                                    )
+                                }
+                            ) {
+                                Text(type.typeLabel())
+                            }
+                        }
+                    }
+                }
+            }
+
             item(key = "date") {
                 Column {
                     SectionLabel(stringResource(R.string.memo_filter_section_date))
+                    val customRange = draft.date?.takeIf {
+                        filterDatePresetOf(it, today, zone, locale) == null
+                    }
                     ChipRow {
                         FilterDatePreset.entries.forEach { preset ->
                             val range = datePresets[preset]
@@ -245,10 +285,15 @@ fun FilterPanel(
                                 Text(preset.dateLabel())
                             }
                         }
+                        AppFilterChip(
+                            selected = customRange != null,
+                            onClick = { showStartPicker = true }
+                        ) {
+                            Text(stringResource(R.string.memo_filter_date_custom))
+                        }
                     }
-                    val restored = draft.date
-                    if (restored != null && filterDatePresetOf(restored, today, zone, locale) == null) {
-                        Hint(stringResource(R.string.memo_filter_date_custom))
+                    if (customRange != null) {
+                        Hint(customRange.displayLabel(zone, locale))
                     }
                 }
             }
@@ -290,6 +335,78 @@ fun FilterPanel(
                 }
             }
         }
+
+        // Material's date pickers are used for the custom range: the panel already runs inside an
+        // AppDialog, and a nested dialog is far less code than a hand-rolled calendar. They read
+        // the app's Material colour scheme, so MIUIX stays colour-consistent.
+        if (showStartPicker) {
+            val pickerState = rememberDatePickerState(
+                initialSelectedDateMillis = draft.date?.let { range ->
+                    Instant.ofEpochMilli(range.startMillis).atZone(zone).toLocalDate().toPickerMillis()
+                }
+            )
+            DatePickerDialog(
+                onDismissRequest = { showStartPicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val picked = pickerState.selectedDateMillis
+                        showStartPicker = false
+                        if (picked != null) {
+                            pendingStart = pickerMillisToLocalDate(picked)
+                            showEndPicker = true
+                        }
+                    }) { Text(stringResource(android.R.string.ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showStartPicker = false }) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
+                }
+            ) {
+                DatePicker(state = pickerState)
+            }
+        }
+
+        if (showEndPicker) {
+            val pickerState = rememberDatePickerState(
+                initialSelectedDateMillis = pendingStart?.toPickerMillis()
+            )
+            DatePickerDialog(
+                onDismissRequest = {
+                    showEndPicker = false
+                    pendingStart = null
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val start = pendingStart
+                        val picked = pickerState.selectedDateMillis
+                        if (start != null && picked != null) {
+                            val endDate = pickerMillisToLocalDate(picked)
+                                .let { if (it.isBefore(start)) start else it }
+                            draft = draft.copy(
+                                date = MemoDateRange(
+                                    startMillis = start.atStartOfDay(zone).toInstant().toEpochMilli(),
+                                    endMillisExclusive = endDate.plusDays(1).atStartOfDay(zone)
+                                        .toInstant().toEpochMilli()
+                                )
+                            )
+                        }
+                        showEndPicker = false
+                        pendingStart = null
+                    }) { Text(stringResource(android.R.string.ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showEndPicker = false
+                        pendingStart = null
+                    }) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
+                }
+            ) {
+                DatePicker(state = pickerState)
+            }
+        }
     }
 }
 
@@ -299,6 +416,15 @@ fun MemoSort.sortLabel(): String = stringResource(
         MemoSort.PINNED_DESC -> R.string.memo_filter_sort_pinned
         MemoSort.NEWEST -> R.string.memo_filter_sort_newest
         MemoSort.OLDEST -> R.string.memo_filter_sort_oldest
+    }
+)
+
+@Composable
+private fun MemoContentType.typeLabel(): String = stringResource(
+    when (this) {
+        MemoContentType.LINK -> R.string.profile_stats_links
+        MemoContentType.CODE -> R.string.profile_stats_code
+        MemoContentType.TODO -> R.string.profile_stats_todo
     }
 )
 

@@ -1,5 +1,7 @@
 package org.example.memosm.model.filter
 
+import org.example.memosm.model.MemoContentType
+
 /**
  * Compiles [this] filter into the server's CEL dialect, ANDed with the creator clause that scopes
  * the feed to the signed-in user. Returns null when nothing would be filtered, which keeps the
@@ -11,6 +13,7 @@ fun MemoFilter.toCel(creatorFilter: String? = null): String? {
         legacyCel.filter { it.isNotBlank() }.forEach(::add)
         tagClause()?.let(::add)
         date?.toCelClause()?.let(::add)
+        typesClause()?.let(::add)
     }
     return clauses.joinToString(" && ").takeIf { it.isNotBlank() }
 }
@@ -37,6 +40,24 @@ private fun MemoDateRange.toCelClause(): String? {
         }
     }
     return parts.joinToString(" && ").takeIf { it.isNotBlank() }
+}
+
+/**
+ * The server has first-class clauses for links and task lists. Code has none, so the closest
+ * approximation is a backtick anywhere in the content (fenced or inline), which is also what the
+ * local matcher treats as code. A memo whose type the clauses cannot see exactly is still picked
+ * out locally once cached, so the difference only shows for rows the device has never loaded.
+ */
+private fun MemoFilter.typesClause(): String? {
+    if (types.isEmpty()) return null
+    val clauses = types.sortedBy { it.ordinal }.map { it.toCelClause() }
+    return if (clauses.size == 1) clauses.single() else clauses.joinToString(" || ", "(", ")")
+}
+
+private fun MemoContentType.toCelClause(): String = when (this) {
+    MemoContentType.LINK -> "has_link"
+    MemoContentType.TODO -> "has_task_list"
+    MemoContentType.CODE -> "content.contains(${celString("`")})"
 }
 
 /**

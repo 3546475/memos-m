@@ -3,6 +3,7 @@ package org.example.memosm.model.filter
 import com.google.gson.Gson
 import kotlin.time.Instant
 import org.example.memosm.model.Memo
+import org.example.memosm.model.MemoContentType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -124,6 +125,38 @@ class MemoFilterTest {
         assertEquals(1, filter.activeCount)
         assertTrue(filter.matches(memo()))
         assertEquals(MemoFilter(), filter.copy(sort = MemoSort.PINNED_DESC))
+    }
+
+    @Test
+    fun `content types compile to server clauses and match locally`() {
+        val link = Memo(content = "see https://example.com", createTime = Instant.fromEpochMilliseconds(1L))
+        val todo = Memo(content = "- [ ] task", createTime = Instant.fromEpochMilliseconds(1L))
+        val plain = memo()
+
+        assertEquals("has_link", MemoFilter(types = setOf(MemoContentType.LINK)).toCel(null))
+        assertEquals(
+            "(has_link || has_task_list)",
+            MemoFilter(types = setOf(MemoContentType.LINK, MemoContentType.TODO)).toCel(null)
+        )
+        assertEquals(
+            "content.contains(\"`\")",
+            MemoFilter(types = setOf(MemoContentType.CODE)).toCel(null)
+        )
+
+        assertTrue(MemoFilter(types = setOf(MemoContentType.LINK)).matches(link))
+        assertTrue(MemoFilter(types = setOf(MemoContentType.TODO)).matches(todo))
+        assertFalse(MemoFilter(types = setOf(MemoContentType.LINK)).matches(plain))
+        assertTrue(
+            MemoFilter(types = setOf(MemoContentType.LINK, MemoContentType.TODO)).matches(todo)
+        )
+    }
+
+    @Test
+    fun `a date window excludes memos with no known time`() {
+        val unknown = Memo(content = "no timestamps")
+        assertFalse(
+            MemoFilter(date = MemoDateRange(startMillis = 1L)).matches(unknown)
+        )
     }
 
     @Test

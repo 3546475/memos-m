@@ -10,18 +10,18 @@
 | --- | --- | --- | --- |
 | Activity | 16 | 15 | 含 1 个抽象基类 `ProfileActivity`；`SyncLogActivity` 已合并进设置分区 |
 | 主界面目的地 | 4 | 4 | 底栏（手机）/ NavigationRail（平板），可在导航设置里显隐与排序 |
-| 列表覆盖层 | 2 | 2 | 搜索、同步状态面板（非独立 Activity） |
+| 列表覆盖层 | 2 | 3 | 搜索、同步状态面板、筛选面板（非独立 Activity） |
 | 设置分区 | 10 | 10 | 1 个 `SettingsActivity` 用 `EXTRA_SECTION` 复用出 10 个页面 |
 | 系统组件 | 3 | 3 | 草稿小组件、统计小组件、统计小组件配置页 |
-| 页面/面板位 | 33 | 32 | 1 个纯回调（`SsoCallbackActivity`） |
-| 入口触发点 | 51 | 57 | 新增 4 条系统快捷方式、长按 FAB 及其 3 个动作；删除 3 条冗余分享与 4 条个人页直链 |
+| 页面/面板位 | 33 | 33 | 1 个纯回调（`SsoCallbackActivity`）；新增筛选面板 |
+| 入口触发点 | 51 | 58 | 新增 4 条系统快捷方式、长按 FAB 及其 3 个动作、feed 筛选入口；删除 3 条冗余分享与 4 条个人页直链 |
 | 已有路由表 | 0 | 0 | 无 Navigation Compose、无路由枚举、无统一 Intent 工厂 |
 | 通用 deep link | 0 | 0 | 仅 SSO 回调一条（`org.example.memosm://oauth/callback`） |
 | App Shortcuts | 0 | 4 | 动态发布：新建 / 草稿 / 通知 / 搜索 |
 
 那句话的结论没变：**外部入口有了，寻址能力仍然没有**——App Shortcuts 只能落到固定页面，页面本身依然不可寻址（memo 链接按第八节暂缓）。
 
-## 二、页面清单（原 33 项，现 32 项）
+## 二、页面清单（原 33 项，现 33 项）
 
 ### A. 主界面（单 Activity：`MainActivity`）
 
@@ -38,6 +38,7 @@
 | 6 | Memo 详情 | `MemosScaffold` 内的详情面板（单/双栏自适应） | 5 |
 | 7 | 搜索覆盖层 | `MemoSearchBar` + 结果面板 | 1 |
 | 8 | 同步状态面板 | `SyncStatusPanel`（仅非 IDLE 时出现） | 1 |
+| 9 | 筛选面板 | `FilterPanel`（`AppDialog`，仅笔记 feed） | 1 |
 
 ### B. 独立页面（Activity）
 

@@ -94,6 +94,7 @@
     <string name="memo_filter_change_action">フィルターを変更</string>
     <string name="memo_filter_section_views">保存したビュー</string>
     <string name="memo_filter_section_tags">タグ</string>
+    <string name="memo_filter_section_types">コンテンツ種別</string>
     <string name="memo_filter_section_date">日付</string>
     <string name="memo_filter_section_sort">並び順</string>
     <string name="memo_filter_tag_search">タグを検索</string>

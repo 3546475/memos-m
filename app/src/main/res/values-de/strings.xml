@@ -94,6 +94,7 @@
     <string name="memo_filter_change_action">Filter ändern</string>
     <string name="memo_filter_section_views">Gespeicherte Ansichten</string>
     <string name="memo_filter_section_tags">Tags</string>
+    <string name="memo_filter_section_types">Inhaltstyp</string>
     <string name="memo_filter_section_date">Datum</string>
     <string name="memo_filter_section_sort">Sortierung</string>
     <string name="memo_filter_tag_search">Tags suchen</string>

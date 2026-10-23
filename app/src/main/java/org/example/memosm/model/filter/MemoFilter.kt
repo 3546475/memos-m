@@ -1,6 +1,8 @@
 package org.example.memosm.model.filter
 
 import org.example.memosm.model.Memo
+import org.example.memosm.model.MemoContentType
+import org.example.memosm.model.matchesContentType
 
 /**
  * The feed's structured filter. A CEL string used to be the only representation the app had; it
@@ -8,7 +10,8 @@ import org.example.memosm.model.Memo
  * CEL in [legacyCel] so a shortcut the app cannot visualise still behaves exactly as before.
  *
  * Tags are stored without the leading `#`. [date] is epoch millis with an exclusive upper bound,
- * mirroring the server's `created_ts` clauses.
+ * mirroring the server's `created_ts` clauses. [types] is the memo kind (link/code/todo) and is
+ * approximated on the server, see [toCel].
  */
 data class MemoFilter(
     /** Server shortcut this filter came from, when the user picked a saved view. */
@@ -18,6 +21,7 @@ data class MemoFilter(
     val tags: Set<String> = emptySet(),
     val tagMatch: TagMatch = TagMatch.ALL,
     val date: MemoDateRange? = null,
+    val types: Set<MemoContentType> = emptySet(),
     /** Ordering of the feed; not a filter condition, but stored and cleared with it. */
     val sort: MemoSort = MemoSort.PINNED_DESC
 ) {
@@ -27,7 +31,7 @@ data class MemoFilter(
 
     /** True when something narrows the result set (sorting alone does not). */
     val hasConditions: Boolean
-        get() = hasLegacyClause || tags.isNotEmpty() || date != null
+        get() = hasLegacyClause || tags.isNotEmpty() || date != null || types.isNotEmpty()
 
     val isActive: Boolean
         get() = hasConditions || sort != MemoSort.PINNED_DESC
@@ -41,6 +45,7 @@ data class MemoFilter(
             hasLegacyClause,
             tags.isNotEmpty(),
             date != null,
+            types.isNotEmpty(),
             sort != MemoSort.PINNED_DESC
         ).count { it }
 
@@ -112,7 +117,10 @@ fun MemoFilter.matches(memo: Memo): Boolean {
     date?.let { range ->
         val created = memo.createTime?.toEpochMilliseconds()
             ?: memo.displayTime?.toEpochMilliseconds()
-        if (created != null && !range.contains(created)) return false
+        // A row whose time is unknown cannot be proven to fall inside the window, and the server
+        // clause would have excluded it, so it is excluded here as well.
+        if (created == null || !range.contains(created)) return false
     }
+    if (types.isNotEmpty() && types.none { memo.matchesContentType(it) }) return false
     return true
 }

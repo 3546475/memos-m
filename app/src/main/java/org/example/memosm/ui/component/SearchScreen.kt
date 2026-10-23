@@ -109,6 +109,11 @@ import org.example.memosm.R
 import org.example.memosm.api.MemoOrderBy
 import org.example.memosm.model.Memo
 import org.example.memosm.model.Visibility
+import org.example.memosm.model.filter.MemoDateRange
+import org.example.memosm.model.filter.MemoFilter
+import org.example.memosm.model.filter.celString
+import org.example.memosm.model.filter.matches
+import org.example.memosm.model.filter.toCel
 import org.example.memosm.ui.component.item.MemoItem
 import org.example.memosm.ui.nav.SettingsSection
 import org.example.memosm.ui.profile.SettingsActivity
@@ -124,11 +129,22 @@ import org.example.memosm.viewmodel.manager.LocalSearchFilter
 internal fun filterLocalSearchMemos(
     memos: List<Memo>, query: String, tags: Set<String>, start: Long?, end: Long?, order: MemoOrderBy
 ): List<Memo> {
+    // Same matcher the feed uses: text is the only search-specific part, tags and the (inclusive)
+    // day range compile exactly like a feed filter.
+    val filter = MemoFilter(
+        tags = tags,
+        date = if (start != null || end != null) {
+            MemoDateRange(
+                startMillis = start ?: 0L,
+                endMillisExclusive = end?.plus(86_400_000L) ?: MemoDateRange.UNBOUNDED
+            )
+        } else {
+            null
+        }
+    ).normalized()
+    val needle = query.trim()
     val matches = memos.filter { memo ->
-        val created = memo.createTime?.toEpochMilliseconds()
-        memo.content.contains(query.trim(), ignoreCase = true) && tags.all { it in memo.tags.orEmpty() } &&
-            (start == null || (created != null && created >= start)) &&
-            (end == null || (created != null && created < end + 86_400_000L))
+        (needle.isEmpty() || memo.content.contains(needle, ignoreCase = true)) && filter.matches(memo)
     }
     return if (order == MemoOrderBy.OLDEST) matches.sortedWith(compareBy<Memo> { it.createTime }.thenBy { it.name })
     else matches.sortedWith(compareByDescending<Memo> { it.createTime }.thenBy { it.name })
@@ -235,26 +251,25 @@ fun MemoSearchBar(
             delay(300)
             viewModel.userDelegate.refreshUserStats()
 
-            val filters = mutableListOf<String>()
-
-            if (query.isNotBlank()) {
-                filters.add("content.contains(\"$query\")")
-            }
-
-            searchSelectedTags.forEach { tag ->
-                filters.add("tag in [\"$tag\"]")
-            }
-
-            if (startDateMillis != null) {
-                filters.add("created_ts >= ${startDateMillis!! / 1000}")
-            }
-
-            if (endDateMillis != null) {
-                // End date inclusive: add one day minus one second
-                filters.add("created_ts < ${(endDateMillis!! + 86400000L) / 1000}")
-            }
-
-            val filterString = if (filters.isEmpty()) null else filters.joinToString(" && ")
+            // Tags and the day range compile through the shared filter model, so search and the
+            // feed send the same clauses (and the same escaping) for the same conditions.
+            val facets = MemoFilter(
+                tags = searchSelectedTags,
+                date = if (startDateMillis != null || endDateMillis != null) {
+                    MemoDateRange(
+                        startMillis = startDateMillis ?: 0L,
+                        // End date inclusive: the window's upper bound is the next midnight.
+                        endMillisExclusive = endDateMillis?.plus(86_400_000L)
+                            ?: MemoDateRange.UNBOUNDED
+                    )
+                } else {
+                    null
+                }
+            ).normalized()
+            val filterString = buildList {
+                if (query.isNotBlank()) add("content.contains(${celString(query)})")
+                facets.toCel(null)?.let(::add)
+            }.joinToString(" && ").ifBlank { null }
             viewModel.searchMemos(
                 isExplore, filterString, orderBy,
                 LocalSearchFilter(

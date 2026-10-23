@@ -61,6 +61,7 @@
     <string name="memo_filter_change_action">修改篩選</string>
     <string name="memo_filter_section_views">儲存檢視</string>
     <string name="memo_filter_section_tags">標籤</string>
+    <string name="memo_filter_section_types">內容類型</string>
     <string name="memo_filter_section_date">時間</string>
     <string name="memo_filter_section_sort">排序</string>
     <string name="memo_filter_tag_search">搜尋標籤</string>

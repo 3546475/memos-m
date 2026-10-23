@@ -66,6 +66,7 @@
     <string name="memo_filter_change_action">Change filter</string>
     <string name="memo_filter_section_views">Saved views</string>
     <string name="memo_filter_section_tags">Tags</string>
+    <string name="memo_filter_section_types">Content type</string>
     <string name="memo_filter_section_date">Date</string>
     <string name="memo_filter_section_sort">Sort</string>
     <string name="memo_filter_tag_search">Search tags</string>

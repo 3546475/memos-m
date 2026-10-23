@@ -94,6 +94,7 @@
     <string name="memo_filter_change_action">필터 변경</string>
     <string name="memo_filter_section_views">저장된 보기</string>
     <string name="memo_filter_section_tags">태그</string>
+    <string name="memo_filter_section_types">콘텐츠 유형</string>
     <string name="memo_filter_section_date">날짜</string>
     <string name="memo_filter_section_sort">정렬</string>
     <string name="memo_filter_tag_search">태그 검색</string>
