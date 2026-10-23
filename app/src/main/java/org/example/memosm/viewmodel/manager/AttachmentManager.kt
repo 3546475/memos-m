@@ -39,7 +39,14 @@ class AttachmentManager(
     private val draftReferenceChecker: suspend (clientId: String) -> Boolean = { false },
     private val outboxReferenceChecker: suspend (clientId: String) -> Boolean = { false },
     cacheCallbacks: CacheCallbacks<Attachment>? = null
-) : BaseListManager<Attachment>(scope, cacheCallbacks = cacheCallbacks, nameProvider = { it.name }) {
+) : BaseListManager<Attachment>(
+    scope,
+    cacheCallbacks = cacheCallbacks,
+    nameProvider = { it.name },
+    // The meta cache mirrors the server: a page that no longer contains an attachment means it
+    // was deleted, so merging the cache back in would resurrect it.
+    mergeCacheOnFirstPage = false
+) {
 
 
     private val _cellWidth = MutableStateFlow(initialCellWidth)

@@ -30,4 +30,6 @@ class GuardedAttachmentDao(private val delegate: CachedAttachmentDao) : CachedAt
 class GuardedAttachmentMetaDao(private val delegate: CachedAttachmentMetaDao) : CachedAttachmentMetaDao by delegate {
     override suspend fun upsertAll(items: List<CachedAttachmentMeta>) = BackupCoordinator.withStorageLock { delegate.upsertAll(items) }
     override suspend fun clear(accountId: String) = BackupCoordinator.withStorageLock { delegate.clear(accountId) }
+    override suspend fun deleteMissingSince(accountId: String, minCreateTime: Long, keep: List<String>) =
+        BackupCoordinator.withStorageLock { delegate.deleteMissingSince(accountId, minCreateTime, keep) }
 }

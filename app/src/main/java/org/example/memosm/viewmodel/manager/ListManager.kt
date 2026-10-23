@@ -49,7 +49,13 @@ data class CacheCallbacks<T>(
      * a large pre-downloaded history is not fully deserialized just to show
      * the first screen, while offline loading requests everything.
      */
-    val getCachedData: suspend (limit: Int?) -> List<T> = { emptyList() }
+    val getCachedData: suspend (limit: Int?) -> List<T> = { emptyList() },
+
+    /**
+     * Called with the first page of a fetch, before the visible list is updated. Lets a cache
+     * treat a page as authoritative (e.g. to drop rows the server no longer returns).
+     */
+    val onFirstPage: suspend (List<T>) -> Unit = {}
 )
 
 abstract class BaseListManager<T>(
@@ -67,7 +73,13 @@ abstract class BaseListManager<T>(
      * (e.g. the newest memo hidden below a pinned one). Null keeps the
      * manager's natural order (searches, comments, ...).
      */
-    private val sortComparator: Comparator<T>? = null
+    private val sortComparator: Comparator<T>? = null,
+    /**
+     * Whether a first server page is merged with the cached rows it does not mention. Memos keep
+     * the merge (the cache holds the full history), but lists whose cache only mirrors the server
+     * must let the page win, otherwise remotely deleted rows stay visible forever.
+     */
+    private val mergeCacheOnFirstPage: Boolean = true
 ) : ListManager<T> {
 
     protected val _listState = MutableStateFlow(initialState)
@@ -339,6 +351,7 @@ abstract class BaseListManager<T>(
                     // prefill, or the currently shown items when they were
                     // served from cache (e.g. after an offline session).
                     val mergePool = when {
+                        !mergeCacheOnFirstPage -> emptyList()
                         cachedPrefill.isNotEmpty() -> cachedPrefill
                         np != null && _listState.value.showingCached -> _listState.value.items
                         else -> emptyList()
@@ -445,7 +458,9 @@ abstract class BaseListManager<T>(
                 if (cacheCallbacks != null) {
                     try {
                         checkCurrent()
-                        cacheCallbacks.onFetchSuccess(processedItems.filterNot { np?.invoke(it) in removedNames })
+                        val page = processedItems.filterNot { np?.invoke(it) in removedNames }
+                        cacheCallbacks.onFetchSuccess(page)
+                        if (pageToken == null) cacheCallbacks.onFirstPage(page)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {

@@ -20,6 +20,16 @@ interface CachedAttachmentMetaDao {
     @Query("DELETE FROM cached_attachment_meta WHERE accountId = :accountId")
     suspend fun clear(accountId: String)
 
+    /**
+     * Rows newer than [minCreateTime] that the server did not return in the last page: those were
+     * deleted remotely. Rows older than the page are kept so offline browsing still has history.
+     */
+    @Query(
+        "DELETE FROM cached_attachment_meta WHERE accountId = :accountId " +
+            "AND createTime >= :minCreateTime AND attachmentName NOT IN (:keep)"
+    )
+    suspend fun deleteMissingSince(accountId: String, minCreateTime: Long, keep: List<String>)
+
     @Query("SELECT COUNT(*) FROM cached_attachment_meta WHERE accountId = :accountId")
     suspend fun count(accountId: String): Int
 }

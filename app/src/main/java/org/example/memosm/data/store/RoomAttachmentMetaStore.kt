@@ -42,6 +42,22 @@ class RoomAttachmentMetaStore(
         }
     }
 
+    /**
+     * Persist a fresh first page: rows inside the page's time window that the server did not
+     * return are deleted, so attachments deleted remotely cannot be resurrected from the cache.
+     * Rows older than the page are kept for offline browsing.
+     */
+    suspend fun replaceRecent(accountId: String, attachments: List<Attachment>) {
+        val rows = attachments.mapNotNull { it.toRow(accountId) }
+        if (rows.isEmpty()) {
+            // An empty page means the account has no attachments left.
+            dao.clear(accountId)
+            return
+        }
+        dao.deleteMissingSince(accountId, rows.minOf { it.createTime }, rows.map { it.attachmentName })
+        dao.upsertAll(rows)
+    }
+
     /** Remove all attachment metadata of an account. */
     suspend fun clear(accountId: String) = dao.clear(accountId)
 

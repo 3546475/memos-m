@@ -284,6 +284,10 @@ class MemosViewModel(
                 val accountId = activeAccountId()
                     ?: return@CacheCallbacks emptyList()
                 attachmentCacheStore.getCachedMeta(accountId, limit)
+            }, onFirstPage = { attachments ->
+                // A deleted attachment is a real deletion: the first page decides what exists.
+                val context = accountSession.current ?: return@CacheCallbacks
+                attachmentCacheStore.replaceRecentMeta(context.account.id, attachments)
             })
         )
 

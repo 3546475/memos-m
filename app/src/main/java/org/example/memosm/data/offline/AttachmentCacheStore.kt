@@ -24,6 +24,10 @@ class AttachmentCacheStore(
     private val attachmentCacheManager: AttachmentCacheManager
 ) {
 
+    /** Accounts whose first page has been seen: their meta table is authoritative. */
+    private val syncedAccounts: MutableSet<String> =
+        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap())
+
     /** Whether the attachment is available locally. */
     suspend fun exists(accountId: String, attachmentName: String): Boolean =
         attachmentCacheManager.getLocalFile(accountId, attachmentName) != null
@@ -40,6 +44,16 @@ class AttachmentCacheStore(
         meta.upsertAll(accountId, attachments)
 
     /**
+     * Store a fresh first page and forget the rows inside its window that the server dropped.
+     * The merge-only [cacheMeta] cannot notice a deletion, which is why the Resources page kept
+     * showing attachments that no longer existed.
+     */
+    suspend fun replaceRecentMeta(accountId: String, attachments: List<Attachment>) {
+        syncedAccounts += accountId
+        meta.replaceRecent(accountId, attachments)
+    }
+
+    /**
      * Cached attachment metadata for [accountId], newest first. When the
      * meta table has no rows for the account yet (fresh install or right
      * after the v8 migration), it is backfilled from the attachments
@@ -47,7 +61,9 @@ class AttachmentCacheStore(
      * next read hits the table directly.
      */
     suspend fun getCachedMeta(accountId: String, limit: Int? = null): List<Attachment> {
-        if (meta.count(accountId) == 0) {
+        // Only backfill before the server has told us what exists: harvesting afterwards would
+        // resurrect the attachments the fetch just pruned (cached memos still reference them).
+        if (accountId !in syncedAccounts && meta.count(accountId) == 0) {
             val harvested = harvestFromCachedMemos(accountId)
             if (harvested.isNotEmpty()) meta.upsertAll(accountId, harvested)
         }
@@ -55,7 +71,10 @@ class AttachmentCacheStore(
     }
 
     /** Remove all attachment metadata of an account (when it is removed). */
-    suspend fun clearMeta(accountId: String) = meta.clear(accountId)
+    suspend fun clearMeta(accountId: String) {
+        syncedAccounts -= accountId
+        meta.clear(accountId)
+    }
 
     /**
      * Collect attachment metadata from the cached memos of an account (the
