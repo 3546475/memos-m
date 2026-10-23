@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 import org.example.memosm.ui.component.map.MemoMapController
 import org.example.memosm.ui.component.map.NativeMemoMap
 import org.example.memosm.ui.component.map.mapPinLabelColor
+import org.example.memosm.ui.theme.AppDotLoader
 import org.example.memosm.ui.theme.AppDropdownMenu
 import org.example.memosm.ui.theme.AppDropdownMenuItem
 import org.example.memosm.ui.theme.AppFilterChip
@@ -205,7 +206,7 @@ fun MapScreen(
                                                 }
                                             }
                                         }, enabled = !isDrafting, shape = RoundedCornerShape(50), modifier = Modifier.testTag("map_new_here")) {
-                                            if (isDrafting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                            if (isDrafting) AppDotLoader(modifier = Modifier.size(18.dp))
                                             else Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                                             Spacer(Modifier.width(8.dp))
                                             Text(stringResource(R.string.map_draft_here))

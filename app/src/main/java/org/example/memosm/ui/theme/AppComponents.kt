@@ -2,6 +2,7 @@ package org.example.memosm.ui.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -671,18 +672,30 @@ fun AppCircularProgressIndicator(
     strokeWidth: Dp? = null,
     color: Color? = null,
     /**
-     * Diameter of the spinner. Miuix draws its ring from this parameter instead of the layout
+     * Diameter of the indicator. Miuix draws its ring from this parameter instead of the layout
      * size, so passing a size through [modifier] alone leaves the ring off-centre and at the wrong
      * diameter; every call site that needs a specific size sets this instead.
+     *
+     * The indeterminate animation is the dot-matrix wave from [AppDotLoader]; [strokeWidth] only
+     * affects the determinate ring, which still needs the circular shape to read as progress.
      */
     size: Dp? = null
 ) {
-    if (usesMiuix) {
+    val determinate = progress
+    if (determinate == null) {
+        // Every indeterminate spinner uses the same dot-matrix wave, whatever its size.
+        val diameter = size
+            ?: if (usesMiuix) MiuixProgressDefaults.DefaultCircularProgressIndicatorSize else 40.dp
+        AppDotLoader(
+            modifier = modifier.size(diameter),
+            color = color ?: MaterialTheme.colorScheme.primary
+        )
+    } else if (usesMiuix) {
         // Miuix reads the spinner tint from a ProgressIndicatorColors bundle rather than a bare
         // Colour, so a call site that needs to match its button's content tint passes `color` here.
         MiuixCircularProgressIndicator(
             modifier = modifier,
-            progress = progress,
+            progress = determinate,
             colors = MiuixProgressDefaults.progressIndicatorColors(
                 foregroundColor = color ?: MiuixTheme.colorScheme.primary
             ),
@@ -691,18 +704,10 @@ fun AppCircularProgressIndicator(
         )
     } else {
         val sizedModifier = if (size != null) modifier.size(size) else modifier
-        if (progress == null) {
-            if (color != null) {
-                CircularProgressIndicator(modifier = sizedModifier, color = color)
-            } else {
-                CircularProgressIndicator(modifier = sizedModifier)
-            }
+        if (color != null) {
+            CircularProgressIndicator(progress = { determinate }, modifier = sizedModifier, color = color)
         } else {
-            if (color != null) {
-                CircularProgressIndicator(progress = { progress }, modifier = sizedModifier, color = color)
-            } else {
-                CircularProgressIndicator(progress = { progress }, modifier = sizedModifier)
-            }
+            CircularProgressIndicator(progress = { determinate }, modifier = sizedModifier)
         }
     }
 }
@@ -726,7 +731,13 @@ fun AppFilterChip(
             MiuixSurface(
                 modifier = modifier
                     .clip(shape)
-                    .clickable(enabled = enabled, onClick = onClick),
+                    // A plain clickable announced no state: TalkBack read the label but never said
+                    // whether the filter behind it was on. selectable publishes the selection.
+                    .selectable(
+                        selected = selected,
+                        enabled = enabled,
+                        onClick = onClick
+                    ),
                 shape = shape,
                 color = containerColor,
                 contentColor = contentColor
@@ -762,6 +773,7 @@ fun AppFilterChip(
 }
 
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
+
 
 /** Pull-to-refresh container: Miuix's own indicator, or Material's while MD is active. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -875,7 +887,8 @@ fun AppDropdownMenuItem(
             text = { Text(text) },
             onClick = onClick,
             modifier = modifier,
-            enabled = enabled
+            enabled = enabled,
+            leadingIcon = leadingIcon
         )
     }
 }

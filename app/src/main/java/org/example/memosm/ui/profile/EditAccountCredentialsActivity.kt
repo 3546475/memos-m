@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -77,7 +77,7 @@ class EditAccountCredentialsActivity : ComponentActivity() {
                                 contentAlignment = Alignment.TopCenter
                             ) {
                                 if (account == null) {
-                                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                                    AppCircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                                 } else {
                                     LoginContent(
                                         editAccount = account,

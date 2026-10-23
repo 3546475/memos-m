@@ -10,7 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.data.backup.BackupCoordinator
 import org.example.memosm.ui.backup.BackupTransferActivity
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.SavedMemosMTheme
 import org.koin.android.ext.android.inject
 
@@ -48,7 +48,9 @@ class SetupActivity : ComponentActivity() {
                     }
                 }
                 if (!ready) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        AppCircularProgressIndicator()
+                    }
                 } else {
                     SetupScreen(
                         onLogin = {

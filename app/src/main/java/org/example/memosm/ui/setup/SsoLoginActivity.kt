@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +33,7 @@ import org.example.memosm.api.SsoFailure
 import org.example.memosm.api.SsoTransaction
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.model.IdentityProvider
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.SavedMemosMTheme
 import org.koin.android.ext.android.inject
 
@@ -86,7 +86,7 @@ class SsoLoginActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator()
+                        AppCircularProgressIndicator()
                         Text(stringResource(R.string.login_sso_waiting))
                         TextButton(onClick = model::cancel) { Text(stringResource(R.string.common_cancel)) }
                     }

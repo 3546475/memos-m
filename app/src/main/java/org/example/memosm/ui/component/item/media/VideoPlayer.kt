@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -35,6 +34,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import org.example.memosm.ui.findActivity
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(UnstableApi::class)
@@ -125,7 +125,7 @@ fun VideoPlayer(
                 onClick = { onClick?.invoke() ?: run { isFullscreen = true } },
                 onLongClick = onLongClick
             )
-            if (!isReady) CircularProgressIndicator(modifier = Modifier.size(32.dp))
+            if (!isReady) AppCircularProgressIndicator(size = 32.dp)
         }
     }
 

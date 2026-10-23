@@ -16,13 +16,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppSnackbarHost
 import org.example.memosm.ui.theme.AppTopBar
 import androidx.compose.runtime.CompositionLocalProvider
@@ -88,7 +88,9 @@ class SetupLoginActivity : ComponentActivity() {
                     ) { padding ->
                         Box(Modifier.fillMaxSize().padding(padding).imePadding(), contentAlignment = Alignment.TopCenter) {
                             if (!ready || saving) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    AppCircularProgressIndicator()
+                                }
                             } else {
                                 LoginContent(
                                     modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(24.dp),

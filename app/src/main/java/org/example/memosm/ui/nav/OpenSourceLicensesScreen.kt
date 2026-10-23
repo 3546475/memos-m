@@ -3,7 +3,6 @@ package org.example.memosm.ui.nav
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -12,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import org.example.memosm.R
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 
 @Composable
 internal fun OpenSourceLicensesScreen(onBack: () -> Unit) {
@@ -24,7 +24,7 @@ internal fun OpenSourceLicensesScreen(onBack: () -> Unit) {
         val loaded = libraries
         if (loaded == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                AppCircularProgressIndicator()
             }
         } else {
             LibrariesContainer(libraries = loaded, modifier = Modifier.fillMaxSize().padding(padding))

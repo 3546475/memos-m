@@ -59,7 +59,7 @@ class MemoEditorActivity : ProfileActivity() {
         if (session == null) {
             androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize(),
                 contentAlignment = androidx.compose.ui.Alignment.Center) {
-                androidx.compose.material3.CircularProgressIndicator()
+                org.example.memosm.ui.theme.AppCircularProgressIndicator()
             }
             return
         }

@@ -13,7 +13,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,6 +37,7 @@ import org.example.memosm.ui.profile.NotificationsActivity
 import org.example.memosm.ui.component.LoginScreen
 import org.example.memosm.ui.component.LocalNetworkPermission
 import org.example.memosm.ui.component.rememberLocalNetworkPermission
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.SavedMemosMTheme
 import org.example.memosm.ui.setup.SetupActivity
 import org.example.memosm.viewmodel.MemosViewModel
@@ -85,7 +85,9 @@ class MainActivity : ComponentActivity() {
                     val recoveryError by org.example.memosm.data.backup.BackupCoordinator.recoveryError.collectAsState()
                     val startupReady by org.example.memosm.data.backup.BackupCoordinator.startupReady.collectAsState()
                     if (!startupReady) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            AppCircularProgressIndicator()
+                        }
                     } else if (recoveryError != null) {
                         androidx.compose.foundation.layout.Column(
                             Modifier.fillMaxSize().padding(24.dp),
@@ -153,7 +155,7 @@ class MainActivity : ComponentActivity() {
 
                     if (isCheckingSession || setupCompleted != true || appearance == null) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                            AppCircularProgressIndicator()
                         }
                     } else {
                         val activeAccount = accounts?.find { it.isActive }
@@ -168,7 +170,7 @@ class MainActivity : ComponentActivity() {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                             if (activeAccount != null && checkedAccount != activeAccount.id) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
+                                    AppCircularProgressIndicator()
                                 }
                             } else if (activeAccount != null) {
                                 // Launcher shortcuts land on the page they name; child pages that

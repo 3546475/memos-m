@@ -7,6 +7,7 @@ import org.example.memosm.ui.theme.isMiuixMotion
 import org.example.memosm.ui.theme.appEnterSpec
 
 import org.example.memosm.ui.theme.AppCard
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 
 import org.example.memosm.ui.theme.AppSlider
 
@@ -47,7 +48,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
@@ -228,8 +228,8 @@ fun AudioPlayer(
                                 .semantics { contentDescription = playbackLabel },
                             shape = MaterialTheme.shapes.extraLarge
                         ) {
-                            if (isBuffering) CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
+                            if (isBuffering) AppCircularProgressIndicator(
+                                size = 32.dp,
                                 color = MaterialTheme.colorScheme.onPrimary
                             ) else Icon(
                                 if (playWhenReady) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,

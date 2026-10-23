@@ -10,7 +10,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -40,6 +39,7 @@ import org.example.memosm.ui.component.rememberLocalNetworkPermission
 import org.example.memosm.ui.nav.SettingsScreen
 import org.example.memosm.ui.nav.SettingsSection
 import org.example.memosm.ui.setup.SetupActivity
+import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.SavedMemosMTheme
 import org.example.memosm.ui.theme.ProfileTheme
 import org.example.memosm.viewmodel.MemosViewModel
@@ -116,7 +116,7 @@ abstract class ProfileActivity : ComponentActivity() {
                         Surface(modifier = Modifier.fillMaxSize()) {
                             if (!sessionReady || !accountMatches) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
+                                    AppCircularProgressIndicator()
                                 }
                             } else {
                                 key(uiState.accountGeneration) {
