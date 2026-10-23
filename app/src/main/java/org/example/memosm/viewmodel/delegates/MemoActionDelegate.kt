@@ -346,11 +346,12 @@ class MemoActionDelegateImpl(
 
     private suspend fun applyLocalCreate(context: AccountContext, localMemo: Memo, draftIdToDelete: String?) {
         val accountId = context.account.id
-        // List first, storage second: the card is on screen before the first database round trip.
-        if (accountSession.isCurrent(context)) listUpdater.insertMemoIntoUserList(localMemo)
+        // Storage first: a list refresh racing with this write would otherwise replace the items
+        // with a cache that does not contain the temporary memo yet, hiding the card.
         memoCacheRepository.upsertCachedMemo(
             accountId, localMemo, CacheListType.USER, order = 0
         )
+        if (accountSession.isCurrent(context)) listUpdater.insertMemoIntoUserList(localMemo)
         draftIdToDelete?.let { draftManager.deleteDraft(context.account.id, it) }
         if (accountSession.isCurrent(context) && uiState.value.draft.currentEditingDraftId == draftIdToDelete) {
             draftDelegate.setCurrentEditingDraft(null)

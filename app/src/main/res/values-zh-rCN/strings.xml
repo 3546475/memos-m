@@ -173,7 +173,7 @@
     <string name="memo_detail_title">笔记详情</string>
         <string name="memo_detail_linked">关联备忘录</string>
     <string name="memo_detail_comments">评论 (%1$d)</string>
-    <string name="memo_sync_pending">同步中…</string>
+    <string name="memo_sync_pending">待同步…</string>
     <string name="memo_detail_no_comments">暂无评论</string>
     <string name="memo_detail_add_comment">添加评论</string>
     <string name="memo_detail_comment_placeholder">撰写你的评论...</string>

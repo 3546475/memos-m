@@ -74,7 +74,15 @@ class OpReplayExecutor(
         // death) is then deduplicated by the server instead of creating a
         // duplicate memo. The API layer drops it on server versions that
         // reject memoId (v0.26/v0.27), keeping the non-idempotent path there.
-        val created = api.createMemo(resolved, memoId = op.id)
+        val created = try {
+            api.createMemo(resolved, memoId = op.id)
+        } catch (e: HttpException) {
+            // A previous attempt created the memo but its response was lost: the retry is answered
+            // with 409 because memos/<memoId> already exists. Resolve that memo and finish the op
+            // instead of retrying the conflict until the queue gives up.
+            if (e.code() != 409) throw e
+            api.getMemo("memos/${op.id}")
+        }
         val serverName = created.name ?: return false
         if (tempName != null && tempName != serverName) {
             repository.renameMemo(accountId, tempName, serverName)

@@ -23,7 +23,11 @@ import org.example.memosm.data.sync.SyncManager
 import org.example.memosm.data.sync.SyncRepository
 import org.example.memosm.data.sync.SyncWorkScheduler
 import org.example.memosm.model.Account
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.example.memosm.model.Memo
+import retrofit2.HttpException
+import retrofit2.Response
 import org.example.memosm.viewmodel.AccountSession
 import org.junit.Assert.*
 import org.junit.Test
@@ -128,20 +132,50 @@ class SyncRetryTest {
         assertTrue(fixture.preferences.lastSyncTime("retry-account").first() > 0L)
     }
 
+    @Test fun `a create retried after the server already has it is acknowledged`() = runTest {
+        val fixture = Fixture(backgroundScope)
+        fixture.queued = PendingOp.new(
+            "retry-account", PendingOpType.CREATE, "offline-client-1",
+            payloadJson = GsonProvider.gson.toJson(Memo(content = "Unsynced memo")),
+            id = "client-1"
+        )
+        // The earlier attempt created memos/client-1 and lost the response: the retry is answered
+        // with 409, and the op must resolve that memo instead of failing until the queue gives up.
+        fixture.conflict = true
+        fixture.manager.pushPendingChanges()
+        runCurrent()
+        assertEquals(1, fixture.attempts)
+        assertNull(fixture.queued)
+        assertEquals(1, fixture.acknowledgedMemos)
+    }
+
     private class Fixture(scope: CoroutineScope) {
         var queued: PendingOp? = PendingOp.new("retry-account", PendingOpType.DELETE, "memos/1")
         var failure: Exception? = null
+        var conflict = false
         var release: CompletableDeferred<Unit>? = null
         var attempts = 0
         var acknowledgedMemos = 0
         val preferences = DataStoreManager(MemoryPreferences())
 
-        private val api = stub<MemosApi> { name, _ ->
-            check(name == "deleteMemo" || name == "createMemo") { name }
-            attempts++
-            release?.await()
-            failure?.let { throw it }
-            if (name == "createMemo") Memo(name = "memos/1", content = "Unsynced memo") else Unit
+        private val api = stub<MemosApi> { name, args ->
+            if (name == "getMemo") {
+                Memo(name = args[0] as String, content = "Unsynced memo")
+            } else {
+                check(name == "deleteMemo" || name == "createMemo") { name }
+                attempts++
+                release?.await()
+                if (conflict && name == "createMemo") {
+                    throw HttpException(
+                        Response.error<Any>(
+                            409,
+                            """{"message":"already exists"}""".toResponseBody("application/json".toMediaType())
+                        )
+                    )
+                }
+                failure?.let { throw it }
+                if (name == "createMemo") Memo(name = "memos/1", content = "Unsynced memo") else Unit
+            }
         }
         private val session = AccountSession(scope).apply {
             activate(Account(id = "retry-account"), api, OkHttpClient())

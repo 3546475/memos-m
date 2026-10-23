@@ -1220,12 +1220,19 @@ class MemosViewModel(
                 memoCacheRepository.removeCachedMemo(context.account.id, name)
                 memoListUpdater.removeMemoFromLists(name)
             }
+            // Those creates landed on the server (the outbox only drops an op it acknowledged),
+            // so pull the real memos back in: otherwise a background replay would leave the feed
+            // without the notes it just finished.
+            memoListUpdater.refreshUserMemos()
         }
     }
 
     private companion object {
-        /** How long a temporary card may exist before its missing op counts as abandoned. */
-        const val ORPHAN_GRACE_MS = 30_000L
+        /**
+         * How long a temporary card may exist before its missing op counts as abandoned. It only
+         * has to cover the few milliseconds between inserting the card and queueing its op.
+         */
+        const val ORPHAN_GRACE_MS = 3_000L
     }
 
     fun updateAttachmentAspectRatio(accountId: String?, generation: Long, key: String, ratio: Float) {
