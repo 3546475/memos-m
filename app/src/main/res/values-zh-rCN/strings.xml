@@ -164,6 +164,9 @@
     <string name="attachments_download_dialog_title">下载文件</string>
     <string name="attachments_download_dialog_confirm">确定要将 \"%1$s\" 下载到下载文件夹吗？</string>
     <string name="attachments_download_button">下载</string>
+    <string name="attachments_action_delete">从服务器删除</string>
+    <string name="attachments_delete_dialog_title">删除资源？</string>
+    <string name="attachments_delete_dialog_message">“%1$s”将从服务器删除；仍引用它的笔记会把该附件显示为缺失。</string>
 
     <string name="memo_dialog_edit_title">编辑笔记</string>
     <string name="memo_dialog_delete_title">删除笔记</string>

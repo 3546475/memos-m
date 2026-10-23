@@ -224,6 +224,17 @@ class AttachmentCacheManager(
     }
 
     /**
+     * Forget a cached download: the Room row, the staged file and the in-memory index. Used when
+     * the attachment was deleted on the server, so a stale copy cannot outlive it.
+     */
+    suspend fun deleteCached(accountId: String, attachmentName: String) = withContext(Dispatchers.IO) {
+        dao.deleteForAttachment(accountId, attachmentName)
+        localIndex.remove(indexKey(accountId, attachmentName))
+        File(File(OfflineMediaPaths.rootDir(context), accountId), attachmentName).deleteRecursively()
+        refreshUsage(accountId)
+    }
+
+    /**
      * Download a single attachment to the offline cache.
      * Returns true when the file is available locally afterwards.
      *

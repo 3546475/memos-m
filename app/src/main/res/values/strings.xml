@@ -180,6 +180,9 @@
     <string name="attachments_download_dialog_title">Download File</string>
     <string name="attachments_download_dialog_confirm">Do you want to download \"%1$s\" to your Downloads folder?</string>
     <string name="attachments_download_button">Download</string>
+    <string name="attachments_action_delete">Delete on server</string>
+    <string name="attachments_delete_dialog_title">Delete attachment?</string>
+    <string name="attachments_delete_dialog_message">\"%1$s\" will be deleted from the server. Notes that still reference it will show it as missing.</string>
 
     <string name="memo_dialog_edit_title">Edit Memo</string>
     <string name="memo_dialog_delete_title">Delete Memo</string>

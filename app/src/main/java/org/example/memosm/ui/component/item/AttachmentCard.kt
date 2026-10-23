@@ -93,7 +93,9 @@ fun AttachmentCard(
     onRatioAvailable: (Float, Boolean) -> Unit = { _, _ -> },
     mediaModifier: Modifier = Modifier,
     gallery: Boolean = false,
-    onMediaRatioAvailable: (Float, Boolean) -> Unit = { _, _ -> }
+    onMediaRatioAvailable: (Float, Boolean) -> Unit = { _, _ -> },
+    /** When set, the attachment actions offer deleting it from the server. */
+    onDelete: (() -> Unit)? = null
 ) {
     val accountIdentity = LocalAccountMediaIdentity.current
     val toggleImmersive = LocalViewerToggleImmersive.current
@@ -492,7 +494,8 @@ fun AttachmentCard(
             attachment = attachment, token = token, hostUrl = hostUrl,
             filename = filename, onShowInfo = { showInfoDialog = true },
             showButton = false, expanded = showAttachmentActions,
-            onDismiss = { showAttachmentActions = false }
+            onDismiss = { showAttachmentActions = false },
+            onDelete = onDelete
         )
     }
 

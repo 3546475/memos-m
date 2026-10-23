@@ -264,6 +264,11 @@ abstract class BaseListManager<T>(
         }
     }
 
+    /** Put a captured snapshot back (used to roll back an optimistic delete). */
+    fun restoreItems(items: List<T>) {
+        updateState { state -> state.copy(items = items) }
+    }
+
     /**
      * Re-apply the manager's own order. Call after changing a field the order depends on (pinned,
      * displayTime): an in-place replace keeps the old position until the next server refresh.

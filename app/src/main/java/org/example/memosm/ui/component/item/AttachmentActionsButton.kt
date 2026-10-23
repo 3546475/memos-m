@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
@@ -52,7 +53,9 @@ internal fun AttachmentActionsButton(
     enabled: Boolean = true,
     showButton: Boolean = true,
     expanded: Boolean = false,
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
+    /** When set, the sheet offers deleting the attachment from the server. */
+    onDelete: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var showMenu by remember(attachment, filename) { mutableStateOf(false) }
@@ -152,6 +155,26 @@ internal fun AttachmentActionsButton(
                         Icon(
                             Icons.Outlined.Share,
                             contentDescription = null
+                        )
+                    })
+            }
+            if (onDelete != null) {
+                ActionSheetItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.attachments_action_delete),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        dismissMenu()
+                        onDelete.invoke()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
                         )
                     })
             }

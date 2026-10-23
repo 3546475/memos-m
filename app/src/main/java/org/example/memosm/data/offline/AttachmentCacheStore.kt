@@ -70,6 +70,10 @@ class AttachmentCacheStore(
         return meta.getAll(accountId, limit)
     }
 
+    /** Forget one attachment's metadata after it was deleted on the server. */
+    suspend fun removeMeta(accountId: String, attachmentName: String) =
+        meta.deleteOne(accountId, attachmentName)
+
     /** Remove all attachment metadata of an account (when it is removed). */
     suspend fun clearMeta(accountId: String) {
         syncedAccounts -= accountId

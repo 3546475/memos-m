@@ -146,6 +146,7 @@ fun AttachmentsScreen(
     val attachmentOrigins = remember(accountIdentity) { AttachmentOrigins() }
     var showFullScreenViewer by remember(accountIdentity) { mutableStateOf(false) }
     var fullScreenInitialIndex by remember(accountIdentity) { mutableStateOf(0) }
+    var pendingDelete by remember(accountIdentity) { mutableStateOf<org.example.memosm.model.Attachment?>(null) }
 
     rememberScrollContext(
         listState = listState,
@@ -279,7 +280,10 @@ fun AttachmentsScreen(
                                 accountIdentity?.id, accountIdentity?.generation ?: 0,
                                 attachment.identityKey, ratio
                             )
-                        }
+                        },
+                        // Only attachments the server already knows can be deleted; a queued
+                        // upload has no name yet.
+                        onDelete = attachment.name?.let { { pendingDelete = attachment } }
                     )
                 }
                 LazyColumn(
@@ -355,6 +359,32 @@ fun AttachmentsScreen(
                 }
             }
         }
+    }
+
+    pendingDelete?.let { target ->
+        org.example.memosm.ui.theme.AppDialog(
+            show = true,
+            title = stringResource(R.string.attachments_delete_dialog_title),
+            summary = stringResource(
+                R.string.attachments_delete_dialog_message, target.filename
+            ),
+            onDismissRequest = { pendingDelete = null },
+            buttons = {
+                org.example.memosm.ui.theme.AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { pendingDelete = null }
+                )
+                org.example.memosm.ui.theme.AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        viewModel.deleteAttachment(target)
+                        pendingDelete = null
+                    }
+                )
+            }
+        )
     }
 
     if (showFullScreenViewer) {

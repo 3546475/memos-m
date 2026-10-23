@@ -30,6 +30,10 @@ interface CachedAttachmentMetaDao {
     )
     suspend fun deleteMissingSince(accountId: String, minCreateTime: Long, keep: List<String>)
 
+    /** Drop one attachment's metadata (it no longer exists on the server). */
+    @Query("DELETE FROM cached_attachment_meta WHERE accountId = :accountId AND attachmentName = :attachmentName")
+    suspend fun deleteOne(accountId: String, attachmentName: String)
+
     @Query("SELECT COUNT(*) FROM cached_attachment_meta WHERE accountId = :accountId")
     suspend fun count(accountId: String): Int
 }

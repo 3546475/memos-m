@@ -45,6 +45,8 @@ import org.example.memosm.data.sync.SyncManager
 import org.example.memosm.data.sync.SyncRepository
 import org.example.memosm.data.sync.SyncWorkScheduler
 import org.example.memosm.model.Account
+import org.example.memosm.R
+import org.example.memosm.model.Attachment
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.OfflineMemoPrefix
@@ -933,6 +935,32 @@ class MemosViewModel(
         if (accountSession.current == null) return
         reachabilityMonitor.start(::runRecoverySequence)
         memoCacheReconciler.start()
+    }
+
+    /**
+     * Delete an attachment on the server (the Resources page is the only place that offers it).
+     * The row disappears immediately; a failure restores it and reports the error.
+     */
+    fun deleteAttachment(attachment: Attachment) {
+        val name = attachment.name ?: return
+        val context = accountSession.current ?: return
+        val accountId = context.account.id
+        viewModelScope.launch {
+            val snapshot = attachmentManager.listState.value.items
+            attachmentManager.remove { it.name == name }
+            try {
+                context.api.deleteAttachment(name)
+                attachmentCacheStore.removeMeta(accountId, name)
+                attachmentCacheManager.deleteCached(accountId, name)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                attachmentManager.restoreItems(snapshot)
+                _uiState.update {
+                    it.copy(error = UiMessage(R.string.common_operation_failed))
+                }
+            }
+        }
     }
 
     fun onForeground() {

@@ -32,4 +32,6 @@ class GuardedAttachmentMetaDao(private val delegate: CachedAttachmentMetaDao) : 
     override suspend fun clear(accountId: String) = BackupCoordinator.withStorageLock { delegate.clear(accountId) }
     override suspend fun deleteMissingSince(accountId: String, minCreateTime: Long, keep: List<String>) =
         BackupCoordinator.withStorageLock { delegate.deleteMissingSince(accountId, minCreateTime, keep) }
+    override suspend fun deleteOne(accountId: String, attachmentName: String) =
+        BackupCoordinator.withStorageLock { delegate.deleteOne(accountId, attachmentName) }
 }

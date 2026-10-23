@@ -58,6 +58,9 @@ class RoomAttachmentMetaStore(
         dao.upsertAll(rows)
     }
 
+    /** Remove one attachment's metadata. */
+    suspend fun deleteOne(accountId: String, attachmentName: String) = dao.deleteOne(accountId, attachmentName)
+
     /** Remove all attachment metadata of an account. */
     suspend fun clear(accountId: String) = dao.clear(accountId)
 
