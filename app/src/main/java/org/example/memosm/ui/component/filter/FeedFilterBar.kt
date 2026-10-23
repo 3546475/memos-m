@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.Icon
@@ -34,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.model.Shortcut
 import org.example.memosm.model.filter.MemoFilter
+import org.example.memosm.model.filter.MemoSort
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.MiuixTokens
 
@@ -53,18 +56,21 @@ data class FeedFilterToken(
     /** Tag name (without `#`) for [Kind.TAG] tokens. */
     val tag: String? = null
 ) {
-    enum class Kind { VIEW, TAG, DATE }
+    enum class Kind { VIEW, TAG, DATE, SORT }
 }
 
 /**
  * Turns the structured filter into the summary bar's tokens. [view] is the saved view the filter
  * was built from, when it is still in the shortcut list; [fallbackLabel] covers a persisted view
- * that the server no longer returns.
+ * that the server no longer returns. [dateLabel] and [sortLabel] are null when the UI has nothing
+ * to show for them (a custom range, or the default order).
  */
 fun memoFilterTokens(
     filter: MemoFilter,
     view: Shortcut?,
-    fallbackLabel: String
+    fallbackLabel: String,
+    dateLabel: String?,
+    sortLabel: String?
 ): List<FeedFilterToken> = buildList {
     if (filter.hasLegacyClause) {
         val label = view?.title?.takeIf { it.isNotBlank() }
@@ -87,6 +93,26 @@ fun memoFilterTokens(
                 icon = Icons.Outlined.Tag,
                 kind = FeedFilterToken.Kind.TAG,
                 tag = tag
+            )
+        )
+    }
+    if (filter.date != null && dateLabel != null) {
+        add(
+            FeedFilterToken(
+                id = "date",
+                label = dateLabel,
+                icon = Icons.Outlined.CalendarMonth,
+                kind = FeedFilterToken.Kind.DATE
+            )
+        )
+    }
+    if (filter.sort != MemoSort.PINNED_DESC && sortLabel != null) {
+        add(
+            FeedFilterToken(
+                id = "sort",
+                label = sortLabel,
+                icon = Icons.AutoMirrored.Outlined.Sort,
+                kind = FeedFilterToken.Kind.SORT
             )
         )
     }

@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.example.memosm.data.offline.SessionCacheStore
 import org.example.memosm.data.offline.SessionSnapshotData
-import org.example.memosm.model.Shortcut
 import org.example.memosm.model.filter.MemoFilter
 import org.example.memosm.model.filter.normalizeTag
 import org.example.memosm.viewmodel.AccountContext
@@ -20,12 +19,6 @@ import org.example.memosm.viewmodel.MemosUiState
 interface FilterDelegate {
     /** Replace the filter; a no-op when nothing actually changes. */
     fun apply(filter: MemoFilter)
-
-    /**
-     * Pick a saved view (null clears it). A view is a preset: it replaces the base clause and the
-     * facets, which is what the old exclusive shortcut/tag pair already implied.
-     */
-    fun selectView(shortcut: Shortcut?)
 
     /** Add the tag, or remove it when it is already applied. */
     fun toggleTag(tag: String)
@@ -50,21 +43,6 @@ class FilterDelegateImpl(
         }
         persist(context, next)
         onFilterApplied(next)
-    }
-
-    override fun selectView(shortcut: Shortcut?) {
-        if (shortcut == null) {
-            clear()
-            return
-        }
-        val cel = shortcut.filter?.trim().orEmpty()
-        // A view with no expression filters nothing; treating it as "all memos" is less
-        // surprising than a checked view that hides nothing.
-        if (cel.isEmpty()) {
-            clear()
-            return
-        }
-        apply(MemoFilter(viewName = shortcut.name, legacyCel = listOf(cel)))
     }
 
     override fun toggleTag(tag: String) {

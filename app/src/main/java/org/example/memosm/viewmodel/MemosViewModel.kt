@@ -143,6 +143,7 @@ class MemosViewModel(
             _uiState.value.userMemoList.filter.toCel(creator)
         },
         localFilterProvider = { _uiState.value.userMemoList.filter },
+        sortProvider = { _uiState.value.userMemoList.filter.sort },
         pageSizeProvider = { _uiState.value.appSettings.pageSize },
         cacheCallbacks = CacheCallbacks(onFetchSuccess = { memos ->
             val context = accountSession.current ?: return@CacheCallbacks

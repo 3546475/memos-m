@@ -14,6 +14,7 @@ import org.example.memosm.api.resolveMemoOrderBy
 import org.example.memosm.model.Memo
 import org.example.memosm.model.User
 import org.example.memosm.model.filter.MemoFilter
+import org.example.memosm.model.filter.MemoSort
 import org.example.memosm.model.filter.matches
 import retrofit2.HttpException
 
@@ -40,6 +41,19 @@ private val MEMO_TIME_COMPARATOR: Comparator<Memo> =
 private fun memoCacheFilter(provider: () -> MemoFilter): () -> ((Memo) -> Boolean) =
     { { memo -> provider().matches(memo) } }
 
+/** Feed order selected by the user; the server default is pinned-first. */
+private fun MemoSort.comparator(): Comparator<Memo> = when (this) {
+    MemoSort.PINNED_DESC -> USER_MEMO_COMPARATOR
+    MemoSort.NEWEST -> MEMO_TIME_COMPARATOR
+    MemoSort.OLDEST -> compareBy { it.displayTime?.toEpochMilliseconds() ?: 0L }
+}
+
+private fun MemoSort.toOrderBy(): MemoOrderBy = when (this) {
+    MemoSort.PINNED_DESC -> MemoOrderBy.PINNED_DESC
+    MemoSort.NEWEST -> MemoOrderBy.NEWEST
+    MemoSort.OLDEST -> MemoOrderBy.OLDEST
+}
+
 class UserMemoListManager(
     scope: CoroutineScope,
     private val apiProvider: () -> MemosApi?,
@@ -47,13 +61,15 @@ class UserMemoListManager(
     private val pageSizeProvider: () -> Int,
     cacheCallbacks: CacheCallbacks<Memo>? = null,
     protectedNamesProvider: (() -> Set<String>)? = null,
-    localFilterProvider: (() -> MemoFilter)? = null
+    localFilterProvider: (() -> MemoFilter)? = null,
+    private val sortProvider: () -> MemoSort = { MemoSort.PINNED_DESC }
 ) : BaseListManager<Memo>(
     scope,
     cacheCallbacks = cacheCallbacks,
     nameProvider = { it.name },
     protectedNamesProvider = protectedNamesProvider,
     sortComparator = USER_MEMO_COMPARATOR,
+    sortComparatorProvider = { sortProvider().comparator() },
     cacheFilterProvider = localFilterProvider?.let(::memoCacheFilter)
 ) {
 
@@ -78,7 +94,7 @@ class UserMemoListManager(
                 pageSize = pageSize,
                 pageToken = pageToken,
                 filter = filter,
-                orderBy = api.resolveMemoOrderBy(MemoOrderBy.PINNED_DESC)
+                orderBy = api.resolveMemoOrderBy(sortProvider().toOrderBy())
             )
             Log.d(TAG, "UserMemoListManager success: count=${response.memos?.size ?: 0}")
             return Pair(response.memos ?: emptyList(), response.nextPageToken)

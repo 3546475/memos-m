@@ -108,11 +108,22 @@ class MemoFilterTest {
             viewName = "v",
             legacyCel = listOf("x"),
             tags = setOf("a", "b"),
-            date = MemoDateRange(startMillis = 1L)
+            date = MemoDateRange(startMillis = 1L),
+            sort = MemoSort.OLDEST
         )
         assertTrue(filter.isActive)
-        assertEquals(3, filter.activeCount)
-        assertEquals(MemoFilter(tags = filter.tags, date = filter.date), filter.withoutView())
+        assertEquals(4, filter.activeCount)
+        assertEquals(MemoFilter(tags = filter.tags, date = filter.date, sort = filter.sort), filter.withoutView())
+    }
+
+    @Test
+    fun `sort is a preference that never reaches the expression`() {
+        val filter = MemoFilter(sort = MemoSort.OLDEST)
+        assertNull(filter.toCel(null))
+        assertTrue(filter.isActive)
+        assertEquals(1, filter.activeCount)
+        assertTrue(filter.matches(memo()))
+        assertEquals(MemoFilter(), filter.copy(sort = MemoSort.PINNED_DESC))
     }
 
     @Test
@@ -129,7 +140,8 @@ class MemoFilterTest {
             legacyCel = listOf("pinned"),
             tags = setOf("a", "b"),
             tagMatch = TagMatch.ANY,
-            date = MemoDateRange(1L, 2L)
+            date = MemoDateRange(1L, 2L),
+            sort = MemoSort.NEWEST
         )
         val gson = Gson()
         assertEquals(filter, gson.fromJson(gson.toJson(filter), MemoFilter::class.java))

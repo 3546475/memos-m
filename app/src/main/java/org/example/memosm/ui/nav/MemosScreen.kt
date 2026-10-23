@@ -88,7 +88,15 @@ import org.example.memosm.ui.component.filter.FeedFilterBarHeight
 import org.example.memosm.ui.component.filter.FeedFilterButton
 import org.example.memosm.ui.component.filter.FeedEmptyState
 import org.example.memosm.ui.component.filter.FeedFilterToken
+import org.example.memosm.ui.component.filter.FilterPanel
+import org.example.memosm.ui.component.filter.dateLabel
+import org.example.memosm.ui.component.filter.filterDatePresetOf
 import org.example.memosm.ui.component.filter.memoFilterTokens
+import org.example.memosm.ui.component.filter.sortLabel
+import org.example.memosm.model.Shortcut
+import org.example.memosm.model.filter.MemoSort
+import org.example.memosm.model.filter.normalizeTag
+import org.example.memosm.ui.component.setting.ShortcutEditDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
@@ -164,10 +172,13 @@ fun MemosScreen(
     var feedHeaderHeight by remember { mutableStateOf(64.dp) }
     val context = LocalContext.current
 
-    // --- Feed filter: one chrome entry + a pinned summary of the structured filter. Everything
-    // goes through FilterDelegate, so the request filter, the summary and the persisted copy can
-    // never disagree.
-    var showFilterMenu by remember { mutableStateOf(false) }
+    // --- Feed filter: one chrome entry opening the structured panel, plus a pinned summary of
+    // what is applied. Everything goes through FilterDelegate, so the request filter, the summary
+    // and the persisted copy can never disagree.
+    var showFilterPanel by remember { mutableStateOf(false) }
+    // Non-null when the "save as view" dialog is open, carrying the compiled filter expression.
+    var creatingViewCel by remember { mutableStateOf<String?>(null) }
+    var editingShortcut by remember { mutableStateOf<Shortcut?>(null) }
     val feedFilter = uiState.userMemoList.filter
     val feedFilterActive = feedFilter.isActive
     // Explore has no filter model yet, so the entry only exists on the notes feed.
@@ -177,38 +188,59 @@ fun MemosScreen(
         uiState.userMemoList.shortcuts.firstOrNull { it.name != null && it.name == feedFilter.viewName }
     }
     val fallbackViewLabel = stringResource(R.string.memo_filter_title)
-    val filterTokens = remember(feedFilter, selectedView, fallbackViewLabel) {
-        memoFilterTokens(feedFilter, selectedView, fallbackViewLabel)
+    val dateTokenLabel = if (feedFilter.date == null) {
+        null
+    } else {
+        filterDatePresetOf(feedFilter.date)?.dateLabel()
+            ?: stringResource(R.string.memo_filter_date_custom)
+    }
+    val sortTokenLabel = if (feedFilter.sort == MemoSort.PINNED_DESC) null else feedFilter.sort.sortLabel()
+    // Tag suggestions come from both sources: the profile stats know tags the feed has not loaded
+    // yet, and the loaded feed knows tags the stats snapshot may be missing (offline, new notes).
+    val tagCounts = remember(uiState.session.userStats?.tagCount, uiState.userMemoList.list.items) {
+        val fromStats = uiState.session.userStats?.tagCount.orEmpty()
+            .mapKeys { (tag, _) -> normalizeTag(tag) }
+        val fromFeed = uiState.userMemoList.list.items
+            .flatMap { it.tags.orEmpty() }
+            .groupingBy { tag -> normalizeTag(tag) }
+            .eachCount()
+        (fromStats.keys + fromFeed.keys).associateWith { tag ->
+            maxOf(fromStats[tag] ?: 0, fromFeed[tag] ?: 0)
+        }
+    }
+    val filterTokens = remember(
+        feedFilter, selectedView, fallbackViewLabel, dateTokenLabel, sortTokenLabel
+    ) {
+        memoFilterTokens(
+            filter = feedFilter,
+            view = selectedView,
+            fallbackLabel = fallbackViewLabel,
+            dateLabel = dateTokenLabel,
+            sortLabel = sortTokenLabel
+        )
     }
     val removeFilterToken: (FeedFilterToken) -> Unit = { token ->
         when (token.kind) {
             FeedFilterToken.Kind.VIEW -> viewModel.filterDelegate.apply(feedFilter.withoutView())
             FeedFilterToken.Kind.TAG -> token.tag?.let { viewModel.filterDelegate.toggleTag(it) }
             FeedFilterToken.Kind.DATE -> viewModel.filterDelegate.apply(feedFilter.copy(date = null))
+            FeedFilterToken.Kind.SORT -> viewModel.filterDelegate.apply(
+                feedFilter.copy(sort = MemoSort.PINNED_DESC)
+            )
         }
     }
     val feedFilterButton: @Composable () -> Unit = {
         if (feedFilterAvailable) {
             FeedFilterButton(
-                expanded = showFilterMenu,
-                onExpandedChange = { showFilterMenu = it },
-                filter = feedFilter,
-                shortcuts = uiState.userMemoList.shortcuts,
-                onSelectView = { viewModel.filterDelegate.selectView(it) },
-                onClear = clearFeedFilter,
-                onToggleTag = { viewModel.filterDelegate.toggleTag(it) },
-                onManageShortcuts = {
-                    context.startActivity(
-                        SettingsActivity.createIntent(context, SettingsSection.SHORTCUTS)
-                    )
-                }
+                active = feedFilterActive,
+                onClick = { showFilterPanel = true }
             )
         }
     }
 
-    // The menu belongs to the notes feed; a menu left open across a tab switch would pop up
-    // again under the other feed, which has no filter model.
-    LaunchedEffect(activeFeed) { showFilterMenu = false }
+    // The panel belongs to the notes feed; leaving it open across a tab switch would edit the
+    // wrong feed's state.
+    LaunchedEffect(activeFeed) { showFilterPanel = false }
 
     val openEditor = rememberMemoEditorLauncher(viewModel)
     val draftsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -471,9 +503,9 @@ fun MemosScreen(
                         onHashtagClick = { tag -> viewModel.filterDelegate.toggleTag(tag) },
                         emptyState = {
                             FeedEmptyState(
-                                filtered = feedFilterActive,
+                                filtered = feedFilter.hasConditions,
                                 onClearFilter = clearFeedFilter,
-                                onChangeFilter = { showFilterMenu = true }
+                                onChangeFilter = { showFilterPanel = true }
                             )
                         },
                         isActive = activeFeed == feed
@@ -628,6 +660,57 @@ fun MemosScreen(
                 }
             }
         })
+
+    // The structured filter panel: drafts are edited there and committed in one request.
+    FilterPanel(
+        show = showFilterPanel,
+        filter = feedFilter,
+        shortcuts = uiState.userMemoList.shortcuts,
+        tagCounts = tagCounts,
+        onDismiss = { showFilterPanel = false },
+        onApply = { filter ->
+            showFilterPanel = false
+            viewModel.filterDelegate.apply(filter)
+        },
+        onManageShortcuts = {
+            showFilterPanel = false
+            context.startActivity(
+                SettingsActivity.createIntent(context, SettingsSection.SHORTCUTS)
+            )
+        },
+        onSaveAsView = { cel ->
+            showFilterPanel = false
+            creatingViewCel = cel
+        },
+        onEditShortcut = { shortcut ->
+            showFilterPanel = false
+            editingShortcut = shortcut
+        }
+    )
+
+    // "Save as view" reuses the shortcut editor from settings: it already validates the expression
+    // and reports server errors, so a failed save has somewhere to show up.
+    creatingViewCel?.let { cel ->
+        ShortcutEditDialog(
+            title = stringResource(R.string.memo_filter_save_view_title),
+            initialFilter = cel,
+            onDismiss = { creatingViewCel = null },
+            onConfirm = { title, filterText, onSuccess, onError ->
+                viewModel.shortcutDelegate.createShortcut(title, filterText, onSuccess, onError)
+            }
+        )
+    }
+    editingShortcut?.let { shortcut ->
+        ShortcutEditDialog(
+            title = stringResource(R.string.profile_shortcuts_edit),
+            initialTitle = shortcut.title.orEmpty(),
+            initialFilter = shortcut.filter.orEmpty(),
+            onDismiss = { editingShortcut = null },
+            onConfirm = { title, filterText, onSuccess, onError ->
+                viewModel.shortcutDelegate.updateShortcut(shortcut, title, filterText, onSuccess, onError)
+            }
+        )
+    }
 
     // Failed attachment uploads are only read when the panel is opened: they change rarely and the
     // list is a diagnostic view.

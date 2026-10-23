@@ -75,6 +75,11 @@ abstract class BaseListManager<T>(
      */
     private val sortComparator: Comparator<T>? = null,
     /**
+     * Order that can change while the manager lives (the feed's user-selected sort). Takes
+     * precedence over [sortComparator] when it returns one.
+     */
+    private val sortComparatorProvider: (() -> Comparator<T>?)? = null,
+    /**
      * Whether a first server page is merged with the cached rows it does not mention. Memos keep
      * the merge (the cache holds the full history), but lists whose cache only mirrors the server
      * must let the page win, otherwise remotely deleted rows stay visible forever.
@@ -240,8 +245,10 @@ abstract class BaseListManager<T>(
     }
 
     /** Apply the manager's sort order (when configured) to a list of items. */
-    private fun sortIfNeeded(items: List<T>): List<T> =
-        if (sortComparator != null) items.sortedWith(sortComparator) else items
+    private fun sortIfNeeded(items: List<T>): List<T> {
+        val comparator = sortComparatorProvider?.invoke() ?: sortComparator
+        return if (comparator != null) items.sortedWith(comparator) else items
+    }
 
     // Helper to allow external updates (e.g. CRUD operations updating the list locally)
     fun updateState(transform: (PaginatedListState<T>) -> PaginatedListState<T>) {

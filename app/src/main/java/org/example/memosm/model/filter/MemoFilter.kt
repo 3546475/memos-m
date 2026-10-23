@@ -17,21 +17,32 @@ data class MemoFilter(
     val legacyCel: List<String> = emptyList(),
     val tags: Set<String> = emptySet(),
     val tagMatch: TagMatch = TagMatch.ALL,
-    val date: MemoDateRange? = null
+    val date: MemoDateRange? = null,
+    /** Ordering of the feed; not a filter condition, but stored and cleared with it. */
+    val sort: MemoSort = MemoSort.PINNED_DESC
 ) {
     /** True when the filter carries an opaque clause that only the server can evaluate. */
     val hasLegacyClause: Boolean
         get() = viewName != null || legacyCel.isNotEmpty()
 
-    val isActive: Boolean
+    /** True when something narrows the result set (sorting alone does not). */
+    val hasConditions: Boolean
         get() = hasLegacyClause || tags.isNotEmpty() || date != null
+
+    val isActive: Boolean
+        get() = hasConditions || sort != MemoSort.PINNED_DESC
 
     /**
      * Number of facets in use. A tag set counts once: the chrome badge and the "apply (n)"
      * button describe conditions, not individual tags.
      */
     val activeCount: Int
-        get() = listOf(hasLegacyClause, tags.isNotEmpty(), date != null).count { it }
+        get() = listOf(
+            hasLegacyClause,
+            tags.isNotEmpty(),
+            date != null,
+            sort != MemoSort.PINNED_DESC
+        ).count { it }
 
     fun withTag(tag: String): MemoFilter {
         val name = normalizeTag(tag)
@@ -57,6 +68,12 @@ data class MemoFilter(
 }
 
 enum class TagMatch { ALL, ANY }
+
+/**
+ * Feed ordering. [PINNED_DESC] is the server's default (pinned first, then newest); the other two
+ * are plain time order. Kept in the filter so it is persisted and cleared together with it.
+ */
+enum class MemoSort { PINNED_DESC, NEWEST, OLDEST }
 
 /**
  * A created-time window: [startMillis] inclusive, [endMillisExclusive] exclusive. The open ends
