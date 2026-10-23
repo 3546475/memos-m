@@ -37,6 +37,7 @@ import org.example.memosm.data.offline.NotificationCacheStore
 import org.example.memosm.data.offline.NotificationsSnapshotData
 import org.example.memosm.data.offline.SessionCacheStore
 import org.example.memosm.data.sync.ConflictResolution
+import org.example.memosm.data.sync.PendingOp
 import org.example.memosm.data.sync.PendingOpType
 import org.example.memosm.data.sync.PreDownloadManager
 import org.example.memosm.data.sync.PreDownloadState
@@ -46,6 +47,7 @@ import org.example.memosm.data.sync.SyncWorkScheduler
 import org.example.memosm.model.Account
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoState
+import org.example.memosm.model.OfflineMemoPrefix
 import org.example.memosm.viewmodel.delegates.AppSettingsDelegate
 import org.example.memosm.viewmodel.delegates.AppSettingsDelegateImpl
 import org.example.memosm.viewmodel.delegates.DraftDelegate
@@ -718,6 +720,7 @@ class MemosViewModel(
                 accountSession.update(_uiState, context) {
                     it.copy(pendingOps = ops, pendingOpsCount = ops.size)
                 }
+                pruneOrphanedLocalMemos(context, ops)
             }
         }
         viewModelScope.launch {
@@ -1192,6 +1195,37 @@ class MemosViewModel(
                 it.copy(detailPane = it.detailPane.copy(selectedMemo = updatedMemo))
             }
         }
+    }
+
+    /**
+     * A locally created memo lives in the list under a temporary "offline-" name until the outbox
+     * lands its create. If the queue no longer holds that op the create is either done or gone, so
+     * the temporary card must not stay behind as a duplicate next to the real memo.
+     */
+    private fun pruneOrphanedLocalMemos(context: AccountContext, ops: List<PendingOp>) {
+        val pending = ops.mapNotNullTo(HashSet()) { it.memoName }
+        // A card written a moment ago may not have had its op observed yet, so only clean up
+        // entries that have had time to be acknowledged.
+        val cutoff = System.currentTimeMillis() - ORPHAN_GRACE_MS
+        val stale = _uiState.value.userMemoList.list.items
+            .mapNotNull { memo ->
+                val created = memo.createTime?.toEpochMilliseconds() ?: 0L
+                memo.name?.takeIf {
+                    it.startsWith(OfflineMemoPrefix) && it !in pending && created < cutoff
+                }
+            }
+        if (stale.isEmpty()) return
+        viewModelScope.launch {
+            stale.forEach { name ->
+                memoCacheRepository.removeCachedMemo(context.account.id, name)
+                memoListUpdater.removeMemoFromLists(name)
+            }
+        }
+    }
+
+    private companion object {
+        /** How long a temporary card may exist before its missing op counts as abandoned. */
+        const val ORPHAN_GRACE_MS = 30_000L
     }
 
     fun updateAttachmentAspectRatio(accountId: String?, generation: Long, key: String, ratio: Float) {

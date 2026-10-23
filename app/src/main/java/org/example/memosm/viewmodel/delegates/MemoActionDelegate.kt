@@ -124,6 +124,7 @@ class MemoActionDelegateImpl(
     private val notifyOfflineSaved: () -> Unit = ::toastOfflineSaved
 ) : MemoActionDelegate {
 
+
     private val attachmentManager: AttachmentManager? get() = attachmentManagerProvider()
     private val commentManager: CommentListManager? get() = commentManagerProvider()
     private val gson = GsonProvider.gson
@@ -265,11 +266,32 @@ class MemoActionDelegateImpl(
             location = location
         )
         scope.launch {
+            runCreate(context, memo, clientId, draftIdToDelete, onError, onSuccess, linkedMemoNames, wasOnline)
+        }
+    }
+
+    private suspend fun runCreate(
+        context: AccountContext,
+        memo: Memo,
+        clientId: String,
+        draftIdToDelete: String?,
+        onError: () -> Unit,
+        onSuccess: () -> Unit,
+        linkedMemoNames: List<String>,
+        wasOnline: Boolean
+    ) {
+        var memo = memo
+        val accountId = context.account.id
+        kotlin.run {
             try {
                 val prepared = attachmentManager?.prepareRestoredDraftAttachments(context, memo.attachments.orEmpty()) ?: memo.attachments.orEmpty()
                 memo = memo.copy(attachments = prepared.ifEmpty { null })
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (error: Exception) { reportOperationFailure(context, error); if (accountSession.isCurrent(context)) onError(); return@launch }
+            catch (error: Exception) {
+                reportOperationFailure(context, error)
+                if (accountSession.isCurrent(context)) onError()
+                return
+            }
 
             // Local first, online or not: the card exists before the network is touched and the
             // outbox owns the request from here. The composer closes immediately; the memo takes
@@ -298,6 +320,9 @@ class MemoActionDelegateImpl(
                     }
                     .ifEmpty { null }
             )
+            // The card must exist before the op is queued: once queued, a replay can land at any
+            // moment and insert the server copy, which would leave the temporary card behind.
+            applyLocalCreate(context, localMemo, draftIdToDelete)
             syncManager.enqueue(
                 PendingOp.new(
                     accountId = accountId,
@@ -307,7 +332,6 @@ class MemoActionDelegateImpl(
                     id = clientId
                 )
             )
-            applyLocalCreate(context, localMemo, draftIdToDelete)
             if (accountSession.isCurrent(context)) onSuccess()
             if (!wasOnline) {
                 // The user asked for an offline write: say so instead of pretending it synced.
@@ -322,10 +346,11 @@ class MemoActionDelegateImpl(
 
     private suspend fun applyLocalCreate(context: AccountContext, localMemo: Memo, draftIdToDelete: String?) {
         val accountId = context.account.id
+        // List first, storage second: the card is on screen before the first database round trip.
+        if (accountSession.isCurrent(context)) listUpdater.insertMemoIntoUserList(localMemo)
         memoCacheRepository.upsertCachedMemo(
             accountId, localMemo, CacheListType.USER, order = 0
         )
-        if (accountSession.isCurrent(context)) listUpdater.insertMemoIntoUserList(localMemo)
         draftIdToDelete?.let { draftManager.deleteDraft(context.account.id, it) }
         if (accountSession.isCurrent(context) && uiState.value.draft.currentEditingDraftId == draftIdToDelete) {
             draftDelegate.setCurrentEditingDraft(null)

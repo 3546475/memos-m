@@ -40,6 +40,9 @@ class MemoWriteAccountIsolationTest {
         val ops = linkedMapOf<String, PendingOp>()
         val memos = linkedMapOf<String, CachedMemo>()
         val visible = linkedMapOf<String, Memo>()
+        // Who was signed in when a card reached the list: the local card may appear for A, but
+        // never on B's behalf once the account switched.
+        val visibleOwners = mutableListOf<String>()
         val drafts = DraftManager(object : ContextWrapper(null) {
             override fun getFilesDir() = File(temp.root, "files").apply { mkdirs() }
             override fun getCacheDir() = File(temp.root, "cache").apply { mkdirs() }
@@ -69,6 +72,7 @@ class MemoWriteAccountIsolationTest {
                 check(name == "insertMemoIntoUserList")
                 val memo = args[0] as Memo
                 visible[memo.name!!] = memo
+                visibleOwners += sessions.current?.account?.id ?: "none"
                 Unit
             }, draftDelegate, { null }, { null }, sync, cache, sessions, drafts, { false }, {})
     }
@@ -101,7 +105,7 @@ class MemoWriteAccountIsolationTest {
         fixture.state.value = fixture.state.value.forAccount(Account(id = "B"))
         fixture.release.complete(Unit)
         assertEquals(1, fixture.ops.size)
-        assertTrue(fixture.visible.isEmpty())
+        assertTrue("no card reached the list after the switch", fixture.visibleOwners.all { it == "A" })
         assertEquals(listOf(draft.id), fixture.drafts.getDrafts("A").map { it.id })
         fixture.sessions.activate(fixture.a, fixture.api, OkHttpClient(), networkReady = false)
         fixture.state.value = fixture.state.value.forAccount(fixture.a).copy(draft = DraftState(drafts = listOf(draft)))

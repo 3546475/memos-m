@@ -44,6 +44,7 @@ class MemoEditorSubmissionTest {
         val cacheWrite = CompletableDeferred<Unit>()
         val stored = mutableListOf<CachedMemo>()
         val ops = linkedMapOf<String, PendingOp>()
+        val enqueued = mutableListOf<PendingOp>()
         val state = MutableStateFlow(MemosUiState(isOnline = true))
         val sessions = AccountSession(scope)
         val api = stub<MemosApi> { name, _ ->
@@ -70,6 +71,7 @@ class MemoEditorSubmissionTest {
                 "insert" -> {
                     val op = args[0] as PendingOp
                     ops[op.id] = op
+                    enqueued += op
                     Unit
                 }
                 "getOps" -> ops.values.toList()
@@ -102,13 +104,12 @@ class MemoEditorSubmissionTest {
         fixture.actions.createMemo("Saved", Visibility.PRIVATE, onSuccess = { success = true })
         runCurrent()
         assertFalse("the editor waits for the local write", success)
-        // Queued before the card is even stored, so a crash cannot lose the intent.
-        val queued = fixture.ops.values.single()
-        assertTrue(queued.memoName!!.startsWith("offline-"))
         fixture.cacheWrite.complete(Unit)
         runCurrent()
         assertTrue(success)
-        // The local card exists under that temporary identity.
+        // One create is queued under a temporary identity, and the local card carries that name.
+        val queued = fixture.enqueued.single()
+        assertTrue(queued.memoName!!.startsWith("offline-"))
         assertEquals("Saved", fixture.stored.first().toMemo()!!.content)
         assertEquals(queued.memoName, fixture.stored.first().toMemo()!!.name)
     }
