@@ -48,6 +48,20 @@ class MemosApplication : Application(), SingletonImageLoader.Factory {
             modules(appModule, networkModule, viewModelModule)
         }
 
+        registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
+            override fun onActivityStarted(activity: android.app.Activity) =
+                org.example.memosm.data.AppVisibility.onActivityStarted()
+
+            override fun onActivityStopped(activity: android.app.Activity) =
+                org.example.memosm.data.AppVisibility.onActivityStopped()
+
+            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) = Unit
+            override fun onActivityResumed(activity: android.app.Activity) = Unit
+            override fun onActivityPaused(activity: android.app.Activity) = Unit
+            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) = Unit
+            override fun onActivityDestroyed(activity: android.app.Activity) = Unit
+        })
+
         // Initialize Room database and cache repository
         val database = MemoCacheDatabase.getInstance(this)
         memoCacheRepository = MemoCacheRepository(org.example.memosm.data.backup.GuardedMemoDao(database.memoDao()))

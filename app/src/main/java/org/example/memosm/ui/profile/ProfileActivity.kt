@@ -73,7 +73,14 @@ abstract class ProfileActivity : ComponentActivity() {
                             if (active == null || (requiredAccountId != null && active.id != requiredAccountId)) finish()
                             else {
                                 permission.ensureAccess(active.hostUrl)
-                                viewModel.userDelegate.updateCurrentAccountInList()
+                                // Every overlay used to re-read the account list and refresh the
+                                // user on open; only do it when this instance is out of sync.
+                                val state = viewModel.uiState.value
+                                val bound = state.accounts.firstOrNull { it.isActive }
+                                val outOfSync = bound?.id != active.id ||
+                                    state.session.hostUrl != active.hostUrl ||
+                                    state.session.token != active.accessToken
+                                if (outOfSync) viewModel.userDelegate.updateCurrentAccountInList()
                             }
                         }
                     }

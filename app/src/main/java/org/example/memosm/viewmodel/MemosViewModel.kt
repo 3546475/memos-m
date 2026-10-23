@@ -667,6 +667,13 @@ class MemosViewModel(
         // Periodic reachability probe: catches the case where the OS keeps
         // reporting validated connectivity while the server process dies (or
         // comes back) without any connectivity change.
+        // The view model is application-scoped: release the polling work while the app is in the
+        // background and resume it when an activity is visible again.
+        viewModelScope.launch {
+            org.example.memosm.data.AppVisibility.foreground.collect { foreground ->
+                if (foreground) resumeProcessWork() else pauseProcessWork()
+            }
+        }
         reachabilityMonitor.start(::runRecoverySequence)
         viewModelScope.launch {
             org.example.memosm.api.ServerRateLimit.shared.changes.collect {
@@ -911,6 +918,19 @@ class MemosViewModel(
     /**
      * App came to the foreground: flush queued writes and refresh the cache.
      */
+    /** No activity is visible: stop the reachability scheduler and the cache sweep. */
+    private fun pauseProcessWork() {
+        reachabilityMonitor.stop()
+        memoCacheReconciler.cancel()
+    }
+
+    /** An activity is visible again: resume what [pauseProcessWork] released. */
+    private fun resumeProcessWork() {
+        if (accountSession.current == null) return
+        reachabilityMonitor.start(::runRecoverySequence)
+        memoCacheReconciler.start()
+    }
+
     fun onForeground() {
         if (!org.example.memosm.data.backup.BackupCoordinator.startupReady.value || org.example.memosm.data.backup.BackupCoordinator.restoring.value || org.example.memosm.data.backup.BackupCoordinator.recoveryError.value != null) return
         reachabilityMonitor.checkNow(::runRecoverySequence)
