@@ -98,8 +98,11 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import org.example.memosm.ui.theme.AppCard
+import org.example.memosm.ui.theme.AppDotLoader
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -116,12 +119,33 @@ import org.example.memosm.model.User
 import org.example.memosm.ui.VisibilityIcon
 import org.example.memosm.ui.component.LocalMemoEditGesture
 import org.example.memosm.ui.component.LocalPendingMemoNames
+import org.example.memosm.ui.component.LocalSyncInProgress
 import org.example.memosm.ui.component.item.markdown.NativeComposeMarkdown
 import org.example.memosm.ui.component.item.media.AttachmentOrigins
 import org.example.memosm.ui.component.item.media.attachmentOrigin
 import org.example.memosm.ui.component.item.media.FullScreenAttachmentViewer
 import org.example.memosm.ui.component.resolveResourceUrl
 
+
+/**
+ * Card-corner sync status: the frozen dot matrix while the write waits in the queue, and the same
+ * grid running while the sync pass is actually pushing it. It vanishes when the memo stops being
+ * pending, i.e. when the server acknowledges the write.
+ */
+@Composable
+private fun MemoSyncIndicator() {
+    val syncing = LocalSyncInProgress.current
+    val label = stringResource(R.string.memo_sync_pending)
+    AppDotLoader(
+        modifier = Modifier
+            .size(14.dp)
+            .semantics { contentDescription = label },
+        progress = if (syncing) null else 0.5f,
+        // A queued write that is not moving is a resting note, not activity: keep the frozen
+        // frame noticeably lighter than the live loader.
+        intensity = if (syncing) 1f else 0.45f
+    )
+}
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -291,11 +315,7 @@ fun MemoItem(
                                 )
                                 if (isPendingSync) {
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = stringResource(R.string.memo_sync_pending),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    MemoSyncIndicator()
                                 }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 if (memo.pinned == true) {
@@ -349,11 +369,7 @@ fun MemoItem(
                             )
                             if (isPendingSync) {
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = stringResource(R.string.memo_sync_pending),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                MemoSyncIndicator()
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             if (memo.pinned == true) {

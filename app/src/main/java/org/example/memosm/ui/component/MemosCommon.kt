@@ -125,6 +125,13 @@ val LocalMemoEditGesture = compositionLocalOf { EditGesture.NONE }
 val LocalPendingMemoNames = compositionLocalOf { emptySet<String>() }
 
 /**
+ * True while the sync manager is replaying the queue, so a card that is still pending can switch
+ * its status dots from the frozen "queued" grid to the live loader. Cards that are not pending
+ * ignore it, and outside the feed (where nothing provides it) it stays false.
+ */
+val LocalSyncInProgress = compositionLocalOf { false }
+
+/**
  * The list content, recorded as a backdrop layer, so anything floating above it (the frosted
  * header, the compose button) can sample and blur what is scrolling underneath. Null when the
  * blur is unavailable, which is every MD session and every device below API 33.
@@ -309,6 +316,7 @@ fun MemosScaffold(
         LocalPendingMemoNames provides remember(uiState.pendingOps) {
             uiState.pendingOps.mapNotNullTo(HashSet()) { it.memoName }
         },
+        LocalSyncInProgress provides uiState.isSyncing,
         LocalListBackdrop provides if (fabBlurEnabled) headerBackdrop else null
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -543,6 +551,8 @@ fun MemosScaffold(
         indicatorTopPadding: Dp = 0.dp,
         errorTitle: String = stringResource(R.string.common_error_failed_to_load),
         onHashtagClick: ((String) -> Unit)? = null,
+        /** Shown instead of a blank pane when the server returned nothing and no page is pending. */
+        emptyState: (@Composable () -> Unit)? = null,
         isActive: Boolean = true
     ) {
         val uiState by viewModel.uiState.collectAsState()
@@ -595,6 +605,15 @@ fun MemosScaffold(
                             onRetry = onRefresh,
                             modifier = Modifier.fillParentMaxHeight(0.7f)
                         )
+                    }
+                } else if (memos.isEmpty() && nextPageToken == null && emptyState != null) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxHeight(0.6f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            emptyState()
+                        }
                     }
                 } else {
                     itemsIndexed(memos, key = { index, it ->
