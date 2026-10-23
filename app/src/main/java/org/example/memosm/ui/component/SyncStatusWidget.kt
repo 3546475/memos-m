@@ -22,7 +22,6 @@ import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,11 +40,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
+import org.example.memosm.ui.theme.AppDotGlyph
+import org.example.memosm.ui.theme.AppDotLoader
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.api.GsonProvider
 import org.example.memosm.data.media.AttachmentUpload
@@ -59,6 +62,16 @@ import org.example.memosm.viewmodel.MemosUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/** Footprint of the compact sync glyph in the icon slot. */
+private val SyncGlyphSize = 20.dp
+
+// Static 5x5 dot-matrix glyphs for the resting sync states. Cells are indexed row * 5 + column,
+// row 0 at the top, matching the grid the loading wave animates on.
+private val IdleGlyph = setOf(9, 13, 17, 15, 21) // check mark: up to date
+private val PendingGlyph = setOf(2, 6, 7, 8, 12, 17, 22) // arrow up: writes waiting to be sent
+private val OfflineGlyph = setOf(0, 4, 6, 8, 12, 16, 18, 20, 24) // cross: no connection
+private val LimitedGlyph = setOf(6, 11, 16, 8, 13, 18) // pause: server busy, retrying
 
 /**
  * Status icon rendered inside the search bar's trailing-icon slot: a plain
@@ -74,42 +87,53 @@ fun SyncStatusIconButton(
 ) {
     val status = syncStatusOf(uiState)
     IconButton(onClick = onClick, modifier = modifier) {
+        val glyph = Modifier.size(SyncGlyphSize)
         when (status) {
             SyncStatus.SYNCING, SyncStatus.PREDOWNLOAD -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp
+                // The same dot-matrix wave as the app's loading indicator, shrunk into the icon
+                // slot: a ring here read as a different kind of activity from every other load.
+                AppDotLoader(modifier = glyph)
+            }
+
+            // The four resting states use static dot-matrix glyphs on the same 5x5 grid, so the
+            // whole status family speaks one visual language.
+            SyncStatus.PENDING -> {
+                val label = stringResource(R.string.sync_status_pending, uiState.pendingOpsCount)
+                AppDotGlyph(
+                    cells = PendingGlyph,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = glyph.semantics { contentDescription = label }
                 )
             }
 
-            SyncStatus.PENDING -> Icon(
-                Icons.Outlined.CloudSync,
-                contentDescription = stringResource(
-                    R.string.sync_status_pending, uiState.pendingOpsCount
-                ),
-                tint = MaterialTheme.colorScheme.tertiary
-            )
+            SyncStatus.OFFLINE -> {
+                val label = stringResource(R.string.sync_status_offline)
+                // Error red: the icon is the only persistent offline cue the user asked to
+                // keep (the banner below the search bar stays quiet).
+                AppDotGlyph(
+                    cells = OfflineGlyph,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = glyph.semantics { contentDescription = label }
+                )
+            }
 
-            SyncStatus.OFFLINE -> Icon(
-                Icons.Outlined.CloudOff,
-                contentDescription = stringResource(R.string.sync_status_offline),
-                // Error red: the icon is the only persistent offline cue the
-                // user asked to keep (the banner below the search bar stays
-                // quiet), so it must stand out at a glance.
-                tint = MaterialTheme.colorScheme.error
-            )
+            SyncStatus.RATE_LIMITED -> {
+                val label = stringResource(R.string.sync_status_rate_limited)
+                AppDotGlyph(
+                    cells = LimitedGlyph,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = glyph.semantics { contentDescription = label }
+                )
+            }
 
-            SyncStatus.RATE_LIMITED -> Icon(
-                Icons.Outlined.CloudSync,
-                contentDescription = stringResource(R.string.sync_status_rate_limited),
-                tint = MaterialTheme.colorScheme.tertiary
-            )
-
-            SyncStatus.IDLE -> Icon(
-                Icons.Outlined.CheckCircle,
-                contentDescription = stringResource(R.string.sync_status_idle),
-                tint = MaterialTheme.colorScheme.primary
-            )
+            SyncStatus.IDLE -> {
+                val label = stringResource(R.string.sync_status_idle)
+                AppDotGlyph(
+                    cells = IdleGlyph,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = glyph.semantics { contentDescription = label }
+                )
+            }
         }
     }
 }
