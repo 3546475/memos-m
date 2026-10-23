@@ -44,13 +44,12 @@ import org.example.memosm.ui.theme.SavedMemosMTheme
 import org.example.memosm.ui.theme.ProfileTheme
 import org.example.memosm.viewmodel.MemosViewModel
 import org.koin.android.ext.android.inject
-import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /** Each destination owns its UI lifetime; persisted repositories carry changes between activities. */
 abstract class ProfileActivity : ComponentActivity() {
     protected open val requiredAccountId: String? = null
     private val dataStore: DataStoreManager by inject()
-    private val viewModel: MemosViewModel by viewModel()
+    private val viewModel: MemosViewModel by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -44,12 +44,11 @@ import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.widget.DraftWidget
 
 import org.koin.android.ext.android.inject
-import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
 
     private val dataStoreManager: DataStoreManager by inject()
-    private val viewModel: MemosViewModel by viewModel()
+    private val viewModel: MemosViewModel by inject()
 
     // StateFlow to hold pending share data, observable by Compose
     private val pendingShareDataFlow = MutableStateFlow<ShareIntentData?>(null)

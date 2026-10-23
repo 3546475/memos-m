@@ -126,7 +126,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import org.koin.androidx.compose.koinViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.pow
 import org.example.memosm.R
@@ -184,7 +183,7 @@ fun MainScreen(
     onOpenSearchRequestConsumed: () -> Unit = {}
 ) {
     val destination = rememberSaveable { mutableStateOf(MainDestination.MEMOS) }
-    val viewModel: MemosViewModel = koinViewModel()
+    val viewModel: MemosViewModel = org.koin.compose.koinInject()
     val uiState by viewModel.uiState.collectAsState()
     val previewRepository by viewModel.linkPreviews.collectAsState()
     val linkPreviews = remember(previewRepository, uiState.appSettings.linkPreviewEnabled, uiState.isOnline) {

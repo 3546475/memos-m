@@ -115,7 +115,9 @@ val networkModule = module {
 }
 
 val viewModelModule = module {
-    viewModel {
+    // One instance for the whole process: the composer, the settings overlays and the main feed
+    // all read and write the same lists, so an optimistic write is visible everywhere at once.
+    single {
         MemosViewModel(
             get(),
             get(),
