@@ -9,6 +9,7 @@ import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.model.UserSnapshot
 import org.example.memosm.model.UserStats
 import org.example.memosm.model.UserWebhook
+import org.example.memosm.model.filter.MemoFilter
 
 /**
  * Persisted snapshot of the session domain (profile page and other offline
@@ -28,6 +29,8 @@ data class SessionSnapshotData(
     val instanceSettings: InstanceSetting? = null,
     val activities: List<Activity> = emptyList(),
     val shortcuts: List<Shortcut> = emptyList(),
+    /** Last applied feed filter; restored before the cached feed is read, so the first frame matches. */
+    val filter: MemoFilter? = null,
     val savedAt: Long = 0L
 )
 

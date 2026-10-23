@@ -14,6 +14,7 @@ import org.example.memosm.data.sync.PendingOpType
 import org.example.memosm.model.Account
 import org.example.memosm.model.Memo
 import org.example.memosm.model.Shortcut
+import org.example.memosm.model.filter.MemoFilter
 import org.example.memosm.viewmodel.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -80,7 +81,11 @@ class AccountSessionTest {
         val op = PendingOp.new("A", PendingOpType.UPDATE, memo.name)
         val old = MemosUiState(
             accounts = listOf(Account(id = "B", isActive = true)),
-            userMemoList = MemoListState(PaginatedListState(listOf(memo)), listOf(shortcut), shortcut, "#A"),
+            userMemoList = MemoListState(
+                PaginatedListState(listOf(memo)),
+                listOf(shortcut),
+                MemoFilter(viewName = shortcut.name, legacyCel = listOf("A"))
+            ),
             attachmentList = AttachmentListState(cellWidth = 144f),
             detailPane = DetailPaneState(memo, PaginatedListState(listOf(memo))),
             draft = DraftState(currentEditingDraftId = "draft-a", isDraftLoaded = true),

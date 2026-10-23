@@ -13,6 +13,8 @@ import org.example.memosm.api.MemoOrderBy
 import org.example.memosm.api.resolveMemoOrderBy
 import org.example.memosm.model.Memo
 import org.example.memosm.model.User
+import org.example.memosm.model.filter.MemoFilter
+import org.example.memosm.model.filter.matches
 import retrofit2.HttpException
 
 private const val TAG = "MemoListManager"
@@ -34,19 +36,25 @@ val USER_MEMO_COMPARATOR: Comparator<Memo> =
 private val MEMO_TIME_COMPARATOR: Comparator<Memo> =
     compareByDescending { it.displayTime?.toEpochMilliseconds() ?: 0L }
 
+/** Cached rows must obey the applied filter: the cache holds the whole history. */
+private fun memoCacheFilter(provider: () -> MemoFilter): () -> ((Memo) -> Boolean) =
+    { { memo -> provider().matches(memo) } }
+
 class UserMemoListManager(
     scope: CoroutineScope,
     private val apiProvider: () -> MemosApi?,
     private val filterProvider: () -> String?,
     private val pageSizeProvider: () -> Int,
     cacheCallbacks: CacheCallbacks<Memo>? = null,
-    protectedNamesProvider: (() -> Set<String>)? = null
+    protectedNamesProvider: (() -> Set<String>)? = null,
+    localFilterProvider: (() -> MemoFilter)? = null
 ) : BaseListManager<Memo>(
     scope,
     cacheCallbacks = cacheCallbacks,
     nameProvider = { it.name },
     protectedNamesProvider = protectedNamesProvider,
-    sortComparator = USER_MEMO_COMPARATOR
+    sortComparator = USER_MEMO_COMPARATOR,
+    cacheFilterProvider = localFilterProvider?.let(::memoCacheFilter)
 ) {
 
     override suspend fun fetchFromApi(pageToken: String?): Pair<List<Memo>, String?> {

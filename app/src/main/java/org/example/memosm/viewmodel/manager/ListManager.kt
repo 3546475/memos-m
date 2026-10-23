@@ -79,7 +79,13 @@ abstract class BaseListManager<T>(
      * the merge (the cache holds the full history), but lists whose cache only mirrors the server
      * must let the page win, otherwise remotely deleted rows stay visible forever.
      */
-    private val mergeCacheOnFirstPage: Boolean = true
+    private val mergeCacheOnFirstPage: Boolean = true,
+    /**
+     * Predicate applied to rows read back from the cache. The cache holds the full history while
+     * the server applies the filter, so without it an applied filter showed unfiltered memos
+     * offline and a filtered cold start flashed the whole cache before the first server page.
+     */
+    private val cacheFilterProvider: (() -> ((T) -> Boolean))? = null
 ) : ListManager<T> {
 
     protected val _listState = MutableStateFlow(initialState)
@@ -207,7 +213,10 @@ abstract class BaseListManager<T>(
         }
         launchRequest { checkCurrent ->
             try {
-                val cachedItems = cacheCallbacks.getCachedData(null).filterNot { nameProvider?.invoke(it) in removedNames }
+                val predicate = cacheFilterProvider?.invoke()
+                val cachedItems = cacheCallbacks.getCachedData(null)
+                    .filterNot { nameProvider?.invoke(it) in removedNames }
+                    .let { items -> if (predicate == null) items else items.filter(predicate) }
                 coroutineContext.ensureActive()
                 checkCurrent()
                 if (cachedItems.isNotEmpty()) {
@@ -329,6 +338,9 @@ abstract class BaseListManager<T>(
                     coroutineContext.ensureActive()
                     checkCurrent()
                     cachedPrefill = cachedPrefill.filterNot { np.invoke(it) in removedNames }
+                    cacheFilterProvider?.invoke()?.let { predicate ->
+                        cachedPrefill = cachedPrefill.filter(predicate)
+                    }
                     if (cachedPrefill.isNotEmpty()) {
                         _listState.update { it.copy(
                             items = sortIfNeeded(cachedPrefill),
@@ -494,7 +506,10 @@ abstract class BaseListManager<T>(
                 // On failure, try to load from cache (only for initial fetch)
                 if (pageToken == null && cacheCallbacks != null) {
                     try {
-                        val cachedItems = cacheCallbacks.getCachedData(null).filterNot { nameProvider?.invoke(it) in removedNames }
+                        val predicate = cacheFilterProvider?.invoke()
+                        val cachedItems = cacheCallbacks.getCachedData(null)
+                            .filterNot { nameProvider?.invoke(it) in removedNames }
+                            .let { items -> if (predicate == null) items else items.filter(predicate) }
                         coroutineContext.ensureActive()
                         checkCurrent()
                         if (cachedItems.isNotEmpty()) {

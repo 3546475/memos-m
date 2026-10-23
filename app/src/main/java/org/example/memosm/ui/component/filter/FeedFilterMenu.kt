@@ -21,30 +21,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
 import org.example.memosm.model.Shortcut
+import org.example.memosm.model.filter.MemoFilter
+import org.example.memosm.model.filter.normalizeTag
 import org.example.memosm.ui.theme.AppDivider
 import org.example.memosm.ui.theme.AppDropdownMenu
 import org.example.memosm.ui.theme.AppDropdownMenuItem
 
 /**
- * The feed's permanent filter entry. It used to be a horizontally scrolling chip row inside the
- * list header, which scrolled away with the content and vanished entirely when the account had no
- * shortcuts. A chrome button plus a menu keeps the entry in one place, and the active state is a
- * dot on the icon instead of a chip the user has to scroll back to.
+ * The feed's permanent filter entry. It replaces the old horizontally scrolling chip row, which
+ * scrolled away with the content and vanished entirely when the account had no shortcuts.
  *
- * The menu is the temporary home of the saved views until the structured filter panel lands: the
- * selection model is still the mutually exclusive `selectedShortcut` / `selectedHashtag` pair.
+ * The menu edits the structured [MemoFilter]: a saved view is a preset (picking one replaces the
+ * base clause), while tags toggle on top of it. Tags picked from a memo card show up here too, so
+ * the menu never claims "all memos" while a tag is applied.
  */
 @Composable
 fun FeedFilterButton(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    active: Boolean,
+    filter: MemoFilter,
     shortcuts: List<Shortcut>,
-    selectedShortcut: Shortcut?,
-    selectedHashtag: String?,
-    onSelectShortcut: (Shortcut) -> Unit,
-    onShowAll: () -> Unit,
-    onRemoveHashtag: () -> Unit,
+    onSelectView: (Shortcut) -> Unit,
+    onClear: () -> Unit,
+    onToggleTag: (String) -> Unit,
     onManageShortcuts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,15 +53,15 @@ fun FeedFilterButton(
                 Icon(
                     imageVector = Icons.Outlined.FilterList,
                     contentDescription = stringResource(
-                        if (active) R.string.memo_filter_active else R.string.memo_filter_title
+                        if (filter.isActive) R.string.memo_filter_active else R.string.memo_filter_title
                     ),
-                    tint = if (active) {
+                    tint = if (filter.isActive) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         LocalContentColor.current
                     }
                 )
-                if (active) {
+                if (filter.isActive) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -80,24 +79,10 @@ fun FeedFilterButton(
                 text = stringResource(R.string.memo_filter_all),
                 onClick = {
                     onExpandedChange(false)
-                    onShowAll()
+                    onClear()
                 },
-                leadingIcon = {
-                    SelectionSlot(selected = selectedShortcut == null && selectedHashtag == null)
-                }
+                leadingIcon = { SelectionSlot(selected = !filter.isActive) }
             )
-            // A hashtag picked from a memo card is a filter too, but it lives outside the
-            // shortcut list; without a row here the menu would show nothing selected.
-            if (selectedHashtag != null) {
-                AppDropdownMenuItem(
-                    text = "#${selectedHashtag.removePrefix("#")}",
-                    onClick = {
-                        onExpandedChange(false)
-                        onRemoveHashtag()
-                    },
-                    leadingIcon = { SelectionSlot(selected = true) }
-                )
-            }
             if (shortcuts.isEmpty()) {
                 AppDropdownMenuItem(
                     text = stringResource(R.string.memo_filter_none),
@@ -110,14 +95,26 @@ fun FeedFilterButton(
                         text = shortcut.title.orEmpty(),
                         onClick = {
                             onExpandedChange(false)
-                            onSelectShortcut(shortcut)
+                            onSelectView(shortcut)
                         },
                         leadingIcon = {
                             SelectionSlot(
-                                selected = shortcut.name != null &&
-                                    shortcut.name == selectedShortcut?.name
+                                selected = shortcut.name != null && shortcut.name == filter.viewName
                             )
                         }
+                    )
+                }
+            }
+            if (filter.tags.isNotEmpty()) {
+                AppDivider()
+                filter.tags.sorted().forEach { tag ->
+                    AppDropdownMenuItem(
+                        text = "#${normalizeTag(tag)}",
+                        onClick = {
+                            onExpandedChange(false)
+                            onToggleTag(tag)
+                        },
+                        leadingIcon = { SelectionSlot(selected = true) }
                     )
                 }
             }

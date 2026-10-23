@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
+import org.example.memosm.model.Shortcut
+import org.example.memosm.model.filter.MemoFilter
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.MiuixTokens
 
@@ -44,8 +48,49 @@ val FeedFilterBarHeight: Dp = 52.dp
 data class FeedFilterToken(
     val id: String,
     val label: String,
-    val icon: ImageVector
-)
+    val icon: ImageVector,
+    val kind: Kind,
+    /** Tag name (without `#`) for [Kind.TAG] tokens. */
+    val tag: String? = null
+) {
+    enum class Kind { VIEW, TAG, DATE }
+}
+
+/**
+ * Turns the structured filter into the summary bar's tokens. [view] is the saved view the filter
+ * was built from, when it is still in the shortcut list; [fallbackLabel] covers a persisted view
+ * that the server no longer returns.
+ */
+fun memoFilterTokens(
+    filter: MemoFilter,
+    view: Shortcut?,
+    fallbackLabel: String
+): List<FeedFilterToken> = buildList {
+    if (filter.hasLegacyClause) {
+        val label = view?.title?.takeIf { it.isNotBlank() }
+            ?: filter.viewName?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+            ?: fallbackLabel
+        add(
+            FeedFilterToken(
+                id = "view",
+                label = label,
+                icon = Icons.Outlined.Bookmarks,
+                kind = FeedFilterToken.Kind.VIEW
+            )
+        )
+    }
+    filter.tags.sorted().forEach { tag ->
+        add(
+            FeedFilterToken(
+                id = "tag:$tag",
+                label = "#$tag",
+                icon = Icons.Outlined.Tag,
+                kind = FeedFilterToken.Kind.TAG,
+                tag = tag
+            )
+        )
+    }
+}
 
 /**
  * The active-filter summary that stays pinned under the feed's chrome. The chips it replaces

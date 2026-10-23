@@ -58,6 +58,8 @@ import org.example.memosm.viewmodel.delegates.AppSettingsDelegate
 import org.example.memosm.viewmodel.delegates.AppSettingsDelegateImpl
 import org.example.memosm.viewmodel.delegates.DraftDelegate
 import org.example.memosm.viewmodel.delegates.DraftDelegateImpl
+import org.example.memosm.viewmodel.delegates.FilterDelegate
+import org.example.memosm.viewmodel.delegates.FilterDelegateImpl
 import org.example.memosm.viewmodel.delegates.MemoActionDelegate
 import org.example.memosm.viewmodel.delegates.MemoActionDelegateImpl
 import org.example.memosm.viewmodel.delegates.MemoListUpdater
@@ -80,6 +82,8 @@ import org.example.memosm.viewmodel.manager.ServerReachabilityMonitor
 import org.example.memosm.viewmodel.manager.UserMemoListManager
 import org.example.memosm.viewmodel.manager.USER_MEMO_COMPARATOR
 import org.example.memosm.model.UserNotification
+import org.example.memosm.model.filter.matches
+import org.example.memosm.model.filter.toCel
 
 class MemosViewModel(
     private val dataStoreManager: DataStoreManager,
@@ -135,24 +139,10 @@ class MemosViewModel(
         apiProvider = { api },
         filterProvider = {
             val user = _uiState.value.session.currUser
-            val base = api?.buildMemoCreatorFilter(user)
-
-            val shortcut = _uiState.value.userMemoList.selectedShortcut
-            val hashtag = _uiState.value.userMemoList.selectedHashtag
-            val extraFilter = when {
-                shortcut != null && !shortcut.filter.isNullOrBlank() -> shortcut.filter
-                hashtag != null -> {
-                    val tagName = hashtag.removePrefix("#")
-                    "tag in [\"$tagName\"]"
-                }
-
-                else -> null
-            }
-
-            listOfNotNull(base?.takeIf { it.isNotBlank() }, extraFilter?.takeIf { it.isNotBlank() })
-                .joinToString(" && ")
-                .ifBlank { null }
+            val creator = api?.buildMemoCreatorFilter(user)
+            _uiState.value.userMemoList.filter.toCel(creator)
         },
+        localFilterProvider = { _uiState.value.userMemoList.filter },
         pageSizeProvider = { _uiState.value.appSettings.pageSize },
         cacheCallbacks = CacheCallbacks(onFetchSuccess = { memos ->
             val context = accountSession.current ?: return@CacheCallbacks
@@ -409,15 +399,33 @@ class MemosViewModel(
         viewModelScope,
         _uiState,
         sessionCacheStore,
-        accountSession,
-        {
-            // Filter changes: the cached prefill/merge is unfiltered, so clear
-            // the cached-merge flag before refetching - the server-filtered
-            // page must replace the list plainly instead of being polluted by
-            // cached items from other filters.
-            userMemoManager.updateState { it.copy(showingCached = false) }
+        accountSession
+    )
+
+    /**
+     * The feed filter. Applying one clears the cached-merge flag before refetching: the prefill
+     * holds rows from the previous filter, and the server-filtered page must replace the list
+     * plainly instead of being polluted by them.
+     */
+    val filterDelegate: FilterDelegate = FilterDelegateImpl(
+        viewModelScope,
+        _uiState,
+        sessionCacheStore,
+        accountSession
+    ) { applied ->
+        // Local first: hide the rows the new filter excludes before the request, so the feed
+        // never keeps showing memos the summary bar already says are filtered out.
+        val predicate: (Memo) -> Boolean = { memo -> applied.matches(memo) }
+        userMemoManager.updateState { state ->
+            state.copy(showingCached = false, items = state.items.filter(predicate))
+        }
+        // Offline the request would only time out; the cache already holds the filtered rows.
+        if (_uiState.value.isOnline) {
             userMemoManager.fetch(refresh = true)
-        })
+        } else {
+            userMemoManager.loadFromCache()
+        }
+    }
 
     val webhookDelegate: WebhookDelegate = WebhookDelegateImpl(
         viewModelScope, _uiState, accountSession
@@ -632,10 +640,12 @@ class MemosViewModel(
         val provisional = accountSession.activate(
             account, MemosApiFactory.createLatest(account.hostUrl, client), client, networkReady = false
         )
-        // Local reads never wait for network version discovery or server reachability.
+        // Local reads never wait for network version discovery or server reachability. The
+        // persisted filter has to be in place first, otherwise the cached feed is read without
+        // it and the first frame shows memos the filter would have hidden.
+        userDelegate.restoreCachedSessionNow()
         userMemoManager.loadFromCache()
         exploreMemoManager.loadFromCache()
-        userDelegate.restoreCachedSessionNow()
         memoMapManager.restoreSupport(provisional)
         _sessionReady.value = true
         draftDelegate.loadDraftsForAccount(account.id)

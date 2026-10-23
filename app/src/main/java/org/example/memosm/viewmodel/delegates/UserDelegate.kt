@@ -22,6 +22,7 @@ import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.model.UserSetting
 import org.example.memosm.model.Visibility
 import org.example.memosm.model.toUserSnapshot
+import org.example.memosm.model.filter.MemoFilter
 import org.example.memosm.viewmodel.MemosUiState
 import org.example.memosm.viewmodel.UiMessage
 
@@ -101,6 +102,7 @@ class UserDelegateImpl(
                         instanceSettings = s.instanceSettings,
                         activities = s.activities,
                         shortcuts = state.userMemoList.shortcuts,
+                        filter = state.userMemoList.filter,
                         savedAt = System.currentTimeMillis()
                     )
                 )
@@ -133,7 +135,18 @@ class UserDelegateImpl(
                     activities = if (replace) snap.activities else cur.activities.ifEmpty { snap.activities }
                 ),
                 userMemoList = state.userMemoList.let { list ->
-                    if (replace || list.shortcuts.isEmpty()) list.copy(shortcuts = snap.shortcuts) else list
+                    // A restored filter is what makes the cached feed's first frame correct; an
+                    // inactive filter means the state was reset (account switch) or the user
+                    // cleared it, so the persisted one is safe to bring back.
+                    val filter = if (replace || !list.filter.isActive) {
+                        snap.filter ?: MemoFilter()
+                    } else {
+                        list.filter
+                    }
+                    list.copy(
+                        shortcuts = if (replace || list.shortcuts.isEmpty()) snap.shortcuts else list.shortcuts,
+                        filter = filter
+                    )
                 }
             )
         }

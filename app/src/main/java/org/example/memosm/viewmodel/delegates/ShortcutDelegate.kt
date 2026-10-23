@@ -18,8 +18,6 @@ import org.example.memosm.viewmodel.MemosUiState
 
 interface ShortcutDelegate {
     suspend fun fetchShortcuts(userResourceName: String)
-    fun toggleShortcutFilter(shortcut: Shortcut)
-    fun toggleHashtagFilter(tag: String)
     fun createShortcut(
         title: String, filter: String, onSuccess: () -> Unit, onError: (Int) -> Unit
     )
@@ -39,8 +37,7 @@ class ShortcutDelegateImpl(
     private val scope: CoroutineScope,
     private val uiState: MutableStateFlow<MemosUiState>,
     private val sessionCacheStore: SessionCacheStore,
-    private val accountSession: AccountSession,
-    private val onRefreshUserMemos: () -> Unit
+    private val accountSession: AccountSession
 ) : ShortcutDelegate {
 
 
@@ -84,38 +81,6 @@ class ShortcutDelegateImpl(
                 it.copy(userMemoList = it.userMemoList.copy(shortcuts = cached))
             }
         }
-    }
-
-    override fun toggleShortcutFilter(shortcut: Shortcut) {
-        val context = accountSession.current ?: return
-        val currShortcut = uiState.value.userMemoList.selectedShortcut
-        val newSelection = if (currShortcut == shortcut) null else shortcut
-
-        accountSession.update(uiState, context) {
-            it.copy(
-                userMemoList = it.userMemoList.copy(
-                    selectedShortcut = newSelection, selectedHashtag = null
-                )
-            )
-        }
-
-        onRefreshUserMemos()
-    }
-
-    override fun toggleHashtagFilter(tag: String) {
-        val context = accountSession.current ?: return
-        val currTag = uiState.value.userMemoList.selectedHashtag
-        val newSelection = if (currTag == tag) null else tag
-
-        accountSession.update(uiState, context) {
-            it.copy(
-                userMemoList = it.userMemoList.copy(
-                    selectedHashtag = newSelection, selectedShortcut = null
-                )
-            )
-        }
-
-        onRefreshUserMemos()
     }
 
     override fun createShortcut(

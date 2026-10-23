@@ -268,14 +268,31 @@ data class SavedView(
 `ui/component/filter/`（新增 3 个文件）、`ScrollUtils.kt`（注释）、`strings.xml`（7 个语言目录）。
 验收：见 §8.5 的 1–8 条（其中「条件数」按圆点核对）。
 
-### P1 · 模型与状态
+### P1 · 模型与状态 — 已实现
 
-1. 新建 `MemoFilter` / `toCel` / `matches` / 转义；单测先行。
-2. `MemoListState.filter` 替换两个互斥字段；`filterProvider` 改走 `toCel`；旧快照恢复时把
-   `selectedShortcut` 映射成 `viewName`。
-3. 持久化（DataStore 按账号）+ 冷启动恢复 + 切账号切换。
-4. 本地预筛接入 prefill 与缓存，修掉离线筛选。
-5. 摘要条改为由 `filter.describe()` 驱动。
+1. **模型**：`model/filter/MemoFilter.kt` + `MemoFilterCel.kt`。字段 `viewName / legacyCel /
+   tags / tagMatch / date`；CEL 由 `toCel(creator)` 编译，标签与日期子句分工明确；字面量统一走
+   `celString()` 转义（引号、反斜杠），顺手修掉了「标签里有引号就把表达式拼坏」的老问题。
+   本地等价语义在 `matches(memo)`：标签（ALL/ANY，忽略 `#`）与创建时间窗口；opaque 的 legacy
+   子句本地无法求值，一律视为命中（只有服务器能判断）。
+2. **状态**：`MemoListState.filter: MemoFilter` 替换 `selectedShortcut / selectedHashtag`。
+   唯一写入口是 `FilterDelegate`（`apply / selectView / toggleTag / clear`），state、请求表达式、
+   摘要条不会各说各话。视图 = 预设：选中即整体替换；标签在其上叠加（AND），从「互斥单值」变成
+   可组合多值。
+3. **持久化**：写进现有的 session snapshot（`SessionSnapshotData.filter`），不另开 DataStore：
+   账号删除时随快照一起清理，也避免了跨账号串味。恢复在 `restoreCachedSessionNow()` 里、且排在
+   `loadFromCache()` 之前，所以冷启动首帧就是筛选后的缓存。旧版本从未持久化筛选，无需迁移。
+   没有「记住上次筛选」开关：默认总是记住（需要关掉时再加，存储层已就位）。
+4. **本地预筛**：`BaseListManager.cacheFilterProvider` 让缓存 prefill / `loadFromCache` /
+   请求失败回退都过 `matches()`；应用筛选时先把当前列表按新条件剪枝，再发请求；离线时不发注定
+   超时的请求，直接按筛选读缓存。摘要条由 `memoFilterTokens()` 生成（视图标题 / `#标签` 各一枚
+   token），列表在筛选变化后回到顶部。
+5. **测试**：`MemoFilterTest`（11 例：编译、转义、AND/OR、时间窗口、本地匹配、Gson 往返）与
+   `FilterDelegateTest`（6 例：应用/去重/预设替换/重复选视图/标签增删/空表达式清空）。
+   `AccountSessionTest` 随状态字段更新。
+
+已知边界：legacy 视图离线时仍不过滤（本地无法求值，P2 会在保存视图时缓存 facets）；排序、内容
+类型、日期/标签选择面板仍属 P2/P3；筛选变化时若正在看双栏详情，被筛掉的卡片会让详情出现占位。
 
 验收：9–14 条。
 

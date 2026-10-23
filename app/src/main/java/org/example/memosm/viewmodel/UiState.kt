@@ -17,6 +17,7 @@ import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.model.UserNotification
 import org.example.memosm.model.UserStats
 import org.example.memosm.model.UserWebhook
+import org.example.memosm.model.filter.MemoFilter
 
 // --- Paginated List State (Generic) ---
 
@@ -56,8 +57,8 @@ data class SessionState(
 data class MemoListState(
     val list: PaginatedListState<Memo> = PaginatedListState(),
     val shortcuts: List<Shortcut> = emptyList(),
-    val selectedShortcut: Shortcut? = null,
-    val selectedHashtag: String? = null
+    /** Applied feed filter; compiled to CEL for the request and evaluated locally for the cache. */
+    val filter: MemoFilter = MemoFilter()
 )
 
 // --- Attachment List State ---

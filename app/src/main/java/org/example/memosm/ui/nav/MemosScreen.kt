@@ -42,10 +42,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Drafts
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -90,6 +88,7 @@ import org.example.memosm.ui.component.filter.FeedFilterBarHeight
 import org.example.memosm.ui.component.filter.FeedFilterButton
 import org.example.memosm.ui.component.filter.FeedEmptyState
 import org.example.memosm.ui.component.filter.FeedFilterToken
+import org.example.memosm.ui.component.filter.memoFilterTokens
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
@@ -150,6 +149,11 @@ fun MemosScreen(
         }
     }
     val listState = if (activeFeed == MemoFeed.MEMOS) memosListState else exploreListState
+    // A filter replaces the result set; keeping the old offset would land the user on an
+    // arbitrary memo of the new list. Scroll first, then let the request fill it in.
+    LaunchedEffect(uiState.userMemoList.filter) {
+        memosListState.scrollToItem(0)
+    }
     val activeMemos = if (activeFeed == MemoFeed.MEMOS) {
         uiState.userMemoList.list.items
     } else {
@@ -160,39 +164,27 @@ fun MemosScreen(
     var feedHeaderHeight by remember { mutableStateOf(64.dp) }
     val context = LocalContext.current
 
-    // --- Feed filter (P0): one chrome entry + a pinned summary of what is applied. The model is
-    // still the mutually exclusive selectedShortcut / selectedHashtag pair; the structured filter
-    // replaces it in the next phase, and these composables stay the only place that renders it.
+    // --- Feed filter: one chrome entry + a pinned summary of the structured filter. Everything
+    // goes through FilterDelegate, so the request filter, the summary and the persisted copy can
+    // never disagree.
     var showFilterMenu by remember { mutableStateOf(false) }
-    val selectedShortcut = uiState.userMemoList.selectedShortcut
-    val selectedHashtag = uiState.userMemoList.selectedHashtag
-    val hasFeedFilter = selectedShortcut != null || selectedHashtag != null
+    val feedFilter = uiState.userMemoList.filter
+    val feedFilterActive = feedFilter.isActive
     // Explore has no filter model yet, so the entry only exists on the notes feed.
     val feedFilterAvailable = activeFeed == MemoFeed.MEMOS
-    val clearFeedFilter: () -> Unit = {
-        uiState.userMemoList.selectedShortcut?.let { viewModel.shortcutDelegate.toggleShortcutFilter(it) }
-        uiState.userMemoList.selectedHashtag?.let { viewModel.shortcutDelegate.toggleHashtagFilter(it) }
+    val clearFeedFilter: () -> Unit = { viewModel.filterDelegate.clear() }
+    val selectedView = remember(feedFilter.viewName, uiState.userMemoList.shortcuts) {
+        uiState.userMemoList.shortcuts.firstOrNull { it.name != null && it.name == feedFilter.viewName }
     }
-    val filterTokens = remember(selectedShortcut, selectedHashtag) {
-        buildList {
-            selectedShortcut?.let { shortcut ->
-                add(
-                    FeedFilterToken(
-                        id = "view:${shortcut.name ?: shortcut.title}",
-                        label = shortcut.title.orEmpty(),
-                        icon = Icons.Outlined.Bookmarks
-                    )
-                )
-            }
-            selectedHashtag?.let { tag ->
-                add(
-                    FeedFilterToken(
-                        id = "tag:$tag",
-                        label = "#${tag.removePrefix("#")}",
-                        icon = Icons.Outlined.Tag
-                    )
-                )
-            }
+    val fallbackViewLabel = stringResource(R.string.memo_filter_title)
+    val filterTokens = remember(feedFilter, selectedView, fallbackViewLabel) {
+        memoFilterTokens(feedFilter, selectedView, fallbackViewLabel)
+    }
+    val removeFilterToken: (FeedFilterToken) -> Unit = { token ->
+        when (token.kind) {
+            FeedFilterToken.Kind.VIEW -> viewModel.filterDelegate.apply(feedFilter.withoutView())
+            FeedFilterToken.Kind.TAG -> token.tag?.let { viewModel.filterDelegate.toggleTag(it) }
+            FeedFilterToken.Kind.DATE -> viewModel.filterDelegate.apply(feedFilter.copy(date = null))
         }
     }
     val feedFilterButton: @Composable () -> Unit = {
@@ -200,22 +192,11 @@ fun MemosScreen(
             FeedFilterButton(
                 expanded = showFilterMenu,
                 onExpandedChange = { showFilterMenu = it },
-                active = hasFeedFilter,
+                filter = feedFilter,
                 shortcuts = uiState.userMemoList.shortcuts,
-                selectedShortcut = selectedShortcut,
-                selectedHashtag = selectedHashtag,
-                onSelectShortcut = { shortcut ->
-                    // The menu is a radio list: re-picking the active view must not clear it.
-                    if (uiState.userMemoList.selectedShortcut?.name != shortcut.name) {
-                        viewModel.shortcutDelegate.toggleShortcutFilter(shortcut)
-                    }
-                },
-                onShowAll = { if (hasFeedFilter) clearFeedFilter() },
-                onRemoveHashtag = {
-                    uiState.userMemoList.selectedHashtag?.let {
-                        viewModel.shortcutDelegate.toggleHashtagFilter(it)
-                    }
-                },
+                onSelectView = { viewModel.filterDelegate.selectView(it) },
+                onClear = clearFeedFilter,
+                onToggleTag = { viewModel.filterDelegate.toggleTag(it) },
                 onManageShortcuts = {
                     context.startActivity(
                         SettingsActivity.createIntent(context, SettingsSection.SHORTCUTS)
@@ -340,7 +321,7 @@ fun MemosScreen(
             // results are not filtered by the feed's conditions.
             val filterBar: @Composable () -> Unit = {
                 AnimatedVisibility(
-                    visible = feedFilterAvailable && hasFeedFilter && !searchExpanded,
+                    visible = feedFilterAvailable && feedFilterActive && !searchExpanded,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
@@ -457,7 +438,7 @@ fun MemosScreen(
                 // The summary is a real chrome row: it pushes the list down by its own height,
                 // animated so applying a filter does not make the cards jump.
                 val filterBarInset by animateDpAsState(
-                    targetValue = if (feedFilterAvailable && hasFeedFilter) FeedFilterBarHeight else 0.dp,
+                    targetValue = if (feedFilterAvailable && feedFilterActive) FeedFilterBarHeight else 0.dp,
                     label = "feedFilterBarInset"
                 )
                 val headerTop = if (miuixFeed) {
@@ -487,10 +468,10 @@ fun MemosScreen(
                         contentPadding = contentPadding,
                         indicatorTopPadding = indicatorPadding,
                         onDraftsCardClick = { draftsLauncher.launch(Intent(context, DraftsActivity::class.java)) },
-                        onHashtagClick = { tag -> viewModel.shortcutDelegate.toggleHashtagFilter(tag) },
+                        onHashtagClick = { tag -> viewModel.filterDelegate.toggleTag(tag) },
                         emptyState = {
                             FeedEmptyState(
-                                filtered = hasFeedFilter,
+                                filtered = feedFilterActive,
                                 onClearFilter = clearFeedFilter,
                                 onChangeFilter = { showFilterMenu = true }
                             )
