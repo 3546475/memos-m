@@ -29,23 +29,26 @@ class MemoFilterTest {
     fun `a saved view keeps its raw clause after the creator`() {
         val view = MemoFilter(viewName = "users/1/shortcuts/a", legacyCel = listOf("\"work\" in tags"))
         assertEquals(
-            "creator == \"users/1\" && \"work\" in tags && \"home\" in tags",
+            "creator == \"users/1\" && \"work\" in tags && " +
+                "(\"home\" in tags || tags.exists(t, t.startsWith(\"home/\")))",
             view.copy(tags = setOf("home")).toCel("creator == \"users/1\"")
         )
     }
 
     @Test
     fun `tag clauses escape quotes and backslashes and respect the match mode`() {
+        val quoted = "(\"a\\\"b\" in tags || tags.exists(t, t.startsWith(\"a\\\"b/\")))"
+        val backslash = "(\"c\\\\d\" in tags || tags.exists(t, t.startsWith(\"c\\\\d/\")))"
         assertEquals(
-            "\"a\\\"b\" in tags && \"c\\\\d\" in tags",
+            "$quoted && $backslash",
             MemoFilter(tags = setOf("a\"b", "c\\d")).toCel(null)
         )
         assertEquals(
-            "(\"a\\\"b\" in tags || \"c\\\\d\" in tags)",
+            "$quoted || $backslash",
             MemoFilter(tags = setOf("a\"b", "c\\d"), tagMatch = TagMatch.ANY).toCel(null)
         )
         assertEquals(
-            "\"work\" in tags",
+            "(\"work\" in tags || tags.exists(t, t.startsWith(\"work/\")))",
             MemoFilter(tags = setOf("work"), tagMatch = TagMatch.ANY).toCel(null)
         )
     }
@@ -74,13 +77,16 @@ class MemoFilterTest {
     }
 
     @Test
-    fun `local matching mirrors the tag mode`() {
+    fun `local matching mirrors the tag mode and covers subtrees`() {
         val target = memo(tags = listOf("work", "#type/book"))
         assertTrue(MemoFilter(tags = setOf("work", "type/book")).matches(target))
         assertFalse(MemoFilter(tags = setOf("work", "home")).matches(target))
         assertTrue(
             MemoFilter(tags = setOf("work", "home"), tagMatch = TagMatch.ANY).matches(target)
         )
+        // A selected branch includes its descendants, like the tree in the panel.
+        assertTrue(MemoFilter(tags = setOf("type")).matches(target))
+        assertFalse(MemoFilter(tags = setOf("type/movie")).matches(target))
     }
 
     @Test

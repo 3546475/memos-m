@@ -43,25 +43,38 @@ data class TagNode(
 
 /**
  * Turns the flat `tag -> count` map into a tree on `/`. A parent that only exists because of its
- * children is kept as a branch with the summed count, so `type/book` still nests under `type`.
+ * children is materialised as a branch with the summed count, so `type/book` still nests under
+ * `type` even when no memo carries a bare `type` tag.
  */
 internal fun buildTagTree(tags: Map<String, Int>): List<TagNode> {
     // Group by path segments first, then fold the counts up from the leaves.
-    val counts = mutableMapOf<String, Int>()
+    val leafCounts = mutableMapOf<String, Int>()
     tags.forEach { (tag, count) ->
         val path = tag.removePrefix("#").trim()
         if (path.isEmpty()) return@forEach
-        counts[path] = (counts[path] ?: 0) + count
+        leafCounts[path] = (leafCounts[path] ?: 0) + count
+    }
+
+    // Materialise every ancestor: `a/b/c` implies `a` and `a/b`, which may not be tags of their
+    // own. Without this a nested tag fell out of the tree entirely.
+    val paths = linkedSetOf<String>()
+    leafCounts.keys.forEach { path ->
+        var slash = path.indexOf('/')
+        while (slash > 0) {
+            paths += path.substring(0, slash)
+            slash = path.indexOf('/', slash + 1)
+        }
+        paths += path
     }
 
     fun node(path: String, depth: Int): TagNode {
-        val children = counts.keys
+        val children = paths
             .asSequence()
             .filter { it.startsWith("$path/") && it.count { ch -> ch == '/' } == depth + 1 }
             .sorted()
             .map { node(it, depth + 1) }
             .toList()
-        val ownCount = counts[path] ?: children.sumOf { it.count }
+        val ownCount = leafCounts[path] ?: children.sumOf { it.count }
         return TagNode(
             path = path,
             label = path.substringAfterLast('/'),
@@ -71,7 +84,7 @@ internal fun buildTagTree(tags: Map<String, Int>): List<TagNode> {
         )
     }
 
-    return counts.keys
+    return paths
         .filter { it.count { ch -> ch == '/' } == 0 }
         .sorted()
         .map { node(it, 0) }

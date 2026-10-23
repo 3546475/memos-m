@@ -19,16 +19,24 @@ fun MemoFilter.toCel(creatorFilter: String? = null): String? {
 }
 
 /**
- * One list-membership clause per tag for ALL, ORed statements for ANY. The `tags` list is used
- * rather than the `tag` variable: it is the form the server documents (`"work" in tags`) and it
- * stays correct when a memo carries several tags, which a scalar `tag` clause would not.
+ * One clause per selected tag path, ORed for [TagMatch.ANY]. A path also covers its subtree
+ * (`type` matches `type/book`), which is what the collapsible tree in the panel shows: a branch's
+ * count includes its children, so selecting it has to include them too. The `tags` list is used
+ * rather than the scalar `tag` variable because a memo carries several tags.
+ *
+ * CEL's `exists` macro and the standard `startsWith` string function do the subtree test; both are
+ * part of the CEL environment the server compiles filters with.
  */
 private fun MemoFilter.tagClause(): String? {
     if (tags.isEmpty()) return null
-    val clauses = tags.sorted().map { "${celString(it)} in tags" }
+    val clauses = tags.sorted().map { path ->
+        val exact = "${celString(path)} in tags"
+        val subtree = "tags.exists(t, t.startsWith(${celString("$path/")}))"
+        "($exact || $subtree)"
+    }
     return when (tagMatch) {
         TagMatch.ALL -> clauses.joinToString(" && ")
-        TagMatch.ANY -> if (clauses.size == 1) clauses.single() else clauses.joinToString(" || ", "(", ")")
+        TagMatch.ANY -> if (clauses.size == 1) clauses.single() else clauses.joinToString(" || ")
     }
 }
 

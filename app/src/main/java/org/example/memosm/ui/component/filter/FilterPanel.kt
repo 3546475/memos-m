@@ -3,6 +3,7 @@ package org.example.memosm.ui.component.filter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -17,7 +18,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.UnfoldLess
+import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +56,10 @@ import org.example.memosm.model.filter.MemoSort
 import org.example.memosm.model.filter.TagMatch
 import org.example.memosm.model.filter.normalizeTag
 import org.example.memosm.model.filter.toCel
+import org.example.memosm.ui.component.TagNode
+import org.example.memosm.ui.component.buildTagTree
+import org.example.memosm.ui.component.collapsibleTagPaths
+import org.example.memosm.ui.component.flattenTagTree
 import org.example.memosm.ui.theme.AppCheckbox
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppDivider
@@ -91,15 +100,24 @@ fun FilterPanel(
     val counts = remember(tagCounts) {
         tagCounts.entries.associate { (tag, count) -> normalizeTag(tag) to count }
     }
-    val allTags = remember(counts, draft.tags) {
-        (counts.keys + draft.tags)
-            .filter { it.isNotBlank() }
-            .distinct()
-            .sortedWith(compareByDescending<String> { counts[it] ?: 0 }.thenBy { it })
+    // The tree is built from the known tags plus whatever is already selected, so a restored
+    // filter never loses a row just because the stats snapshot has not seen that tag yet.
+    val treeCounts = remember(counts, draft.tags) {
+        counts.toMutableMap().apply {
+            draft.tags.filter { it.isNotBlank() }.forEach { tag -> putIfAbsent(tag, 0) }
+        }
     }
-    val visibleTags = remember(allTags, tagQuery) {
-        val needle = tagQuery.trim()
-        if (needle.isEmpty()) allTags else allTags.filter { it.contains(needle, ignoreCase = true) }
+    val tagTree = remember(treeCounts) { buildTagTree(treeCounts) }
+    var collapsedTags by remember(show) { mutableStateOf(emptySet<String>()) }
+    val collapsibleTags = remember(tagTree) { collapsibleTagPaths(tagTree) }
+    val filteredTagTree = remember(tagTree, tagQuery) { filterTagTree(tagTree, tagQuery) }
+    val tagRows = remember(filteredTagTree, collapsedTags, tagQuery) {
+        // While searching every surviving branch is expanded, so a hit is never hidden behind a
+        // collapsed ancestor.
+        flattenTagTree(
+            filteredTagTree,
+            if (tagQuery.isBlank()) collapsedTags else emptySet()
+        )
     }
     val compiledCel = draft.toCel(null)
     val datePresets = remember(today, zone, locale) {
@@ -202,19 +220,44 @@ fun FilterPanel(
             }
 
             item(key = "tags-search") {
-                AppTextField(
-                    value = tagQuery,
-                    onValueChange = { tagQuery = it },
+                Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    placeholder = stringResource(R.string.memo_filter_tag_search),
-                    singleLine = true
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AppTextField(
+                        value = tagQuery,
+                        onValueChange = { tagQuery = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = stringResource(R.string.memo_filter_tag_search),
+                        singleLine = true
+                    )
+                    if (collapsibleTags.isNotEmpty()) {
+                        val allCollapsed = collapsedTags.containsAll(collapsibleTags)
+                        IconButton(
+                            onClick = {
+                                collapsedTags = if (allCollapsed) emptySet() else collapsibleTags
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (allCollapsed) {
+                                    Icons.Outlined.UnfoldMore
+                                } else {
+                                    Icons.Outlined.UnfoldLess
+                                },
+                                contentDescription = stringResource(
+                                    if (allCollapsed) R.string.tags_expand_all else R.string.tags_collapse_all
+                                ),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
 
-            if (visibleTags.isEmpty()) {
+            if (tagRows.isEmpty()) {
                 item(key = "tags-empty") {
                     Hint(
-                        if (allTags.isEmpty()) {
+                        if (treeCounts.isEmpty()) {
                             stringResource(R.string.memo_filter_no_tags)
                         } else {
                             stringResource(R.string.memo_filter_no_match)
@@ -222,23 +265,25 @@ fun FilterPanel(
                     )
                 }
             } else {
-                items(visibleTags, key = { "tag:$it" }) { tag ->
-                    ChoiceRow(
-                        selected = tag in draft.tags,
-                        label = "#$tag",
-                        multi = true,
-                        onClick = {
+                items(tagRows, key = { "tag:${it.path}" }) { node ->
+                    TagTreeRow(
+                        node = node,
+                        selected = node.path in draft.tags,
+                        expanded = node.path !in collapsedTags,
+                        onToggleSelect = {
                             draft = draft.copy(
-                                tags = if (tag in draft.tags) draft.tags - tag else draft.tags + tag
+                                tags = if (node.path in draft.tags) {
+                                    draft.tags - node.path
+                                } else {
+                                    draft.tags + node.path
+                                }
                             )
                         },
-                        trailing = {
-                            counts[tag]?.takeIf { it > 0 }?.let { count ->
-                                Text(
-                                    text = count.toString(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                        onToggleExpand = {
+                            collapsedTags = if (node.path in collapsedTags) {
+                                collapsedTags - node.path
+                            } else {
+                                collapsedTags + node.path
                             }
                         }
                     )
@@ -491,5 +536,60 @@ private fun ChoiceRow(
             modifier = Modifier.weight(1f)
         )
         trailing?.invoke()
+    }
+}
+
+/**
+ * One row of the collapsible tag tree: indentation carries the hierarchy, the chevron folds a
+ * branch, and the checkbox selects the whole branch (a path covers its subtree when filtering).
+ */
+@Composable
+private fun TagTreeRow(
+    node: TagNode,
+    selected: Boolean,
+    expanded: Boolean,
+    onToggleSelect: () -> Unit,
+    onToggleExpand: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onToggleSelect)
+            .padding(start = (node.depth * 12).dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.width(30.dp), contentAlignment = Alignment.Center) {
+            if (node.children.isNotEmpty()) {
+                IconButton(onClick = onToggleExpand, modifier = Modifier.size(30.dp)) {
+                    Icon(
+                        imageVector = Icons.Outlined.ChevronRight,
+                        contentDescription = stringResource(
+                            if (expanded) R.string.tags_collapse else R.string.tags_expand
+                        ),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .rotate(if (expanded) 90f else 0f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        AppCheckbox(checked = selected, onCheckedChange = { onToggleSelect() })
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "#${node.path}",
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        node.count.takeIf { it > 0 }?.let { count ->
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

@@ -9,9 +9,11 @@ import org.example.memosm.model.matchesContentType
  * is now a *compiled* form ([toCel]) while the UI edits this model. Saved views keep their raw
  * CEL in [legacyCel] so a shortcut the app cannot visualise still behaves exactly as before.
  *
- * Tags are stored without the leading `#`. [date] is epoch millis with an exclusive upper bound,
- * mirroring the server's `created_ts` clauses. [types] is the memo kind (link/code/todo) and is
- * approximated on the server, see [toCel].
+ * Tags are stored without the leading `#`. A selected tag is a *path*: it also covers the tags
+ * nested under it (`type` covers `type/book`), the same way the collapsible tag tree in the panel
+ * sums a branch's count. [date] is epoch millis with an exclusive upper bound, mirroring the
+ * server's `created_ts` clauses. [types] is the memo kind (link/code/todo) and is approximated on
+ * the server, see [toCel].
  */
 data class MemoFilter(
     /** Server shortcut this filter came from, when the user picked a saved view. */
@@ -108,9 +110,13 @@ fun MemoFilter.matches(memo: Memo): Boolean {
     if (hasLegacyClause) return true
     if (tags.isNotEmpty()) {
         val memoTags = memo.tags.orEmpty().mapTo(HashSet(), ::normalizeTag)
+        // A selected path covers its subtree, mirroring the tag tree and the compiled clause.
+        val matchesPath = { path: String ->
+            memoTags.any { tag -> tag == path || tag.startsWith("$path/") }
+        }
         val matched = when (tagMatch) {
-            TagMatch.ALL -> tags.all { it in memoTags }
-            TagMatch.ANY -> tags.any { it in memoTags }
+            TagMatch.ALL -> tags.all(matchesPath)
+            TagMatch.ANY -> tags.any(matchesPath)
         }
         if (!matched) return false
     }

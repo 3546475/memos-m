@@ -37,6 +37,19 @@ class ProfileStatsFiltersTest {
     }
 
     @Test
+    fun `a parent that only exists as a prefix is materialised`() {
+        val tree = buildTagTree(
+            mapOf(
+                "type/book" to 1,
+                "type/movie" to 3
+            )
+        )
+        assertEquals(listOf("type"), tree.map { it.path })
+        assertEquals(4, tree[0].count)
+        assertEquals(listOf("type/book", "type/movie"), tree[0].children.map { it.path })
+    }
+
+    @Test
     fun `link detection accepts http and www links only`() {
         assertTrue(memo("see https://example.com/x").matchesContentType(MemoContentType.LINK))
         assertTrue(memo("www.example.com").matchesContentType(MemoContentType.LINK))
