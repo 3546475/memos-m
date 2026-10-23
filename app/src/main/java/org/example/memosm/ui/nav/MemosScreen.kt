@@ -35,24 +35,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Shortcut
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Drafts
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -76,14 +71,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -93,9 +83,13 @@ import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.component.ActionSheet
 import org.example.memosm.ui.component.ActionSheetItem
 import org.example.memosm.ui.theme.AppDialog
-import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
+import org.example.memosm.ui.component.filter.FeedFilterBar
+import org.example.memosm.ui.component.filter.FeedFilterBarHeight
+import org.example.memosm.ui.component.filter.FeedFilterButton
+import org.example.memosm.ui.component.filter.FeedEmptyState
+import org.example.memosm.ui.component.filter.FeedFilterToken
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
@@ -165,6 +159,76 @@ fun MemosScreen(
     val density = LocalDensity.current
     var feedHeaderHeight by remember { mutableStateOf(64.dp) }
     val context = LocalContext.current
+
+    // --- Feed filter (P0): one chrome entry + a pinned summary of what is applied. The model is
+    // still the mutually exclusive selectedShortcut / selectedHashtag pair; the structured filter
+    // replaces it in the next phase, and these composables stay the only place that renders it.
+    var showFilterMenu by remember { mutableStateOf(false) }
+    val selectedShortcut = uiState.userMemoList.selectedShortcut
+    val selectedHashtag = uiState.userMemoList.selectedHashtag
+    val hasFeedFilter = selectedShortcut != null || selectedHashtag != null
+    // Explore has no filter model yet, so the entry only exists on the notes feed.
+    val feedFilterAvailable = activeFeed == MemoFeed.MEMOS
+    val clearFeedFilter: () -> Unit = {
+        uiState.userMemoList.selectedShortcut?.let { viewModel.shortcutDelegate.toggleShortcutFilter(it) }
+        uiState.userMemoList.selectedHashtag?.let { viewModel.shortcutDelegate.toggleHashtagFilter(it) }
+    }
+    val filterTokens = remember(selectedShortcut, selectedHashtag) {
+        buildList {
+            selectedShortcut?.let { shortcut ->
+                add(
+                    FeedFilterToken(
+                        id = "view:${shortcut.name ?: shortcut.title}",
+                        label = shortcut.title.orEmpty(),
+                        icon = Icons.Outlined.Bookmarks
+                    )
+                )
+            }
+            selectedHashtag?.let { tag ->
+                add(
+                    FeedFilterToken(
+                        id = "tag:$tag",
+                        label = "#${tag.removePrefix("#")}",
+                        icon = Icons.Outlined.Tag
+                    )
+                )
+            }
+        }
+    }
+    val feedFilterButton: @Composable () -> Unit = {
+        if (feedFilterAvailable) {
+            FeedFilterButton(
+                expanded = showFilterMenu,
+                onExpandedChange = { showFilterMenu = it },
+                active = hasFeedFilter,
+                shortcuts = uiState.userMemoList.shortcuts,
+                selectedShortcut = selectedShortcut,
+                selectedHashtag = selectedHashtag,
+                onSelectShortcut = { shortcut ->
+                    // The menu is a radio list: re-picking the active view must not clear it.
+                    if (uiState.userMemoList.selectedShortcut?.name != shortcut.name) {
+                        viewModel.shortcutDelegate.toggleShortcutFilter(shortcut)
+                    }
+                },
+                onShowAll = { if (hasFeedFilter) clearFeedFilter() },
+                onRemoveHashtag = {
+                    uiState.userMemoList.selectedHashtag?.let {
+                        viewModel.shortcutDelegate.toggleHashtagFilter(it)
+                    }
+                },
+                onManageShortcuts = {
+                    context.startActivity(
+                        SettingsActivity.createIntent(context, SettingsSection.SHORTCUTS)
+                    )
+                }
+            )
+        }
+    }
+
+    // The menu belongs to the notes feed; a menu left open across a tab switch would pop up
+    // again under the other feed, which has no filter model.
+    LaunchedEffect(activeFeed) { showFilterMenu = false }
+
     val openEditor = rememberMemoEditorLauncher(viewModel)
     val draftsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         viewModel.refreshAfterEditor()
@@ -271,10 +335,28 @@ fun MemosScreen(
             onSearchOpened()
         },
         listHeader = { showSearchBar, searchExpanded, onSearchExpandedChange ->
+            // The summary stays pinned under the chrome: a filtered feed must say so even after
+            // the tab row has scrolled away. It is hidden while search is open, because the
+            // results are not filtered by the feed's conditions.
+            val filterBar: @Composable () -> Unit = {
+                AnimatedVisibility(
+                    visible = feedFilterAvailable && hasFeedFilter && !searchExpanded,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    FeedFilterBar(
+                        tokens = filterTokens,
+                        // Only one condition can be active until the structured filter lands,
+                        // so removing any token means clearing the feed filter.
+                        onRemove = { clearFeedFilter() },
+                        onClearAll = clearFeedFilter
+                    )
+                }
+            }
             if (miuixFeed) {
-                // One row of chrome: text tabs on the left, search on the right. The
-                // search field itself only exists while expanded, so the feed starts
-                // near the top of the screen instead of under two stacked capsules.
+                // One row of chrome: text tabs on the left, filter and search on the right. The
+                // search field itself only exists while expanded, so the feed starts near the top
+                // of the screen instead of under two stacked capsules.
                 val rowVisible =
                     (topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar) && !searchExpanded
                 val tabsVisible = topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar
@@ -284,54 +366,58 @@ fun MemosScreen(
                 var wasSearchExpanded by remember { mutableStateOf(searchExpanded) }
                 val returningFromSearch = wasSearchExpanded && !searchExpanded
                 LaunchedEffect(searchExpanded) { wasSearchExpanded = searchExpanded }
-                AnimatedVisibility(
-                    visible = rowVisible,
-                    enter = if (returningFromSearch) {
-                        EnterTransition.None
-                    } else {
-                        fadeIn() + expandVertically()
-                    },
-                    // Expanding the search replaces the row outright, so it must not
-                    // animate the pane downwards while the panel animates in.
-                    exit = if (searchExpanded) ExitTransition.None else fadeOut() + shrinkVertically()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                Column(Modifier.fillMaxWidth()) {
+                    AnimatedVisibility(
+                        visible = rowVisible,
+                        enter = if (returningFromSearch) {
+                            EnterTransition.None
+                        } else {
+                            fadeIn() + expandVertically()
+                        },
+                        // Expanding the search replaces the row outright, so it must not
+                        // animate the pane downwards while the panel animates in.
+                        exit = if (searchExpanded) ExitTransition.None else fadeOut() + shrinkVertically()
                     ) {
-                        AnimatedVisibility(visible = tabsVisible) {
-                            MemoFeedTabs(pagerState, Modifier.testTag("memo_feed_tabs"))
-                        }
-                        Spacer(Modifier.weight(1f))
-                        // An idle sync state carries no information, so it stays silent.
-                        // Miuix's feed header is a single fixed-height row, so the status
-                        // text rides inline here instead of floating over the list: it can
-                        // never grow the row and shift the feed.
-                        if (syncStatusOf(uiState) != SyncStatus.IDLE) {
-                            syncStatusChipLabel(uiState)?.let { label ->
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(end = 6.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AnimatedVisibility(visible = tabsVisible) {
+                                MemoFeedTabs(pagerState, Modifier.testTag("memo_feed_tabs"))
+                            }
+                            Spacer(Modifier.weight(1f))
+                            // An idle sync state carries no information, so it stays silent.
+                            // Miuix's feed header is a single fixed-height row, so the status
+                            // text rides inline here instead of floating over the list: it can
+                            // never grow the row and shift the feed.
+                            if (syncStatusOf(uiState) != SyncStatus.IDLE) {
+                                syncStatusChipLabel(uiState)?.let { label ->
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(end = 6.dp)
+                                    )
+                                }
+                                SyncStatusIconButton(
+                                    uiState = uiState,
+                                    onClick = { showSyncPanel = true }
                                 )
                             }
-                            SyncStatusIconButton(
-                                uiState = uiState,
-                                onClick = { showSyncPanel = true }
-                            )
-                        }
-                        IconButton(onClick = { onSearchExpandedChange(true) }) {
-                            Icon(
-                                Icons.Outlined.Search,
-                                contentDescription = stringResource(R.string.memo_search_placeholder)
-                            )
+                            feedFilterButton()
+                            IconButton(onClick = { onSearchExpandedChange(true) }) {
+                                Icon(
+                                    Icons.Outlined.Search,
+                                    contentDescription = stringResource(R.string.memo_search_placeholder)
+                                )
+                            }
                         }
                     }
+                    filterBar()
                 }
             } else {
                 // ON_SCROLL hides the tabs with the header; ALWAYS keeps them pinned.
@@ -340,20 +426,23 @@ fun MemosScreen(
                 } else {
                     !searchExpanded
                 }
-                AnimatedVisibility(
-                    visible = tabsVisible,
-                    enter = slideInVertically { -it } + expandVertically() + fadeIn(),
-                    exit = slideOutVertically { -it } + shrinkVertically() + fadeOut()
-                ) {
-                    MemoFeedTabs(
-                        pagerState,
-                        Modifier
-                            .testTag("memo_feed_tabs")
-                            .onSizeChanged {
-                                feedHeaderHeight = with(density) { it.height.toDp() }
-                            }
-                            .padding(bottom = 16.dp)
-                    )
+                Column(Modifier.fillMaxWidth()) {
+                    AnimatedVisibility(
+                        visible = tabsVisible,
+                        enter = slideInVertically { -it } + expandVertically() + fadeIn(),
+                        exit = slideOutVertically { -it } + shrinkVertically() + fadeOut()
+                    ) {
+                        MemoFeedTabs(
+                            pagerState,
+                            Modifier
+                                .testTag("memo_feed_tabs")
+                                .onSizeChanged {
+                                    feedHeaderHeight = with(density) { it.height.toDp() }
+                                }
+                                .padding(bottom = 16.dp)
+                        )
+                    }
+                    filterBar()
                 }
             }
         },
@@ -365,9 +454,17 @@ fun MemosScreen(
                 key = { MemoFeed.entries[it] }
             ) { page ->
                 val feed = MemoFeed.entries[page]
-                // Miuix's header is a single row, so the list only needs to clear it;
-                // MD keeps the tab row plus the floating search field below it.
-                val headerTop = if (miuixFeed) 64.dp else 88.dp + feedHeaderHeight
+                // The summary is a real chrome row: it pushes the list down by its own height,
+                // animated so applying a filter does not make the cards jump.
+                val filterBarInset by animateDpAsState(
+                    targetValue = if (feedFilterAvailable && hasFeedFilter) FeedFilterBarHeight else 0.dp,
+                    label = "feedFilterBarInset"
+                )
+                val headerTop = if (miuixFeed) {
+                    64.dp + filterBarInset
+                } else {
+                    88.dp + feedHeaderHeight + filterBarInset
+                }
                 val contentPadding = PaddingValues(
                     start = 16.dp,
                     top = headerTop,
@@ -377,7 +474,11 @@ fun MemosScreen(
                 // The pull-to-refresh chip floats over the list, so it has to clear the chrome
                 // instead of being clipped by it: Miuix has one header row, MD has the tabs plus
                 // the floating search field.
-                val indicatorPadding = if (miuixFeed) 64.dp else feedHeaderHeight + 56.dp
+                val indicatorPadding = if (miuixFeed) {
+                    64.dp + filterBarInset
+                } else {
+                    feedHeaderHeight + 56.dp + filterBarInset
+                }
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(
                         viewModel = viewModel,
@@ -387,6 +488,13 @@ fun MemosScreen(
                         indicatorTopPadding = indicatorPadding,
                         onDraftsCardClick = { draftsLauncher.launch(Intent(context, DraftsActivity::class.java)) },
                         onHashtagClick = { tag -> viewModel.shortcutDelegate.toggleHashtagFilter(tag) },
+                        emptyState = {
+                            FeedEmptyState(
+                                filtered = hasFeedFilter,
+                                onClearFilter = clearFeedFilter,
+                                onChangeFilter = { showFilterMenu = true }
+                            )
+                        },
                         isActive = activeFeed == feed
                     )
                     MemoFeed.EXPLORE -> GenericMemosListPane(
@@ -459,7 +567,18 @@ fun MemosScreen(
                     enter = slideInVertically { -it } + fadeIn(),
                     exit = slideOutVertically { -it } + fadeOut(),
                     modifier = Modifier.align(Alignment.TopCenter)) {
-                    searchBar()
+                    // The MD filter entry rides with the floating search field: both are the
+                    // list's chrome, and they appear and hide together. While the search panel
+                    // is expanded the field needs the full width, so the button steps aside.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.weight(1f)) { searchBar() }
+                        if (!searchExpanded) {
+                            feedFilterButton()
+                        }
+                    }
                 }
             }
 
@@ -666,11 +785,11 @@ private fun MemosListPane(
     indicatorTopPadding: Dp = 0.dp,
     onDraftsCardClick: () -> Unit,
     onHashtagClick: (String) -> Unit,
+    emptyState: @Composable () -> Unit,
     isActive: Boolean
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val hasDrafts = uiState.draft.drafts.isNotEmpty()
-    val shortcutListState = rememberLazyListState()
     val draftCount = uiState.draft.drafts.size
 
     GenericMemosListPane(
@@ -688,129 +807,21 @@ private fun MemosListPane(
         indicatorTopPadding = indicatorTopPadding,
         errorTitle = stringResource(R.string.common_error_failed_to_load_memos),
         onHashtagClick = onHashtagClick,
+        emptyState = emptyState,
         isActive = isActive,
         header = {
-            val hasShortcuts = uiState.userMemoList.shortcuts.isNotEmpty()
-            val selectedHashtag = uiState.userMemoList.selectedHashtag
-            val showFilterRow = hasShortcuts || selectedHashtag != null
-
-            // Sync/cache status used to be the first row here. It now floats over
-            // the pane (see MemosScreen's overlay): anything inside this header is
-            // a LazyColumn item, so a row that appears and disappears re-measures
-            // the header and shifts every memo card below it.
-            if (hasDrafts || showFilterRow) {
+            // The shortcut chips used to be a list header item here: they scrolled away with
+            // the feed and re-measured the header whenever the filter changed. Filtering is now
+            // the chrome entry plus the pinned summary bar, so only the drafts card is left.
+            // Sync/cache status floats over the pane (see MemosScreen's overlay) for the same
+            // reason: anything inside this header is a LazyColumn item and shifts the cards.
+            if (hasDrafts) {
                 item(key = "header_section") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        // Drafts Card (shown when drafts exist)
-                        AnimatedVisibility(
-                            visible = hasDrafts,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically()
-                        ) {
-                            DraftsCard(
-                                draftCount = draftCount,
-                                viewModel = viewModel,
-                                onCardClick = onDraftsCardClick
-                            )
-                        }
-
-                        // Horizontal Shortcut Row
-                        AnimatedVisibility(
-                            visible = showFilterRow,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically()
-                        ) {
-                            LazyRow(
-                                state = shortcutListState,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .graphicsLayer {
-                                        compositingStrategy = CompositingStrategy.Offscreen
-                                    }
-                                    .drawWithContent {
-                                        drawContent()
-                                        val startGradient = Brush.horizontalGradient(
-                                            0f to Color.Transparent, 0.15f to Color.Black
-                                        )
-                                        val endGradient = Brush.horizontalGradient(
-                                            0.85f to Color.Black, 1f to Color.Transparent
-                                        )
-                                        if (shortcutListState.canScrollBackward) {
-                                            drawRect(
-                                                brush = startGradient, blendMode = BlendMode.DstIn
-                                            )
-                                        }
-                                        if (shortcutListState.canScrollForward) {
-                                            drawRect(
-                                                brush = endGradient, blendMode = BlendMode.DstIn
-                                            )
-                                        }
-                                    },
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (selectedHashtag != null) {
-                                    item {
-                                        AppFilterChip(
-                                            selected = true,
-                                            onClick = {
-                                                viewModel.shortcutDelegate.toggleHashtagFilter(
-                                                    selectedHashtag
-                                                )
-                                            },
-                                            content = {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Tag,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(selectedHashtag.removePrefix("#"))
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Close,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
-
-                                itemsIndexed(uiState.userMemoList.shortcuts, key = { index, it ->
-                                    val baseKey = it.name.takeUnless { n -> n.isNullOrBlank() }
-                                        ?: "${it.title?.hashCode() ?: 0}_${it.filter?.hashCode() ?: 0}"
-                                    "${baseKey}_$index"
-                                }) { index, shortcut ->
-                                    val isSelected =
-                                        uiState.userMemoList.selectedShortcut?.name == shortcut.name
-                                    AppFilterChip(
-                                        selected = isSelected,
-                                        onClick = {
-                                            viewModel.shortcutDelegate.toggleShortcutFilter(
-                                                shortcut
-                                            )
-                                        },
-                                        content = {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Outlined.Shortcut,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(shortcut.title ?: "")
-                                            if (isSelected) {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Close,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        })
-                                }
-                            }
-                        }
-                    }
+                    DraftsCard(
+                        draftCount = draftCount,
+                        viewModel = viewModel,
+                        onCardClick = onDraftsCardClick
+                    )
                 }
             }
         })

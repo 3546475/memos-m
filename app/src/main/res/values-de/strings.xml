@@ -81,6 +81,19 @@
 
     <string name="profile_shortcuts_delete_title">Kurzbefehl löschen</string>
     <string name="profile_shortcuts_delete_confirm">Bist du sicher, dass du diesen Kurzbefehl löschen möchtest?</string>
+    <string name="memo_filter_title">Filtern</string>
+    <string name="memo_filter_active">Filter aktiv</string>
+    <string name="memo_filter_all">Alle Notizen</string>
+    <string name="memo_filter_none">Noch keine Kurzbefehle</string>
+    <string name="memo_filter_manage">Kurzbefehle verwalten</string>
+    <string name="memo_filter_clear">Zurücksetzen</string>
+    <string name="memo_filter_remove">Filter entfernen</string>
+    <string name="memo_filter_empty_title">Keine Notizen für diesen Filter</string>
+    <string name="memo_filter_empty_message">Wähle einen anderen Filter oder setze ihn zurück, um alle Notizen zu sehen.</string>
+    <string name="memo_filter_clear_action">Filter zurücksetzen</string>
+    <string name="memo_filter_change_action">Filter ändern</string>
+    <string name="memo_list_empty_title">Noch keine Notizen</string>
+    <string name="memo_list_empty_message">Deine Notizen erscheinen hier.</string>
     <string name="profile_shortcuts_add">Kurzbefehl hinzufügen</string>
     <string name="profile_shortcuts_edit">Kurzbefehl bearbeiten</string>
     <string name="profile_shortcuts_title">Titel</string>

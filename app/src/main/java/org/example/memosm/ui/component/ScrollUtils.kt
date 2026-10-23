@@ -50,10 +50,10 @@ private fun rememberScrollDirection(
 
         snapshotFlow { position() }.collect { (currentIndex, currentOffset) ->
             // Only treat user-initiated scrolling as a direction change.
-            // Programmatic layout shifts - items inserted above (e.g. the
-            // header_section appearing once shortcuts/sync status load) - move
-            // the indices without any scroll gesture, and must not flip the
-            // direction state and hide the search bar / nav bar.
+            // Programmatic layout shifts - items inserted above (the drafts card
+            // appearing, or the filter row changing height) - move the indices
+            // without any scroll gesture, and must not flip the direction state
+            // and hide the search bar / nav bar.
             if (!isScrolling()) {
                 previousIndex = currentIndex
                 previousScrollOffset = currentOffset

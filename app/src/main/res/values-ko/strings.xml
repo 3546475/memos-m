@@ -81,6 +81,19 @@
 
     <string name="profile_shortcuts_delete_title">바로가기 삭제</string>
     <string name="profile_shortcuts_delete_confirm">이 바로가기를 삭제하시겠습니까?</string>
+    <string name="memo_filter_title">필터</string>
+    <string name="memo_filter_active">필터 적용됨</string>
+    <string name="memo_filter_all">모든 메모</string>
+    <string name="memo_filter_none">바로가기가 없습니다</string>
+    <string name="memo_filter_manage">바로가기 관리</string>
+    <string name="memo_filter_clear">지우기</string>
+    <string name="memo_filter_remove">필터 해제</string>
+    <string name="memo_filter_empty_title">현재 필터에 맞는 메모가 없습니다</string>
+    <string name="memo_filter_empty_message">다른 필터를 사용하거나 필터를 지워 모든 메모를 확인하세요.</string>
+    <string name="memo_filter_clear_action">필터 지우기</string>
+    <string name="memo_filter_change_action">필터 변경</string>
+    <string name="memo_list_empty_title">아직 메모가 없습니다</string>
+    <string name="memo_list_empty_message">작성한 메모가 여기에 표시됩니다.</string>
     <string name="profile_shortcuts_add">바로가기 추가</string>
     <string name="profile_shortcuts_edit">바로가기 편집</string>
     <string name="profile_shortcuts_title">제목</string>

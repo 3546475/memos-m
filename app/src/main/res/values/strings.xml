@@ -53,6 +53,19 @@
     <string name="profile_shortcuts_help_url" translatable="false">https://usememos.com/docs/guides/shortcuts</string>
     <string name="profile_shortcuts_delete_title">Delete Shortcut</string>
     <string name="profile_shortcuts_delete_confirm">Are you sure you want to delete this shortcut?</string>
+    <string name="memo_filter_title">Filter</string>
+    <string name="memo_filter_active">Filter applied</string>
+    <string name="memo_filter_all">All memos</string>
+    <string name="memo_filter_none">No shortcuts yet</string>
+    <string name="memo_filter_manage">Manage shortcuts</string>
+    <string name="memo_filter_clear">Clear</string>
+    <string name="memo_filter_remove">Remove filter</string>
+    <string name="memo_filter_empty_title">No memos match this filter</string>
+    <string name="memo_filter_empty_message">Try another filter, or clear it to see all your memos.</string>
+    <string name="memo_filter_clear_action">Clear filter</string>
+    <string name="memo_filter_change_action">Change filter</string>
+    <string name="memo_list_empty_title">No memos yet</string>
+    <string name="memo_list_empty_message">Memos you write will show up here.</string>
     <string name="profile_webhooks">Webhooks</string>
     <string name="profile_webhooks_none">No webhooks configured</string>
     <string name="profile_webhooks_add">Add Webhook</string>

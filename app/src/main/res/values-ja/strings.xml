@@ -81,6 +81,19 @@
 
     <string name="profile_shortcuts_delete_title">ショートカットを削除</string>
     <string name="profile_shortcuts_delete_confirm">このショートカットを削除してもよろしいですか？</string>
+    <string name="memo_filter_title">フィルター</string>
+    <string name="memo_filter_active">フィルター適用中</string>
+    <string name="memo_filter_all">すべてのメモ</string>
+    <string name="memo_filter_none">ショートカットはまだありません</string>
+    <string name="memo_filter_manage">ショートカットを管理</string>
+    <string name="memo_filter_clear">クリア</string>
+    <string name="memo_filter_remove">フィルターを解除</string>
+    <string name="memo_filter_empty_title">このフィルターに一致するメモはありません</string>
+    <string name="memo_filter_empty_message">別のフィルターを試すか、クリアしてすべてのメモを表示してください。</string>
+    <string name="memo_filter_clear_action">フィルターをクリア</string>
+    <string name="memo_filter_change_action">フィルターを変更</string>
+    <string name="memo_list_empty_title">メモはまだありません</string>
+    <string name="memo_list_empty_message">作成したメモがここに表示されます。</string>
     <string name="profile_shortcuts_add">ショートカットを追加</string>
     <string name="profile_shortcuts_edit">ショートカットを編集</string>
     <string name="profile_shortcuts_title">タイトル</string>

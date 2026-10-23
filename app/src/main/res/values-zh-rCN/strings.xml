@@ -95,6 +95,19 @@
 
     <string name="profile_shortcuts_delete_title">删除快捷方式</string>
     <string name="profile_shortcuts_delete_confirm">确定要删除此快捷方式吗？</string>
+    <string name="memo_filter_title">筛选</string>
+    <string name="memo_filter_active">已应用筛选</string>
+    <string name="memo_filter_all">全部笔记</string>
+    <string name="memo_filter_none">暂无快捷方式</string>
+    <string name="memo_filter_manage">管理快捷方式</string>
+    <string name="memo_filter_clear">清除</string>
+    <string name="memo_filter_remove">移除该筛选条件</string>
+    <string name="memo_filter_empty_title">没有符合筛选的笔记</string>
+    <string name="memo_filter_empty_message">换个筛选条件，或清除筛选查看全部笔记。</string>
+    <string name="memo_filter_clear_action">清除筛选</string>
+    <string name="memo_filter_change_action">修改筛选</string>
+    <string name="memo_list_empty_title">还没有笔记</string>
+    <string name="memo_list_empty_message">你写的笔记会显示在这里。</string>
     <string name="profile_shortcuts_add">添加快捷方式</string>
     <string name="profile_shortcuts_edit">编辑快捷方式</string>
     <string name="profile_shortcuts_title">标题</string>
