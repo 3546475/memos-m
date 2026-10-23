@@ -1198,23 +1198,32 @@ class MemosViewModel(
         }
     }
 
+    /**
+     * Replace an item in [manager] and re-sort it when the fields its order depends on changed
+     * (pinned, displayTime). An in-place replace alone keeps the old position until the next
+     * server refresh, which is what made a pinned memo stay where it was.
+     */
+    private fun <M : org.example.memosm.viewmodel.manager.BaseListManager<Memo>> replaceAndKeepOrder(
+        manager: M,
+        updated: Memo
+    ) {
+        val isSame = { m: Memo -> m.name == updated.name }
+        val previous = manager.listState.value.items.firstOrNull(isSame)
+        manager.replace(updated, isSame)
+        if (previous != null &&
+            (previous.pinned != updated.pinned || previous.displayTime != updated.displayTime)
+        ) {
+            manager.resort()
+        }
+    }
+
     private fun updateMemoInState(updatedMemo: Memo) {
         memoMapManager.upsert(updatedMemo)
-        val isSame = { m: Memo -> m.name == updatedMemo.name }
-        // Pinned means first in the feed: an in-place replace would keep the old position until a
-        // server refresh re-sorted the list, so re-sort when the flag flips.
-        val pinnedChanged = _uiState.value.userMemoList.list.items
-            .firstOrNull { it.name == updatedMemo.name }
-            ?.let { it.pinned != updatedMemo.pinned } == true
-        if (pinnedChanged) {
-            userMemoManager.upsert(updatedMemo, isSame, USER_MEMO_COMPARATOR)
-        } else {
-            userMemoManager.replace(updatedMemo, isSame)
-        }
-        exploreMemoManager.replace(updatedMemo, isSame)
-        archivedMemoManager.replace(updatedMemo, isSame)
-        searchMemoManager.replace(updatedMemo, isSame)
-        commentManager.replace(updatedMemo, isSame)
+        replaceAndKeepOrder(userMemoManager, updatedMemo)
+        replaceAndKeepOrder(exploreMemoManager, updatedMemo)
+        replaceAndKeepOrder(archivedMemoManager, updatedMemo)
+        searchMemoManager.replace(updatedMemo) { m -> m.name == updatedMemo.name }
+        commentManager.replace(updatedMemo) { m -> m.name == updatedMemo.name }
 
         if (_uiState.value.detailPane.selectedMemo?.name == updatedMemo.name) {
             _uiState.update {

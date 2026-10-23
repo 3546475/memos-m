@@ -252,6 +252,15 @@ abstract class BaseListManager<T>(
         }
     }
 
+    /**
+     * Re-apply the manager's own order. Call after changing a field the order depends on (pinned,
+     * displayTime): an in-place replace keeps the old position until the next server refresh.
+     */
+    fun resort() {
+        val comparator = sortComparator ?: return
+        updateState { state -> state.copy(items = state.items.sortedWith(comparator)) }
+    }
+
     // Remove items matching the predicate.
     fun remove(predicate: (T) -> Boolean) {
         updateState { state ->
