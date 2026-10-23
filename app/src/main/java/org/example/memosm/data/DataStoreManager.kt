@@ -195,7 +195,6 @@ class DataStoreManager(
     }
 
     private suspend fun mutateAccounts(completeSetup: Boolean = false, transform: (List<Account>) -> List<Account>) {
-        android.util.Log.d("MemosStore", "mutateAccounts: begin completeSetup=$completeSetup")
         editPreferences { preferences ->
             val type = object : TypeToken<List<Account>>() {}.type
             val current: List<Account> = preferences[ACCOUNTS_JSON]?.let {
@@ -205,9 +204,7 @@ class DataStoreManager(
             preferences[ACCOUNTS_JSON] = gson.toJson(updated)
             if (completeSetup) preferences[SETUP_COMPLETED] = true
         }
-        android.util.Log.d("MemosStore", "mutateAccounts: written, notifying")
         onAccountsChanged()
-        android.util.Log.d("MemosStore", "mutateAccounts: done")
     }
 
     suspend fun addAccount(hostUrl: String, accessToken: String) {

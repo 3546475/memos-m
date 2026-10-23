@@ -48,13 +48,8 @@ object BackupCoordinator {
     suspend fun <T> withStorageLock(action: suspend () -> T): T {
         currentCoroutineContext().ensureActive()
         if (currentCoroutineContext()[Held]?.active == true) return action()
-        android.util.Log.d(
-            "MemosStore",
-            "storageLock: waiting ready=${_startupReady.value} restoring=${_restoring.value} err=${recoveryError.value}"
-        )
         awaitStartupRecovery()
         return mutex.withLock {
-            android.util.Log.d("MemosStore", "storageLock: acquired")
             check(recoveryError.value == null) { "Finish the interrupted restore first" }
             withContext(Held()) { try { action() } finally { currentCoroutineContext()[Held]?.active = false } }
         }

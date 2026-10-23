@@ -1201,7 +1201,16 @@ class MemosViewModel(
     private fun updateMemoInState(updatedMemo: Memo) {
         memoMapManager.upsert(updatedMemo)
         val isSame = { m: Memo -> m.name == updatedMemo.name }
-        userMemoManager.replace(updatedMemo, isSame)
+        // Pinned means first in the feed: an in-place replace would keep the old position until a
+        // server refresh re-sorted the list, so re-sort when the flag flips.
+        val pinnedChanged = _uiState.value.userMemoList.list.items
+            .firstOrNull { it.name == updatedMemo.name }
+            ?.let { it.pinned != updatedMemo.pinned } == true
+        if (pinnedChanged) {
+            userMemoManager.upsert(updatedMemo, isSame, USER_MEMO_COMPARATOR)
+        } else {
+            userMemoManager.replace(updatedMemo, isSame)
+        }
         exploreMemoManager.replace(updatedMemo, isSame)
         archivedMemoManager.replace(updatedMemo, isSame)
         searchMemoManager.replace(updatedMemo, isSame)

@@ -490,15 +490,10 @@ class UserDelegateImpl(
     }
 
     override fun addAccount(hostUrl: String, token: String) {
-        android.util.Log.d("MemosStore", "addAccount: queued")
         launchAccountChange {
-            android.util.Log.d("MemosStore", "addAccount: waiting for accountMutex")
             accountMutex.withLock {
-                android.util.Log.d("MemosStore", "addAccount: mutex acquired")
                 dataStoreManager.addAccount(hostUrl, token)
-                android.util.Log.d("MemosStore", "addAccount: persisted, refreshing")
                 refreshAccountsLocked()
-                android.util.Log.d("MemosStore", "addAccount: refreshed")
             }
         }
     }
