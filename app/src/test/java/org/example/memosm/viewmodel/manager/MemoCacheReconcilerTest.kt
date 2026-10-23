@@ -36,6 +36,8 @@ class MemoCacheReconcilerTest {
         val repo = MemoCacheRepository(stub<MemoDao> { name, args -> when (name) {
             "reconciliationCandidates" -> listOf(CachedMemoCandidate("memos/gone", 10), CachedMemoCandidate("memos/later-page", 10))
             "deleteMissingMemo" -> { deleted += args[1] as String; 1 }
+            "protectedMemoNames" -> emptyList<String>()
+            "cachedArchiveStates" -> emptyList<CachedMemoState>()
             else -> error(name)
         } })
         val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
@@ -50,6 +52,8 @@ class MemoCacheReconcilerTest {
         val repo = MemoCacheRepository(stub<MemoDao> { name, _ -> when (name) {
             "reconciliationCandidates" -> listOf(CachedMemoCandidate("memos/edited", 10))
             "deleteMissingMemo" -> 0
+            "protectedMemoNames" -> emptyList<String>()
+            "cachedArchiveStates" -> emptyList<CachedMemoState>()
             else -> error(name)
         } })
         val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
@@ -66,6 +70,8 @@ class MemoCacheReconcilerTest {
             val repo = MemoCacheRepository(stub<MemoDao> { name, _ -> when (name) {
                 "reconciliationCandidates" -> (1..8).map { CachedMemoCandidate("memos/$it", 10) }
                 "deleteMissingMemo" -> { deletions++; 1 }
+                "protectedMemoNames" -> emptyList<String>()
+                "cachedArchiveStates" -> emptyList<CachedMemoState>()
                 else -> error(name)
             } })
             val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
@@ -77,6 +83,8 @@ class MemoCacheReconcilerTest {
         val repo = MemoCacheRepository(stub<MemoDao> { name, _ -> when (name) {
             "reconciliationCandidates" -> listOf(CachedMemoCandidate("memos/slow", 10))
             "deleteMissingMemo" -> { deletions++; 1 }
+            "protectedMemoNames" -> emptyList<String>()
+            "cachedArchiveStates" -> emptyList<CachedMemoState>()
             else -> error(name)
         } })
         val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
@@ -96,8 +104,14 @@ class MemoCacheReconcilerTest {
             release.await(); active--; Memo(content = "retained")
         }
         val repo = MemoCacheRepository(stub<MemoDao> { name, _ ->
-            check(name == "reconciliationCandidates")
-            snapshots++; (1..9).map { CachedMemoCandidate("memos/$it", 10) }
+            when (name) {
+                "protectedMemoNames" -> emptyList<String>()
+                "cachedArchiveStates" -> emptyList<CachedMemoState>()
+                else -> {
+                    check(name == "reconciliationCandidates")
+                    snapshots++; (1..9).map { CachedMemoCandidate("memos/$it", 10) }
+                }
+            }
         })
         val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
         val reconciler = MemoCacheReconciler(session, repo) {}
@@ -117,6 +131,8 @@ class MemoCacheReconcilerTest {
         val repo = MemoCacheRepository(stub<MemoDao> { name, _ -> when (name) {
             "reconciliationCandidates" -> listOf(CachedMemoCandidate("memos/1", 10))
             "deleteMissingMemo" -> { deleted = true; 1 }
+            "protectedMemoNames" -> emptyList<String>()
+            "cachedArchiveStates" -> emptyList<CachedMemoState>()
             else -> error(name)
         } })
         val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
@@ -149,6 +165,8 @@ class MemoCacheReconcilerTest {
         val repo = MemoCacheRepository(stub<MemoDao> { method, args -> when (method) {
             "reconciliationCandidates" -> (names + "memos/deleted").map { CachedMemoCandidate(it, 10) }
             "deleteMissingMemo" -> { removed += args[1] as String; 1 }
+            "protectedMemoNames" -> emptyList<String>()
+            "cachedArchiveStates" -> emptyList<CachedMemoState>()
             else -> error(method)
         } })
         val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
@@ -175,13 +193,83 @@ class MemoCacheReconcilerTest {
                 }
             }
             val repo = MemoCacheRepository(stub<MemoDao> { method, _ ->
-                check(method == "reconciliationCandidates")
-                listOf(CachedMemoCandidate("memos/gone", 10))
+                when (method) {
+                    "protectedMemoNames" -> emptyList<String>()
+                    "cachedArchiveStates" -> emptyList<CachedMemoState>()
+                    else -> {
+                        check(method == "reconciliationCandidates")
+                        listOf(CachedMemoCandidate("memos/gone", 10))
+                    }
+                }
             })
             val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
             MemoCacheReconciler(session, repo) {}.start(); advanceTimeBy(2_000); runCurrent()
             assertEquals(kind, 0, checks)
         }
+    }
+
+    @Test fun `server archive state re-files stale cached rows`() = runTest {
+        val moved = mutableListOf<Pair<String, Boolean>>()
+        val api = stub<MemosApi> { method, args -> when (method) {
+            "listMemos" -> if (args[2] == "ARCHIVED") {
+                ListMemosResponse(listOf(Memo(name = "memos/archived", content = "a")), null)
+            } else {
+                ListMemosResponse(listOf(Memo(name = "memos/normal", content = "n")), null)
+            }
+            else -> error(method)
+        } }
+        val repo = MemoCacheRepository(stub<MemoDao> { method, _ -> when (method) {
+            "reconciliationCandidates" -> listOf(
+                CachedMemoCandidate("memos/archived", 10),
+                CachedMemoCandidate("memos/normal", 10)
+            )
+            "protectedMemoNames" -> emptyList<String>()
+            "cachedArchiveStates" -> listOf(
+                // Archived on the server, still filed as a feed memo locally.
+                CachedMemoState("memos/archived", "USER"),
+                // Restored on the server, still filed as archived locally.
+                CachedMemoState("memos/normal", "ARCHIVED")
+            )
+            "moveListType" -> 1
+            "deleteMissingMemo" -> 0
+            else -> error(method)
+        } })
+        val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
+        val reconciler = MemoCacheReconciler(
+            session = session,
+            repository = repo,
+            onStateMoved = { name, archived -> moved += name to archived },
+            onDeleted = { fail("nothing is missing from the inventory") }
+        )
+
+        reconciler.start(); advanceTimeBy(1_000); runCurrent()
+
+        assertEquals(listOf("memos/archived" to true, "memos/normal" to false), moved)
+    }
+
+    @Test fun `a queued write keeps its optimistic archive state`() = runTest {
+        var moves = 0
+        val api = stub<MemosApi> { method, args -> when (method) {
+            "listMemos" -> if (args[2] == "ARCHIVED") {
+                ListMemosResponse(emptyList(), null)
+            } else {
+                ListMemosResponse(listOf(Memo(name = "memos/edited", content = "e")), null)
+            }
+            else -> error(method)
+        } }
+        val repo = MemoCacheRepository(stub<MemoDao> { method, _ -> when (method) {
+            "reconciliationCandidates" -> listOf(CachedMemoCandidate("memos/edited", 10))
+            // The user archived it offline: the server list has not seen that yet.
+            "protectedMemoNames" -> listOf("memos/edited")
+            "cachedArchiveStates" -> listOf(CachedMemoState("memos/edited", "ARCHIVED"))
+            "moveListType" -> { moves++; 1 }
+            "deleteMissingMemo" -> 0
+            else -> error(method)
+        } })
+        val session = AccountSession(backgroundScope).apply { activate(Account(id = "A"), api, OkHttpClient()) }
+        MemoCacheReconciler(session, repo) {}.start(); advanceTimeBy(1_000); runCurrent()
+
+        assertEquals(0, moves)
     }
 
 }

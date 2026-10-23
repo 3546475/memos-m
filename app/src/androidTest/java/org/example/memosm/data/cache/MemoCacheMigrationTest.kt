@@ -15,10 +15,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Verifies that upgrading an older database to the current schema (version 8)
- * preserves the durable cache/outbox tables and, for the risky migrations,
- * the rows inside them. Uses Room's [MigrationTestHelper], which validates
- * the post-migration schema against the exported JSON.
+ * Verifies that upgrading an older database to the current schema
+ * ([MEMO_CACHE_DB_VERSION]) preserves the durable cache/outbox tables and, for
+ * the risky migrations, the rows inside them. Uses Room's [MigrationTestHelper],
+ * which validates the post-migration schema against the exported JSON.
  */
 @RunWith(AndroidJUnit4::class)
 class MemoCacheMigrationTest {
@@ -31,60 +31,51 @@ class MemoCacheMigrationTest {
     )
 
     @Test
-    fun migrate2To8() {
+    fun migrate2ToLatest() {
         helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 2).close()
         helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
             *MemoCacheDatabase.ALL_MIGRATIONS
         )
     }
 
     @Test
-    fun migrate3To8() {
+    fun migrate3ToLatest() {
         helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 3).close()
         helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[1],
-            MemoCacheDatabase.ALL_MIGRATIONS[2],
-            MemoCacheDatabase.ALL_MIGRATIONS[3],
-            MemoCacheDatabase.ALL_MIGRATIONS[4],
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
     }
 
     @Test
-    fun migrate4To8() {
+    fun migrate4ToLatest() {
         helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 4).close()
         helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[2],
-            MemoCacheDatabase.ALL_MIGRATIONS[3],
-            MemoCacheDatabase.ALL_MIGRATIONS[4],
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
     }
 
     @Test
-    fun migrate5To8() {
+    fun migrate5ToLatest() {
         helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 5).close()
         helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[3],
-            MemoCacheDatabase.ALL_MIGRATIONS[4],
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
     }
 
     @Test
-    fun migrate6To8() {
+    fun migrate6ToLatest() {
         val db = helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 6)
         insertCachedMemoV3Plus(db, name = "memos/1", accountId = "acc-1", listType = "INBOX")
         insertSyncAuditEntry(db, occurredAt = 1000L, accountHash = "hash-1")
@@ -92,10 +83,9 @@ class MemoCacheMigrationTest {
 
         val migrated = helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[4],
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
 
         // Pre-v7 rows survive; the audit log moves to a separate database and
@@ -106,11 +96,11 @@ class MemoCacheMigrationTest {
     }
 
     /**
-     * v7 -> v8 only adds the cached_attachment_meta table, so pre-existing
-     * rows pass through untouched and the new table starts empty.
+     * v7 -> v8 adds the cached_attachment_meta table and the later versions
+     * only touch indices, so pre-existing rows pass through untouched.
      */
     @Test
-    fun migrate7To8AddsAttachmentMetaTable() {
+    fun migrate7ToLatestAddsAttachmentMetaTable() {
         val db = helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 7)
         insertCachedMemoV3Plus(db, name = "memos/1", accountId = "acc-1", listType = "INBOX")
         db.execSQL(
@@ -122,9 +112,9 @@ class MemoCacheMigrationTest {
 
         val migrated = helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
 
         assertEquals(1, countRows(migrated, "cached_memos"))
@@ -134,12 +124,87 @@ class MemoCacheMigrationTest {
     }
 
     /**
+     * v8 -> v9 only adds the outbox lookup indices, so the queue and the cache
+     * must survive untouched and both indices must be present afterwards.
+     */
+    @Test
+    fun migrate8ToLatestAddsPendingOpLookupIndices() {
+        val db = helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 8)
+        insertCachedMemoV3Plus(db, name = "memos/1", accountId = "acc-1", listType = "INBOX")
+        db.execSQL(
+            "INSERT INTO pending_ops (id, accountId, type, memoName, parentName, payloadJson, " +
+                "updateMask, baseUpdateTime, createdAt, attemptCount, lastError, lastAttemptAt, permanentlyFailed) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            arrayOf<Any?>("op-1", "acc-1", "UPDATE", "memos/1", null, "{\"content\":\"x\"}", "content", null, 100L, 3L, "timeout", 200L, 1)
+        )
+        db.close()
+
+        val migrated = helper.runMigrationsAndValidate(
+            MemoCacheDatabase.DATABASE_NAME,
+            MEMO_CACHE_DB_VERSION,
+            true,
+            *MemoCacheDatabase.ALL_MIGRATIONS
+        )
+
+        assertEquals(1, countRows(migrated, "cached_memos"))
+        assertEquals(1, countRows(migrated, "pending_ops"))
+        assertTrue(indexExists(migrated, "index_pending_ops_accountId_memoName"))
+        assertTrue(indexExists(migrated, "index_pending_ops_accountId_parentName"))
+        migrated.query(
+            "SELECT attemptCount, permanentlyFailed, lastError FROM pending_ops WHERE id = ?",
+            arrayOf<Any?>("op-1")
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(3L, cursor.getLong(0))
+            assertEquals(1, cursor.getInt(1))
+            assertEquals("timeout", cursor.getString(2))
+        }
+    }
+
+    /**
+     * v9 -> v10 adds the permanent-failure flag to the attachment upload queue. Every existing
+     * row is a pending upload by definition, so it must survive with the flag cleared.
+     */
+    @Test
+    fun migrate9ToLatestAddsAttachmentFailureFlag() {
+        val db = helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 9)
+        db.execSQL(
+            "INSERT INTO attachment_uploads (id, accountId, clientId, localPath, filename, mimeType, " +
+                "size, createdAt, attemptCount, lastError, lastAttemptAt) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            arrayOf<Any?>(
+                "upload-1", "acc-1", "client-1", "/files/upload-1", "a.png", "image/png",
+                42L, 100L, 2L, "timeout", 200L
+            )
+        )
+        db.close()
+
+        val migrated = helper.runMigrationsAndValidate(
+            MemoCacheDatabase.DATABASE_NAME,
+            MEMO_CACHE_DB_VERSION,
+            true,
+            *MemoCacheDatabase.ALL_MIGRATIONS
+        )
+
+        assertEquals(1, countRows(migrated, "attachment_uploads"))
+        migrated.query(
+            "SELECT attemptCount, lastError, permanentlyFailed FROM attachment_uploads WHERE id = ?",
+            arrayOf<Any?>("upload-1")
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(2L, cursor.getLong(0))
+            assertEquals("timeout", cursor.getString(1))
+            assertEquals(0, cursor.getInt(2))
+        }
+    }
+
+    /**
      * v2 -> v3 rebuilds cached_memos and backfills the indexed columns from
      * memoJson. Asserts the backfill landed and that a row with unparseable
      * memoJson is kept with default column values.
      */
     @Test
-    fun migrate2To8BackfillsIndexedMemoColumns() {
+    fun migrate2ToLatestBackfillsIndexedMemoColumns() {
         val createTime = "2024-01-02T03:04:05Z"
         val updateTime = "2024-02-03T04:05:06Z"
         val memoJson = """
@@ -164,7 +229,7 @@ class MemoCacheMigrationTest {
 
         val migrated = helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
             *MemoCacheDatabase.ALL_MIGRATIONS
         )
@@ -207,7 +272,7 @@ class MemoCacheMigrationTest {
      * with the new columns defaulting to 0 and attachment data intact.
      */
     @Test
-    fun migrate4To8PreservesPendingOpsAndAttachments() {
+    fun migrate4ToLatestPreservesPendingOpsAndAttachments() {
         val db = helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 4)
         // v4 pending_ops has no lastAttemptAt/permanentlyFailed columns.
         db.execSQL(
@@ -226,12 +291,9 @@ class MemoCacheMigrationTest {
 
         val migrated = helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[2],
-            MemoCacheDatabase.ALL_MIGRATIONS[3],
-            MemoCacheDatabase.ALL_MIGRATIONS[4],
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
 
         migrated.query(
@@ -271,7 +333,7 @@ class MemoCacheMigrationTest {
      * pre-existing cache/outbox rows must pass through untouched.
      */
     @Test
-    fun migrate5To8PreservesCacheOutboxAndDropsAuditLog() {
+    fun migrate5ToLatestPreservesCacheOutboxAndDropsAuditLog() {
         val db = helper.createDatabase(MemoCacheDatabase.DATABASE_NAME, 5)
         insertCachedMemoV3Plus(db, name = "memos/1", accountId = "acc-1", listType = "INBOX")
         db.execSQL(
@@ -289,11 +351,9 @@ class MemoCacheMigrationTest {
 
         val migrated = helper.runMigrationsAndValidate(
             MemoCacheDatabase.DATABASE_NAME,
-            8,
+            MEMO_CACHE_DB_VERSION,
             true,
-            MemoCacheDatabase.ALL_MIGRATIONS[3],
-            MemoCacheDatabase.ALL_MIGRATIONS[4],
-            MemoCacheDatabase.ALL_MIGRATIONS[5]
+            *MemoCacheDatabase.ALL_MIGRATIONS
         )
 
         assertEquals(1, countRows(migrated, "cached_memos"))
@@ -352,6 +412,16 @@ class MemoCacheMigrationTest {
         db.query(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
             arrayOf<Any?>(table)
+        ).use { cursor ->
+            cursor.moveToFirst()
+            return cursor.getInt(0) > 0
+        }
+    }
+
+    private fun indexExists(db: SupportSQLiteDatabase, index: String): Boolean {
+        db.query(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = ?",
+            arrayOf<Any?>(index)
         ).use { cursor ->
             cursor.moveToFirst()
             return cursor.getInt(0) > 0

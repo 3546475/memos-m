@@ -154,7 +154,7 @@ class BackupServiceTest {
         } }
     }
 
-    @Test fun optionalQueuedEditsAreRestoredOnlyIntoReviewStorage() = runBlocking {
+    @Test fun optionalQueuedEditsAreRestoredIntoTheLiveOutbox() = runBlocking {
         Fixture().use { source -> Fixture().use { target ->
             seed(source)
             val categories = setOf(BackupCategory.ACCOUNTS, BackupCategory.QUEUED_EDITS)
@@ -162,8 +162,19 @@ class BackupServiceTest {
             target.service.inspect(archive).getOrThrow().use { backup ->
                 target.service.restore(backup, RestoreSelection(setOf("A"), categories)).getOrThrow()
             }
-            assertEquals("queued edit", target.settings.restoredEdits("A").first().single().asJsonObject.getAsJsonObject("payload").get("content").asString)
-            assertTrue(target.database.pendingOpDao().getOps("A").isEmpty())
+            // A replayable edit joins the live outbox with a clean retry budget, so the sync
+            // engine sends it like any other local write.
+            val restored = target.database.pendingOpDao().getOps("A").single()
+            assertEquals("UPDATE", restored.type)
+            assertEquals("memos/2", restored.memoName)
+            assertEquals(0, restored.attemptCount)
+            assertFalse(restored.permanentlyFailed)
+            val payload = GsonProvider.gson.fromJson(
+                restored.payloadJson, com.google.gson.JsonObject::class.java
+            )
+            assertEquals("queued edit", payload.get("content").asString)
+            // It is no longer duplicated as a review record.
+            assertEquals(0, target.settings.restoredEdits("A").first().size())
             assertTrue(target.database.attachmentUploadDao().getForAccount("A").isEmpty())
             assertTrue(target.database.memoDao().getMemos("A", "USER").isEmpty())
         } }
