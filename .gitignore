@@ -50,6 +50,9 @@ docs/miuix-refactor-plan.md
 # Archify diagram artifacts: specs, delivered HTML, delivery receipts, browser evidence.
 # They are generated documentation kept on this machine only.
 docs/archify/
+# The tool's own working directory, created next to the repo root (candidate specs,
+# visual-check screenshots).
+.archify/
 docs/memos-m-architecture.html
 docs/memos-m-architecture.delivery.json
 docs/memos-m-architecture.visual-check.*
