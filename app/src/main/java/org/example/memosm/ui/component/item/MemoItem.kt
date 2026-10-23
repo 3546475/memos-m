@@ -299,7 +299,7 @@ fun MemoItem(
                                         imageVector = Icons.Outlined.PushPin,
                                         contentDescription = stringResource(R.string.profile_stats_pinned),
                                         modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.secondary
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                 }
@@ -357,7 +357,7 @@ fun MemoItem(
                                     imageVector = Icons.Outlined.PushPin,
                                     contentDescription = stringResource(R.string.profile_stats_pinned),
                                     modifier = Modifier.size(12.dp),
-                                    tint = MaterialTheme.colorScheme.secondary
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                             }

@@ -138,16 +138,26 @@ fun MarkdownText(
                     val color = Color(range.item.toLong(16))
                     val bounds = layout.getPathForRange(range.start, range.end).getBounds()
                     if (bounds.isEmpty) return@forEach
-                    // Hug the label the way the collapsed tag row's chip does: a fixed chip height
-                    // centred in the line box, instead of the whole line box.
+                    // A label-sized run inside a body-sized line sits on that line's baseline, so a
+                    // capsule centred on the line box would leave the text against its bottom edge.
+                    // Centre on the tag's own glyph box instead, clamped into the line when the
+                    // chip still fits so a column of tags does not bleed into its neighbours.
                     val chipHeight = (TagChipHeight).toPx()
-                    val inset = ((bounds.height - chipHeight) / 2f).coerceAtLeast(1f)
-                    val height = (bounds.height - inset * 2f).coerceAtLeast(1f)
+                    val glyphOffset = range.start.coerceIn(
+                        0, (layout.layoutInput.text.length - 1).coerceAtLeast(0)
+                    )
+                    val glyph = layout.getBoundingBox(glyphOffset)
+                    val centerY = if (glyph.height > 0f) glyph.center.y else bounds.center.y
+                    val top = if (bounds.height > chipHeight) {
+                        (centerY - chipHeight / 2f).coerceIn(bounds.top, bounds.bottom - chipHeight)
+                    } else {
+                        centerY - chipHeight / 2f
+                    }
                     drawRoundRect(
                         color = color,
-                        topLeft = Offset(bounds.left, bounds.top + inset),
-                        size = Size(bounds.width, height),
-                        cornerRadius = CornerRadius(height / 2f)
+                        topLeft = Offset(bounds.left, top),
+                        size = Size(bounds.width, chipHeight),
+                        cornerRadius = CornerRadius(chipHeight / 2f)
                     )
                 } catch (e: NumberFormatException) {
                     // Ignore a malformed annotation.
