@@ -37,6 +37,7 @@ class SetupActivity : ComponentActivity() {
                 val ready by BackupCoordinator.startupReady.collectAsState()
                 var childOpen by rememberSaveable { mutableStateOf(false) }
                 val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                    android.util.Log.d("MemosLogin", "setup child result=${it.resultCode}")
                     childOpen = false
                     when (it.resultCode) {
                         RESULT_OK -> {

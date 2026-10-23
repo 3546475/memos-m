@@ -95,6 +95,9 @@ interface MemoActionDelegate {
     fun createComment(parentMemo: Memo, content: String, onError: () -> Unit = {}, onSuccess: () -> Unit = {})
     suspend fun uploadAttachment(uri: Uri, context: Context): Attachment?
 
+    /** Queue a pending attachment upload and return its placeholder without waiting for the bytes. */
+    suspend fun queueAttachment(uri: Uri, context: Context): Attachment?
+
     /** Discard a queued offline upload once nothing references its placeholder anymore. */
     fun discardQueuedUploadIfOrphaned(clientId: String)
     fun upsertMemoReaction(memo: Memo, reactionType: String)
@@ -628,6 +631,12 @@ class MemoActionDelegateImpl(
         memoCacheRepository.upsertCachedMemo(
             accountId, localComment, CacheListType.COMMENT, parentName = parentName
         )
+    }
+
+    override suspend fun queueAttachment(uri: Uri, context: Context): Attachment? {
+        val account = accountSession.current ?: return null
+        val attachment = attachmentManager?.queueAttachment(uri, context)
+        return attachment.takeIf { accountSession.isCurrent(account) }
     }
 
     override suspend fun uploadAttachment(uri: Uri, context: Context): Attachment? {

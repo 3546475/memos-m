@@ -97,6 +97,8 @@ fun MemoComposer(
     modifier: Modifier = Modifier,
     onPublish: (String, Visibility, List<Attachment>, Location?) -> Unit,
     onUploadFile: suspend (Uri, Context) -> Attachment?,
+    /** Queue a pending file for background upload and return its placeholder right away. */
+    onQueueUpload: suspend (Uri, Context) -> Attachment?,
     availableTags: Map<String, Int>,
     token: String,
     hostUrl: String,
@@ -370,63 +372,30 @@ fun MemoComposer(
             onPublishClick = publish@{
                 if (isPosting || isUploadingCount > 0) return@publish
                 scope.launch {
-                    val pendingUploads = draftAttachments.withIndex().filter { indexedValue ->
-                        val pair = indexedValue.value
-                        // Case 1: New local file (Uri is not EMPTY, Attachment is null)
-                        (pair.second == null && pair.first != Uri.EMPTY) ||
-                                // Case 2: Restored draft (Uri is EMPTY, Attachment has content but no name on server)
-                                (pair.second != null && pair.second!!.name == null && pair.second!!.content != null)
-                    }
-                    val uploadedAttachments = mutableListOf<Attachment>()
-
-                    for (indexedValue in pendingUploads) {
-                        val index = indexedValue.index
-                        val (uri, attachment) = indexedValue.value
-                        isUploadingCount++
-
-                        // If it's a restored draft, we first need to convert it to a temp Uri
-                        val uploadUri = if (uri == Uri.EMPTY && attachment != null) {
-                            base64ToTempUri(
-                                attachment.content ?: "",
+                    // Queue the pending files instead of uploading them inside the save path: the
+                    // memo is created locally at once and the outbox defers its create until the
+                    // queued bytes have landed. Saving with a large photo used to block here.
+                    val finalAttachments = draftAttachments.mapNotNull { (uri, attachment) ->
+                        val queued = when {
+                            attachment?.name != null -> attachment
+                            attachment?.clientId != null -> attachment
+                            uri != Uri.EMPTY -> onQueueUpload(uri, context)
+                            attachment?.content != null -> base64ToTempUri(
+                                attachment.content,
                                 attachment.filename,
                                 attachment.type,
                                 context
-                            )
-                        } else {
-                            uri
+                            )?.let { temp -> onQueueUpload(temp, context) }
+                            else -> null
                         }
-
-                        if (uploadUri != null) {
-                            uploadingUris = uploadingUris + uploadUri
-                            val uploaded = onUploadFile(uploadUri, context)
-                            uploadingUris = uploadingUris - uploadUri
-
-                            if (uploaded != null) {
-                                uploadedAttachments.add(uploaded)
-                                // Update local draft state immediately as we upload
-                                // We match by the index to replace it safely
-                                draftAttachments = draftAttachments.mapIndexed { i, item ->
-                                    if (i == index) uploadUri to uploaded else item
-                                }
+                        if (queued != null && queued !== attachment) {
+                            draftAttachments = draftAttachments.map { item ->
+                                if (item.first == uri) uri to queued else item
                             }
                         }
-                        isUploadingCount--
+                        queued
                     }
-
-                    // Now collect all valid attachments:
-                    // 1. Items that were already valid (non-null attachment with name)
-                    // 2. Newly uploaded items are already swapped into draftAttachments by the loop above,
-                    //    OR added to uploadedAttachments if we want to be safe, but the loop updates draftAttachments.
-                    // 3. Queued-upload placeholders (name == null but carrying the queue
-                    //    clientId) stay attached; the outbox replay resolves them to the
-                    //    real server attachment once the durable upload lands.
-                    val finalAttachments =
-                        draftAttachments.mapNotNull { it.second }
-                            .filter { it.name != null || it.clientId != null }
-
-                    onPublish(
-                        contentState.text, visibility, finalAttachments, location
-                    )
+                    onPublish(contentState.text, visibility, finalAttachments, location)
                 }
             })
     }

@@ -95,13 +95,16 @@ class SetupLoginActivity : ComponentActivity() {
                                     onLoginSuccess = { baseUrl, token ->
                                         scope.launch {
                                             saving = true
+                                            android.util.Log.d("MemosLogin", "addAccount: start")
                                             try {
                                                 settings.addAccount(baseUrl, token)
+                                                android.util.Log.d("MemosLogin", "addAccount: done")
                                                 setResult(RESULT_OK)
                                                 finish()
                                             } catch (error: CancellationException) {
                                                 throw error
-                                            } catch (_: Exception) {
+                                            } catch (error: Exception) {
+                                                android.util.Log.e("MemosLogin", "addAccount failed", error)
                                                 saving = false
                                                 snackbar.showSnackbar(saveError)
                                             } finally {

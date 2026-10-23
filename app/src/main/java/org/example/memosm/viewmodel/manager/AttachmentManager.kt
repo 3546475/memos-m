@@ -163,16 +163,46 @@ class AttachmentManager(
      * preview. A staging failure leaves the upload genuinely failed (no toast,
      * no row, null).
      */
+    /**
+     * Queue an upload and return its placeholder immediately. The composer publishes with this
+     * placeholder: the memo is created locally at once and the outbox defers the create until the
+     * bytes have landed, instead of keeping the save button busy for every image.
+     */
+    suspend fun queueAttachment(uri: Uri, context: Context): Attachment? {
+        val account = accountSession.current ?: return null
+        val fileName = getFileName(uri, context) ?: "unknown_file"
+        val mimeType = resolveMimeType(uri, context)
+        val fileSize = getFileSize(uri, context)
+        val attachment = enqueueForLater(account, uri, fileName, mimeType, fileSize, notifyOffline = false)
+            ?: return null
+        if (accountSession.isCurrent(account)) {
+            updateState { state -> state.copy(items = listOf(attachment) + state.items) }
+            uploadQueueProvider()?.schedule(account.account.id)
+        }
+        return attachment
+    }
+
     private suspend fun enqueueForLater(
         account: AccountContext,
         uri: Uri,
         fileName: String,
         mimeType: String,
-        fileSize: Long
+        fileSize: Long,
+        notifyOffline: Boolean = true
     ): Attachment? {
         val queue = uploadQueueProvider() ?: return null
         val accountId = account.account.id
         val clientId = queue.enqueue(accountId, uri, fileName, mimeType, fileSize) ?: return null
+        if (!notifyOffline) {
+            return Attachment(
+                filename = fileName,
+                type = mimeType,
+                mimeType = mimeType,
+                size = fileSize.takeIf { it > 0 }?.toString(),
+                clientId = clientId,
+                localPath = queue.stagedFile(clientId).absolutePath
+            )
+        }
         withContext(Dispatchers.Main) {
             if (accountSession.isCurrent(account)) Toast.makeText(
                 MemosApplication.instance,

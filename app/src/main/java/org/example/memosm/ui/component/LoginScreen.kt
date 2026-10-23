@@ -291,7 +291,11 @@ fun LoginContent(
 
     val performLogin = {
         scope.launch {
-            if (isLoading || ssoInProgress) return@launch
+            Log.d("MemosLogin", "performLogin: mode=$loginMode host=$hostUrl")
+            if (isLoading || ssoInProgress) {
+                Log.d("MemosLogin", "performLogin: already busy (isLoading=$isLoading sso=$ssoInProgress)")
+                return@launch
+            }
             isLoading = true
             errorMessage = null
             val baseUrl = normalizeLoginServerUrl(hostUrl)
@@ -321,7 +325,9 @@ fun LoginContent(
                 // Check if instance is valid by fetching instance profile
                 try {
                     api.getInstanceProfile()
+                    Log.d("MemosLogin", "performLogin: instance profile ok")
                 } catch (e: Exception) {
+                    Log.e("MemosLogin", "performLogin: instance profile failed", e)
                     errorMessage = errorInvalidInstance
                     isLoading = false
                     return@launch
@@ -347,6 +353,7 @@ fun LoginContent(
 
                     try {
                         authApi.getCurrentSession()
+                        Log.d("MemosLogin", "performLogin: token verified, handing over")
                         onLoginSuccess(baseUrl, trimmedToken)
                     } catch (e: Exception) {
                         Log.e("MemosLogin", "Token verification failed", e)

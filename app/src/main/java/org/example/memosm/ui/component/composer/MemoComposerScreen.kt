@@ -104,6 +104,9 @@ fun MemoComposerScreen(
                     onUploadFile = { uri, context ->
                         viewModel.memoActionDelegate.uploadAttachment(uri, context)
                     },
+                    onQueueUpload = { uri, context ->
+                        viewModel.memoActionDelegate.queueAttachment(uri, context)
+                    },
                     availableTags = uiState.session.userStats?.tagCount ?: emptyMap(),
                     token = uiState.session.token,
                     hostUrl = hostUrl,
