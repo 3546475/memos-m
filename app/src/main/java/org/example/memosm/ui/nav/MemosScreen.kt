@@ -85,6 +85,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
@@ -96,15 +97,15 @@ import org.example.memosm.ui.theme.AppFilterChip
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import org.example.memosm.data.sync.PreDownloadState
 import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
 import org.example.memosm.ui.component.MemoSearchBar
 import org.example.memosm.ui.component.MemosScaffold
-import org.example.memosm.ui.component.SyncStatusBar
+import org.example.memosm.ui.component.SyncStatusChip
 import org.example.memosm.ui.component.SyncStatus
 import org.example.memosm.ui.component.SyncStatusIconButton
 import org.example.memosm.ui.component.SyncStatusPanel
+import org.example.memosm.ui.component.syncStatusChipLabel
 import org.example.memosm.ui.component.syncStatusOf
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
@@ -305,7 +306,20 @@ fun MemosScreen(
                         }
                         Spacer(Modifier.weight(1f))
                         // An idle sync state carries no information, so it stays silent.
+                        // Miuix's feed header is a single fixed-height row, so the status
+                        // text rides inline here instead of floating over the list: it can
+                        // never grow the row and shift the feed.
                         if (syncStatusOf(uiState) != SyncStatus.IDLE) {
+                            syncStatusChipLabel(uiState)?.let { label ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(end = 6.dp)
+                                )
+                            }
                             SyncStatusIconButton(
                                 uiState = uiState,
                                 onClick = { showSyncPanel = true }
@@ -416,6 +430,22 @@ fun MemosScreen(
                     )
                 }
             }
+            // Sync/cache status floats over the feed instead of living in the
+            // list's header item: a row that appears and disappears inside the
+            // LazyColumn re-measures the header and shifts every memo card.
+            // It is drawn before the search bar so the expanding panel covers
+            // it, and it stays out of the way while search is open.
+            // Offline is left out on purpose - the search bar's red cloud icon
+            // already reports it.
+            if (!miuixSearch && !searchExpanded) {
+                SyncStatusChip(
+                    uiState = uiState,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 60.dp)
+                )
+            }
+
             if (miuixSearch) {
                 searchBar()
             } else {
@@ -663,41 +693,15 @@ private fun MemosListPane(
             val selectedHashtag = uiState.userMemoList.selectedHashtag
             val showFilterRow = hasShortcuts || selectedHashtag != null
 
-            // Sync status: visible only while an activity is ongoing (syncing,
-            // pre-downloading, pending writes, offline). Once everything settles
-            // it animates away (shrinks) and the compact status icon at the
-            // search bar takes over - the check mark appears there. It lives
-            // inside the header_section item (not its own LazyColumn item) so
-            // the list's 8dp item spacing does not leave a gap after it hides.
-            val syncActive = uiState.isSyncing ||
-                uiState.preDownloadState is PreDownloadState.Running ||
-                uiState.pendingOpsCount > 0 ||
-                !uiState.isOnline ||
-                uiState.connectionState == org.example.memosm.viewmodel.ConnectionState.RATE_LIMITED
-
-            if (hasDrafts || showFilterRow || syncActive) {
+            // Sync/cache status used to be the first row here. It now floats over
+            // the pane (see MemosScreen's overlay): anything inside this header is
+            // a LazyColumn item, so a row that appears and disappears re-measures
+            // the header and shifts every memo card below it.
+            if (hasDrafts || showFilterRow) {
                 item(key = "header_section") {
                     Column(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = syncActive,
-                            enter = androidx.compose.animation.fadeIn() +
-                                androidx.compose.animation.expandVertically(),
-                            exit = androidx.compose.animation.fadeOut() +
-                                androidx.compose.animation.shrinkVertically()
-                        ) {
-                            SyncStatusBar(
-                                isOnline = uiState.isOnline,
-                                isSyncing = uiState.isSyncing,
-                                pendingOpsCount = uiState.pendingOpsCount,
-                                preDownloadState = uiState.preDownloadState,
-                                cachedCount = uiState.textCacheCount,
-                                lastSyncTime = uiState.lastSyncTime,
-                                connectionState = uiState.connectionState
-                            )
-                        }
-
                         // Drafts Card (shown when drafts exist)
                         AnimatedVisibility(
                             visible = hasDrafts,

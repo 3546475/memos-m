@@ -8,8 +8,8 @@ enum class SyncStatus { SYNCING, PREDOWNLOAD, PENDING, OFFLINE, RATE_LIMITED, ID
 
 /**
  * THE one place that decides which sync/cache state the UI surfaces, used by
- * both the icon button/panel (SyncStatusWidget) and the status row
- * (SyncStatusBar) so they can never disagree about the same uiState.
+ * both the icon button/panel (SyncStatusWidget) and the transient chip
+ * (SyncStatusChip) so they can never disagree about the same uiState.
  *
  * Precedence: offline first. Being offline is the most truthful user-facing
  * fact — nothing can sync or pre-download while offline, and any queued
