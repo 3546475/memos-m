@@ -16,6 +16,13 @@ object AppVisibility {
     private val _foreground = MutableStateFlow(true)
     val foreground: StateFlow<Boolean> = _foreground.asStateFlow()
 
+    /** Test hook: pretend one activity is visible. */
+    @Synchronized
+    internal fun resetForTest() {
+        startedActivities = 1
+        _foreground.value = true
+    }
+
     @Synchronized
     fun onActivityStarted() {
         startedActivities++
