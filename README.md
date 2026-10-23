@@ -6,6 +6,8 @@
 A feature-rich Android client for Memos.
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yamada-sexta/memos-m/canary-build.yml?style=flat-square)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yamada-sexta/memos-m/nightly-test.yml?style=flat-square&label=nightly%20API%20tests)
+![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/yamada-sexta/memos-m/total?style=flat-square)
 ![GitHub License](https://img.shields.io/github/license/yamada-sexta/memos-m?style=flat-square)
 ![GitHub Repo stars](https://img.shields.io/github/stars/yamada-sexta/memos-m?style=flat-square)
@@ -15,9 +17,9 @@ A feature-rich Android client for Memos.
 
 ---
 
-**MemosM** is an Android client designed to target the latest stable release of [Memos](https://usememos.com/) (currently v0.28.x - v0.31.x).
+**MemosM** is an Android client for [Memos](https://usememos.com/) that follows the current server releases. It supports Memos v0.26 and newer: the version probe reads the server version and picks the matching adapter (v0.26–v0.30), while newer or unknown servers use the latest adapter. The nightly integration suite runs the adapters against v0.26.0 up to the current stable and canary images. Android 7.0 (API 24) and newer are supported.
 
-It focuses on providing a native experience, speed, and full support for the latest features of the Memos ecosystem.
+It focuses on a native experience, speed, and full support for current Memos features, with an offline-first data layer and a structured filter system.
 
 ## Screenshots
 
@@ -30,7 +32,10 @@ While other clients like [MoeMemos](https://github.com/mudkipme/MoeMemosAndroid)
 
 - **Native Android Focus:** MemosM is built specifically for Android rather than being a cross-platform port. This ensures better performance and robust tablet support.
 - **Efficiency:** Optimized syncing prevents high data usage and ensures a faster, more responsive experience compared to clients that re-sync entire histories.
-- **Modern Feature Set:** By focusing on recent Memos versions, we avoid the limitations of backward compatibility and can implement modern features like advanced Markdown and Reactions.
+- **Offline-first by default:** a local-first cache, queued offline writes, conflict handling, and optional text/attachment pre-download keep the app usable without a connection.
+- **Filtering that fits:** saved views, a collapsible tag tree, date windows, content types and ordering — compiled to the server's CEL filter and mirrored locally for offline use.
+- **Modern Feature Set:** By focusing on recent Memos versions, we avoid the limitations of backward compatibility and can implement modern features like advanced Markdown, Reactions and SSO.
+- **Two design languages:** Material 3 and Miuix (HyperOS), with Material You, custom and monochrome palettes.
 
 ## SSO login
 
@@ -49,10 +54,10 @@ client configured in Memos. Keep the existing Memos web callback registered as w
 | Debug | `org.example.memosm.debug://oauth/callback` |
 
 The provider must accept custom URI schemes and S256 PKCE. Providers requiring an HTTPS
-callback can use manual token login instead. SSO supports the existing v0.26–v0.31 API
-adapters and the newer Memos SSO format. Registration and identity provisioning follow
-the server's settings. Sign-in attempts expire after ten minutes; if Android terminates
-the app during authentication, start sign-in again.
+callback can use manual token login instead. SSO is supported by the v0.26+ adapters and the
+newer Memos SSO format. Registration and identity provisioning follow the server's settings.
+Sign-in attempts expire after ten minutes; if Android terminates the app during authentication,
+start sign-in again.
 
 ## Downloads
 
@@ -86,62 +91,123 @@ On Android 17 and later, connecting to a local Memos server may require the **Ne
 
 ## Features
 
-- User
-  - Auth
-    - [x] Login with token
-    - [x] Login with password
-  - User info
-    - [x] View user info
-    - [x] Edit user info
-    - [x] Activities
-- Memos
-  - Basic
-    - [x] View/post/edit Memos
-    - [x] Comment on Memos
-    - [x] Search Memos
-  - Markdown
-    - [x] Baisc rendering
-    - [x] Checkboxes
-    - [x] Codeblocks with syntax highlighting
-    - [x] Table
-    - [x] Basic LaTeX
-  - Attachment
-    - [x] View attachments
-    - [x] Large attachment handle (blocking)
-    - [x] Video playback
-    - [x] Audio playback
-    - [x] View image
-  - Reactions
-    - [x] View reactions
-    - [x] Add/Remove reactions
-    - [x] Respect server emoji list
-  - Map
-    - [x] Location
-    - [x] Map view
-- Notifications
-  - [x] View notifications
-  - [ ] ~~Fetch notifications in the background~~ (bad for battery + no demand)
-- Misc
-  - [x] Native map with Memos/Explore scopes, location pins, filters, and composing at a selected place
-  - [x] Multi language support: English, Japanese, Chinese, Korean, German, Polish
-  - [x] Sharing intent support
-  - [x] Local cache
-  - [x] Offline-first
-    - [x] Full offline read
-    - [x] Offline writes queued
-    - [x] Offline media store
-    - [x] Auto-sync on reconnect
+- **Accounts & sign-in**
+  - Token, password, or SSO login
+  - Multiple accounts with fast switching; caches and filters are per account
+  - Local network access permission for local servers on Android 17 and later
+- **Memos**
+  - Compose, edit, delete, pin, archive and unarchive memos
+  - Share sheet target for text, images and files
+  - Comments, reactions (using the server's emoji list), linked memos and location
+  - Search over content, tags and date ranges, with ordering
+  - Structured filter panel: saved views, collapsible tag tree, date presets and custom ranges,
+    content types (links/code/todos) and ordering. Applied filters persist per account and stay
+    visible as removable tokens under the top bar
+- **Markdown**
+  - GFM rendering: headings, lists, task lists, tables, quotes, links and images
+  - Code blocks with syntax highlighting, optional line numbers and line wrapping
+  - LaTeX math, link previews, paragraph indent and CJK spacing options
+- **Media**
+  - Full-screen image viewer with zoom; avatar cropping
+  - Video playback (ExoPlayer) and audio recording/playback
+  - Attachments browser, streamed downloads, and a size-limited offline media cache
+- **Organize**
+  - Tag tree in the profile, memo kinds (links, code, todos), archived memos, statistics and activity
+  - Notifications list (no background polling)
+- **Offline & sync**
+  - Local-first cache with offline reads for the feed, search, map and attachments
+  - Offline writes queued and replayed on reconnect, with a conflict-resolution dialog
+  - Optional pre-download of text and attachments (Wi-Fi only), cache size limits
+  - Sync status panel, audit log, failed-upload retry/discard
+- **Appearance**
+  - Material 3 and Miuix (HyperOS) styles; light, dark or follow-system
+  - Material You, custom and monochrome palettes; font and heading-size options
+  - Navigation layout for phones and tablets (bottom bar or rail), edit gestures, pull-to-refresh
+- **Widgets & shortcuts**
+  - Draft widget and user-stats widget (with its own configuration screen)
+  - Four launcher shortcuts: new memo, drafts, notifications, search
+- **Backup & restore**
+  - `.mmbackup` export with MessagePack + gzip and optional password protection, covering accounts,
+    settings, caches, media and drafts — see [the backup notes](docs/backup.md)
+- **Map**
+  - Native map with Memos / Explore / All scopes, location pins, saved views, and composing at a
+    chosen place
+  - OpenFreeMap basemaps with an OpenStreetMap raster fallback
+- **Languages**
+  - English, German, Japanese, Korean, Polish, Simplified Chinese and Traditional Chinese
 
 The Map destination appears only after the connected instance accepts the `has_location`
 memo filter. Older and unknown instances do not show it. Previously verified accounts can
 browse cached locations offline using available cached tiles. Saved views require a connection;
-map regions are not downloaded in advance. Basemaps use OpenFreeMap, with OpenStreetMap
-as a fallback.
+map regions are not downloaded in advance.
 
 ## Non-goals
 
 - **Indefinite Backward Compatibility:** We prioritize compatibility with the latest Memos API to leverage modern features. Older versions of Memos will not be supported for long.
 - **Multiplatform Support:** MemosM is built exclusively for Android to ensure a high-quality, native experience.
+
+## Build from source
+
+Requirements:
+
+- JDK 21
+- Android SDK with platform 37.1 (`compileSdk = 37`, `minSdk = 24`)
+- Docker only for the API integration tests
+
+```bash
+# Debug build (installs alongside the other channels as <applicationId>.debug)
+./gradlew :app:assembleDebug
+
+# Other channels
+./gradlew :app:assembleInsider
+./gradlew :app:assembleCanary
+./gradlew :app:assembleRelease
+```
+
+The debug APK is written to `app/build/outputs/apk/debug/`. Release builds are signed from
+`keystore.properties` at the repository root, or from the `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`,
+`KEY_ALIAS` and `KEY_PASSWORD` environment variables used by CI (see `app/build.gradle.kts`);
+none of that is required for a debug build.
+
+## Testing
+
+```bash
+# JVM unit tests (no device required)
+./gradlew :app:testDebugUnitTest
+
+# Compose UI / instrumentation tests (device or emulator)
+./gradlew :app:connectedDebugAndroidTest
+```
+
+`MemosApiIntegrationTest` starts real Memos containers through Testcontainers, so it needs Docker:
+
+```bash
+./gradlew :app:testDebugUnitTest --tests org.example.memosm.api.MemosApiIntegrationTest
+```
+
+That suite runs as part of the regular JVM test task but needs Docker; the nightly workflow also
+runs it explicitly against the canary image and every supported release image.
+
+## Project layout
+
+| Path | Contents |
+| --- | --- |
+| `app/src/main/java/org/example/memosm/api` | Retrofit interfaces and the versioned server adapters (v0.26 to current, plus the unversioned fallback) |
+| `app/src/main/java/org/example/memosm/data` | Caches, offline outbox, sync, backup, media and DataStore persistence |
+| `app/src/main/java/org/example/memosm/viewmodel` | View model, list managers and the feature delegates |
+| `app/src/main/java/org/example/memosm/ui` | Compose screens, components and the Material 3 / Miuix theme layer |
+| `app/src/main/java/org/example/memosm/model` | API models and the structured filter model |
+| `app/src/main/java/org/example/memosm/network` | Local-network permission handling |
+| `app/src/main/java/org/example/memosm/widget` | Glance home-screen widgets |
+| `docs` | Design and implementation notes |
+
+Design notes:
+
+- [Filter system](docs/filter-system-refactor.md) — structured filters, CEL compilation, offline matching
+- [Markdown rendering](docs/markdown-rendering.md)
+- [Miuix theme plan](docs/miuix-refactor-plan.md)
+- [Backup format](docs/backup.md)
+- [Entry inventory](docs/entry-inventory.md)
 
 ## Contributing
 
@@ -149,7 +215,7 @@ Contributions are welcome in the form of code, bug reports, or feature suggestio
 
 - **Issues:** Open an issue to discuss bugs or design ideas.
 - **Pull Requests:** Focused, easy-to-review PRs are appreciated.
-- **Translations:** Currently there isn't a good contribution workflow, but you can make RPs of the `string.xml`.
+- **Translations:** There is no dedicated translation workflow yet; PRs against the `strings.xml` files in `app/src/main/res/values-*` are welcome.
 
 ## Related Projects
 
@@ -168,3 +234,7 @@ edits are optional and unchecked by default; restored edits are kept for review 
 automatically. Android Auto Backup restores account information during device setup, while
 direct device transfer also preserves caches and drafts. The server remains authoritative.
 See [backup format and verification](docs/backup.md) for details.
+
+## License
+
+[MIT](LICENSE)
