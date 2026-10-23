@@ -209,11 +209,44 @@ class MainActivity : ComponentActivity() {
                                 LoginScreen(
                                 modifier = Modifier.padding(innerPadding),
                                 onLoginSuccess = { baseUrl, token ->
+                                    Log.d("MemosLogin", "main login: handler entered")
                                     scope.launch {
-                                        dataStoreManager.addAccount(baseUrl, token)
-                                        // Rebind the API/session immediately so the offline
-                                        // cache and sync stack use the newly added account.
-                                        viewModel.userDelegate.updateCurrentAccountInList()
+                                        Log.d(
+                                            "MemosLogin",
+                                            "main login: ready=${org.example.memosm.data.backup.BackupCoordinator.startupReady.value} " +
+                                                "restoring=${org.example.memosm.data.backup.BackupCoordinator.restoring.value} " +
+                                                "recoveryError=${org.example.memosm.data.backup.BackupCoordinator.recoveryError.value}"
+                                        )
+                                        try {
+                                            // A stuck storage lock used to leave the login form on
+                                            // screen with no feedback; surface it instead.
+                                            val saved = kotlinx.coroutines.withTimeoutOrNull(15_000) {
+                                                dataStoreManager.addAccount(baseUrl, token)
+                                                true
+                                            }
+                                            Log.d("MemosLogin", "main login: addAccount returned saved=$saved")
+                                            if (saved == null) {
+                                                android.widget.Toast.makeText(
+                                                    this@MainActivity,
+                                                    R.string.login_error_failed,
+                                                    android.widget.Toast.LENGTH_LONG
+                                                ).show()
+                                                return@launch
+                                            }
+                                            // Rebind the API/session immediately so the offline
+                                            // cache and sync stack use the newly added account.
+                                            viewModel.userDelegate.updateCurrentAccountInList()
+                                            Log.d("MemosLogin", "main login: rebound")
+                                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                            throw cancelled
+                                        } catch (error: Exception) {
+                                            Log.e("MemosLogin", "main login: failed", error)
+                                            android.widget.Toast.makeText(
+                                                this@MainActivity,
+                                                R.string.login_error_failed,
+                                                android.widget.Toast.LENGTH_LONG
+                                            ).show()
+                                        }
                                     }
                                 })
                             }
