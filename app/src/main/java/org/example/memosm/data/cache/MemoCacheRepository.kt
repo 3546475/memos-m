@@ -178,12 +178,13 @@ class MemoCacheRepository(private val memoDao: MemoDao) {
         accountId: String,
         memo: Memo,
         listType: CacheListType = CacheListType.USER,
-        order: Int = 0
+        order: Int = 0,
+        parentName: String? = null
     ) {
         try {
             memo.name ?: return
             memoDao.saveMemoState(
-                CachedMemo.fromMemo(memo, accountId, listType, order, null)
+                CachedMemo.fromMemo(memo, accountId, listType, order, parentName)
             )
         } catch (e: CancellationException) {
             throw e

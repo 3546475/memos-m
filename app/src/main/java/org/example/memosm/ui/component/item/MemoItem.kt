@@ -160,9 +160,9 @@ fun MemoItem(
     val scope = rememberCoroutineScope()
     val pageColor = MaterialTheme.colorScheme.background
     val editGesture = LocalMemoEditGesture.current
-    // The detail page is already the editing surface, so the shortcut gesture only applies to the
-    // cards in the lists.
-    val cardEditGesture = if (isDetailView) EditGesture.NONE else editGesture
+    // The same shortcut applies in the detail page: it is the same card, and editing from there is
+    // the same intent. Only owners get an onEdit callback, so guests see no difference.
+    val cardEditGesture = editGesture
     val attachmentOrigins = remember { AttachmentOrigins() }
     var showFullScreenViewer by remember { mutableStateOf(false) }
     var fullScreenInitialIndex by remember { mutableStateOf(0) }

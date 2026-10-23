@@ -24,10 +24,15 @@ import org.example.memosm.data.sync.ReactionOpPayload
 import org.example.memosm.data.sync.SyncManager
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Location
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.Memo
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoRelation
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoRelationWire
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoSnippet
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.Reaction
 import org.example.memosm.model.SetMemoRelationsRequest
@@ -179,14 +184,15 @@ class MemoActionDelegateImpl(
         targets: List<String>
     ) {
         val currentOutgoing = currentRelations
-            .filter { it.memo.name == memoName }
+            .filter { it.isLinkTo(memoName) }
             .map { it.relatedMemo.name }
         val desired = targets.filter { it.isNotBlank() && it != memoName }.distinct()
         // Skip only when nothing changed. An empty result is a real instruction — it is what
         // unlinking the last memo means — so it must still reach the server.
         if (currentOutgoing.sorted() == desired.sorted()) return
+        // Everything that is not an outgoing link survives verbatim: comment relations included.
         val others = currentRelations
-            .filter { it.memo.name != memoName }
+            .filterNot { it.isLinkTo(memoName) }
             .map(MemoRelationWire::from)
         val links = desired.map { target ->
             MemoRelationWire.reference(
@@ -212,7 +218,7 @@ class MemoActionDelegateImpl(
         val api = context.connection.api
         // Everything except the link being removed, in the order the server returned it.
         val remaining = memo.relations.orEmpty()
-            .filter { it.memo.name == name && it.relatedMemo.name != targetName }
+            .filter { it.isLinkTo(name) && it.relatedMemo.name != targetName }
             .map { it.relatedMemo.name }
         scope.launch {
             writeLinkedMemos(api, name, memo.relations.orEmpty(), remaining)
@@ -471,12 +477,22 @@ class MemoActionDelegateImpl(
     private suspend fun cacheLocalMemo(context: AccountContext, memo: Memo) {
         val accountId = context.account.id
         val name = memo.name ?: return
+        // A comment is a memo with a parent and belongs to that parent's comment list. Caching it
+        // as a user memo made an edited comment show up in the feed as a brand-new memo (and, with
+        // its comment relation on board, as one carrying a link) until the next refresh dropped it.
+        val parent = memo.parent
+        val listType = when {
+            parent != null -> CacheListType.COMMENT
+            memo.state == MemoState.ARCHIVED -> CacheListType.ARCHIVED
+            else -> CacheListType.USER
+        }
         // Atomic cross-list-type upsert (single transaction) - the previous
         // remove+upsert pair could race a concurrent writer and lose the row.
         memoCacheRepository.upsertCachedMemoState(
             accountId,
             memo,
-            if (memo.state == MemoState.ARCHIVED) CacheListType.ARCHIVED else CacheListType.USER
+            listType,
+            parentName = parent
         )
     }
 

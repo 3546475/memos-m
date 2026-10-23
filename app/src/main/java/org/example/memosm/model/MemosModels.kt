@@ -102,6 +102,16 @@ data class MemoRelation(
     val memo: MemoSnippet, val relatedMemo: MemoSnippet, val type: MemoRelationType
 )
 
+/**
+ * True for a "Link memo" relation: this memo points at [memoName] with the outgoing type.
+ *
+ * Comment relations carry the very same direction — the comment is the `memo`, the memo it belongs
+ * to is the `relatedMemo` — and differ only in type, so direction alone would mistake every comment
+ * for a link.
+ */
+fun MemoRelation.isLinkTo(memoName: String?): Boolean =
+    memoName != null && type == MemoRelationType.REPLY && memo.name == memoName
+
 data class MemoSnippet(
     val name: String, val snippet: String? = null
 )

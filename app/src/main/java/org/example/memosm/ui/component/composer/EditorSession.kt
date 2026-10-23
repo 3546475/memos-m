@@ -25,6 +25,7 @@ import org.example.memosm.data.DraftManager
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Draft
 import org.example.memosm.model.Location
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.Memo
 import org.example.memosm.model.Visibility
 import org.koin.core.context.GlobalContext
@@ -98,7 +99,7 @@ object EditorSessionStore {
         // Editing an existing memo starts with its outgoing links, so the editor can remove them;
         // saving rewrites only the outgoing links and keeps every other relation.
         val existingLinks = request.memo?.relations.orEmpty()
-            .filter { it.memo.name == request.memo?.name }
+            .filter { it.isLinkTo(request.memo?.name) }
             .map { it.relatedMemo.name }
         write(id, StoredEditorSession(request, EditorSnapshot(text, text.length, text.length,
             request.memo?.visibility ?: request.draft?.visibility ?: request.parentMemo?.visibility ?: request.visibility,

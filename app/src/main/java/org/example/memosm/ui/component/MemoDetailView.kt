@@ -75,7 +75,9 @@ import org.example.memosm.ui.theme.AppExtendedFloatingActionButton
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.ui.theme.AppSurface
 import org.example.memosm.ui.theme.AppTopBar
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.Memo
+import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoRelation
 import org.example.memosm.ui.component.item.markdown.plainLabel
 import org.example.memosm.ui.component.composer.MemoComposerScreen
@@ -244,7 +246,7 @@ fun MemoDetailView(
                     // Linked memos ("Link memo" in the editor). Only outgoing links belong here;
                     // incoming ones are shown on the memo they point at.
                     val linkedItems = memo.relations.orEmpty()
-                        .filter { it.memo.name == memo.name && it.relatedMemo.name.isNotBlank() }
+                        .filter { it.isLinkTo(memo.name) && it.relatedMemo.name.isNotBlank() }
                         .map { relation ->
                             val linkedName = relation.relatedMemo.name
                             val linked = (uiState.userMemoList.list.items + uiState.searchMemoList.list.items)
