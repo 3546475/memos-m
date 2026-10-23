@@ -90,12 +90,11 @@ fun NativeMarkdownTable(
         italicStyle = SpanStyle(fontStyle = FontStyle.Italic),
         codeFontFamily = FontFamily.Monospace,
         highlightBackground = highlightBackground(darkTheme),
-        tagBackground = MaterialTheme.colorScheme.primary.copy(alpha = if (darkTheme) 0.28f else 0.14f),
-        tagTextColor = if (darkTheme) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.primary
-        },
+        tagBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+        tagTextColor = MaterialTheme.colorScheme.primary,
+        tagFontSize = MaterialTheme.typography.labelMedium.fontSize,
+        tagFontWeight = MaterialTheme.typography.labelMedium.fontWeight,
+        tagLetterSpacing = MaterialTheme.typography.labelMedium.letterSpacing,
         codeTickColor = MaterialTheme.colorScheme.onSurfaceVariant,
         cjkSpacing = LocalMarkdownFormat.current.cjkSpacing
     )

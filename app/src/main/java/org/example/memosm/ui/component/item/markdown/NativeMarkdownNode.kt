@@ -58,6 +58,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import org.intellij.markdown.MarkdownElementTypes
@@ -82,6 +83,10 @@ data class MarkdownStyles(
     val tagBackground: Color,
     /** The tag's own text, chosen to stay readable on [tagBackground]. */
     val tagTextColor: Color,
+    /** Label typography for `#tag`, matching [MemoTagChip]. */
+    val tagFontSize: TextUnit,
+    val tagFontWeight: FontWeight?,
+    val tagLetterSpacing: TextUnit,
     /** The backticks that stay visible around inline code. */
     val codeTickColor: Color,
     /** Inserts a thin gap between Chinese and Latin while text is built (the 编辑器 setting). */
@@ -133,9 +138,10 @@ fun MarkdownText(
                     val color = Color(range.item.toLong(16))
                     val bounds = layout.getPathForRange(range.start, range.end).getBounds()
                     if (bounds.isEmpty) return@forEach
-                    // Slightly shorter than the line box, so a column of tags does not read as one
-                    // solid block.
-                    val inset = 2.dp.toPx()
+                    // Hug the label the way the collapsed tag row's chip does: a fixed chip height
+                    // centred in the line box, instead of the whole line box.
+                    val chipHeight = (TagChipHeight).toPx()
+                    val inset = ((bounds.height - chipHeight) / 2f).coerceAtLeast(1f)
                     val height = (bounds.height - inset * 2f).coerceAtLeast(1f)
                     drawRoundRect(
                         color = color,
@@ -402,14 +408,13 @@ fun NativeMarkdownNodeRecursive(node: ASTNode, allowPreview: Boolean = false) {
         italicStyle = SpanStyle(fontStyle = FontStyle.Italic),
         codeFontFamily = FontFamily.Monospace,
         highlightBackground = highlightBackground(darkTheme),
-        // A theme-tinted chip: the accent itself at low alpha, with text that keeps its contrast
-        // against that tint rather than against the page.
-        tagBackground = MaterialTheme.colorScheme.primary.copy(alpha = if (darkTheme) 0.28f else 0.14f),
-        tagTextColor = if (darkTheme) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.primary
-        },
+        // Same chip as the tag row a collapsed card shows (see MemoTagChip): the accent at 10%
+        // behind plain accent text, in the label size rather than the body size.
+        tagBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+        tagTextColor = MaterialTheme.colorScheme.primary,
+        tagFontSize = MaterialTheme.typography.labelMedium.fontSize,
+        tagFontWeight = MaterialTheme.typography.labelMedium.fontWeight,
+        tagLetterSpacing = MaterialTheme.typography.labelMedium.letterSpacing,
         codeTickColor = MaterialTheme.colorScheme.onSurfaceVariant,
         cjkSpacing = LocalMarkdownFormat.current.cjkSpacing
     )
@@ -852,7 +857,11 @@ private fun AnnotatedString.Builder.appendPlainRun(raw: String, styles: Markdown
  * range, so the pill's width comes from the text itself instead of overlapping its neighbours — and
  * because the link covers the same range, the whole chip is tappable.
  */
-private const val TagPadding = "\u00A0\u00A0"
+// Roughly the collapsed row's 10dp horizontal chip padding, in no-break spaces at the label size.
+private const val TagPadding = "\u00A0\u00A0\u00A0"
+
+/** Height of the `#tag` capsule: label text plus the collapsed row's 4dp vertical padding. */
+private val TagChipHeight = 18.dp
 
 private fun AnnotatedString.Builder.appendHashtag(
     tag: String,
@@ -861,7 +870,15 @@ private fun AnnotatedString.Builder.appendHashtag(
 ) {
     pushStringAnnotation(TagCapsuleAnnotation, styles.tagBackground.toHex())
     pushLink(LinkAnnotation.Clickable(tag) { onHashtagClick?.invoke(tag) })
-    withStyle(SpanStyle(color = styles.tagTextColor, textDecoration = TextDecoration.None)) {
+    withStyle(
+        SpanStyle(
+            color = styles.tagTextColor,
+            fontSize = styles.tagFontSize,
+            fontWeight = styles.tagFontWeight,
+            letterSpacing = styles.tagLetterSpacing,
+            textDecoration = TextDecoration.None
+        )
+    ) {
         append(TagPadding)
         append(tag)
         append(TagPadding)

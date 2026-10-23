@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.sp
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.junit.Assert.assertEquals
@@ -42,6 +43,9 @@ class MarkdownInlineStyleTest {
         highlightBackground = Color(0xFFEEDDFF),
         tagBackground = Color(0xFFDDE7F0),
         tagTextColor = Color(0xFF224466),
+        tagFontSize = 12.sp,
+        tagFontWeight = FontWeight.Medium,
+        tagLetterSpacing = 0.4.sp,
         codeTickColor = Color(0xFF777777),
         cjkSpacing = false
     )
@@ -85,14 +89,18 @@ class MarkdownInlineStyleTest {
     fun `hashtags are theme coloured capsules with their own padding`() {
         val rendered = render("看这个 #工作/笔记 结尾")
 
-        // The chip owns two no-break spaces on each side, part of the annotated range.
-        assertEquals("看这个 \u00A0\u00A0#工作/笔记\u00A0\u00A0 结尾", rendered.text)
+        // The chip owns no-break spaces on each side, part of the annotated range.
+        assertEquals(
+            "看这个 \u00A0\u00A0\u00A0#工作/笔记\u00A0\u00A0\u00A0 结尾", rendered.text
+        )
         val capsules = rendered.getStringAnnotations(TagCapsuleAnnotation, 0, rendered.text.length)
         assertEquals(1, capsules.size)
         assertEquals(styles.tagBackground.toHex(), capsules.single().item)
 
         val tagSpans = spansOver(rendered, "#工作/笔记")
         assertTrue(tagSpans.any { it.color == styles.tagTextColor })
+        // The label size of the collapsed tag row, not the body size of the paragraph.
+        assertTrue(tagSpans.any { it.fontSize == styles.tagFontSize })
         assertFalse(tagSpans.any { it.textDecoration == TextDecoration.Underline })
 
         // The whole chip is tappable, so the padding is inside the link range too.

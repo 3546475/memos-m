@@ -456,26 +456,6 @@ fun MemoItem(
                                 }
                             }
                         }
-                        if (onPin != null && memo.state == MemoState.NORMAL) {
-                            val isPinned = memo.pinned == true
-                            IconButton(
-                                onClick = { onPin(!isPinned) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.PushPin,
-                                    contentDescription = stringResource(
-                                        if (isPinned) R.string.memo_action_unpin else R.string.memo_action_pin
-                                    ),
-                                    modifier = Modifier.size(20.dp),
-                                    tint = if (isPinned) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        LocalContentColor.current
-                                    }
-                                )
-                            }
-                        }
                         // The menu is anchored to this button so it opens in place, next to the card
                         // it belongs to, instead of as a sheet sliding up from the bottom edge.
                         Box {
@@ -506,6 +486,7 @@ fun MemoItem(
                                     { capturingForShare = true }
                                 } else null,
                                 onEdit = onEdit,
+                                onPin = onPin,
                                 onArchive = onArchive,
                                 onUnarchive = onUnarchive,
                                 onDelete = onDelete
@@ -829,6 +810,7 @@ private fun MemoActionsMenu(
     onOpenWeb: (String) -> Unit,
     onShareImage: (() -> Unit)?,
     onEdit: (() -> Unit)?,
+    onPin: ((Boolean) -> Unit)?,
     onArchive: (() -> Unit)?,
     onUnarchive: (() -> Unit)?,
     onDelete: (() -> Unit)?
@@ -854,6 +836,25 @@ private fun MemoActionsMenu(
                     onEdit()
                 },
                 leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) }
+            )
+        }
+        if (onPin != null && memo.state == MemoState.NORMAL) {
+            val isPinned = memo.pinned == true
+            AppDropdownMenuItem(
+                text = stringResource(
+                    if (isPinned) R.string.memo_action_unpin else R.string.memo_action_pin
+                ),
+                onClick = {
+                    onDismissRequest()
+                    onPin(!isPinned)
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.PushPin,
+                        contentDescription = null,
+                        tint = if (isPinned) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                    )
+                }
             )
         }
         if (onShareImage != null) {
