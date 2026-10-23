@@ -233,6 +233,47 @@ class MemoCacheRepository(private val memoDao: MemoDao) {
         }
     }
 
+    /** Names with a queued local write: their server state is not authoritative yet. */
+    suspend fun protectedMemoNames(accountId: String): Set<String> {
+        return try {
+            memoDao.protectedMemoNames(accountId).toSet()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading protected memo names", e)
+            emptySet()
+        }
+    }
+
+    /** Current user/archived filing of every cached memo (see [CachedMemoState]). */
+    suspend fun cachedArchiveStates(accountId: String): List<CachedMemoState> {
+        return try {
+            memoDao.cachedArchiveStates(accountId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading cached archive states", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Re-files a cached memo after the server reported a different archive state. Returns true
+     * when a row actually moved, so callers can mirror it into the visible lists.
+     */
+    suspend fun moveCachedMemo(accountId: String, name: String, archived: Boolean): Boolean {
+        return try {
+            val from = if (archived) CacheListType.USER.name else CacheListType.ARCHIVED.name
+            val to = if (archived) CacheListType.ARCHIVED.name else CacheListType.USER.name
+            memoDao.moveListType(accountId, name, from, to) > 0
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Error moving cached memo $name", e)
+            false
+        }
+    }
+
     /**
      * Number of cached memos for an account (used for cache analysis).
      */

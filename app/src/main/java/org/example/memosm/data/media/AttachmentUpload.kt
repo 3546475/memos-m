@@ -21,5 +21,11 @@ data class AttachmentUpload(
     val createdAt: Long,
     val attemptCount: Int = 0,
     val lastError: String? = null,
-    val lastAttemptAt: Long = 0L
+    val lastAttemptAt: Long = 0L,
+    /**
+     * True once a replay gave up (server rejection or too many attempts). The row and its staged
+     * bytes are kept so the sync panel can show what was not uploaded and discard it explicitly;
+     * a background pass never retries it.
+     */
+    val permanentlyFailed: Boolean = false
 )

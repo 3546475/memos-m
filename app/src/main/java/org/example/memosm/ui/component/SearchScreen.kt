@@ -481,6 +481,11 @@ fun MemoSearchBar(
             )
         }
 
+        // See MemosScreen: failed uploads are loaded lazily when the panel opens.
+        LaunchedEffect(showSyncPanel) {
+            if (showSyncPanel) viewModel.refreshFailedUploads()
+        }
+
         if (showSyncPanel) {
             SyncStatusPanel(
                 uiState = uiState,
@@ -489,7 +494,9 @@ fun MemoSearchBar(
                 onManageCache = {
                     showSyncPanel = false
                     cacheSettings.launch(SettingsActivity.createIntent(context, SettingsSection.OFFLINE))
-                }
+                },
+                onRetryOp = { opId -> viewModel.retryPendingOp(opId) },
+                onDiscardFailedUpload = { upload -> viewModel.discardFailedUpload(upload) }
             )
         }
     }

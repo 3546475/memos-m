@@ -49,4 +49,14 @@ interface PendingOpDao {
 
     @Query("UPDATE pending_ops SET baseUpdateTime = :baseUpdateTime WHERE id = :id")
     suspend fun setBaseUpdateTime(id: String, baseUpdateTime: String?)
+
+    /**
+     * Clears the failure bookkeeping of one op so it is eligible again: the panel stops
+     * showing it as needing attention and the background worker will replay it.
+     */
+    @Query(
+        "UPDATE pending_ops SET attemptCount = 0, lastError = NULL, lastAttemptAt = 0, " +
+            "permanentlyFailed = 0 WHERE id = :id"
+    )
+    suspend fun clearFailure(id: String)
 }

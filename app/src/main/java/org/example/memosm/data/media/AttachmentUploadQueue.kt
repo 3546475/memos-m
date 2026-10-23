@@ -143,9 +143,17 @@ class AttachmentUploadQueue(
         Log.d(TAG, "discard: dropped queued upload $clientId")
     }
 
-    /** True while at least one durable upload row is waiting for [accountId]. */
+    /** True while at least one retryable upload row is waiting for [accountId]. */
     suspend fun hasPending(accountId: String): Boolean = withContext(Dispatchers.IO) {
-        dao.getForAccount(accountId).isNotEmpty()
+        dao.getPendingForAccount(accountId).isNotEmpty()
+    }
+
+    /**
+     * Uploads a replay pass gave up on. They keep their staged bytes so the sync panel can show
+     * what never made it to the server and the user can discard it explicitly.
+     */
+    suspend fun getFailed(accountId: String): List<AttachmentUpload> = withContext(Dispatchers.IO) {
+        dao.getFailedForAccount(accountId)
     }
 
     /** The durable row for [clientId], or null once the upload finished (or was retired). */
@@ -157,12 +165,12 @@ class AttachmentUploadQueue(
     fun stagedFile(clientId: String): File = File(uploadDir, clientId)
 
     /**
-     * Replay every queued upload for [accountId] in creation order. Successful
-     * rows are deleted (and their staged file removed) and audited. A failing
-     * row never blocks the rest of the pass: permanent rejections
-     * ([isPermanentUploadError]) and rows that hit [MAX_ATTEMPTS] are dropped
-     * right away, while transient failures are recorded per row and rethrown
-     * after the pass so the caller schedules a backoff retry for them.
+     * Replay every retryable upload for [accountId] in creation order. Successful rows are deleted
+     * (and their staged file removed) and audited. A failing row never blocks the rest of the
+     * pass: permanent rejections ([isPermanentUploadError]) and rows that hit [MAX_ATTEMPTS] are
+     * retired (row and bytes kept, so the loss is visible in the sync panel), while transient
+     * failures are recorded per row and rethrown after the pass so the caller schedules a backoff
+     * retry for them.
      */
     suspend fun replay(
         accountId: String,
@@ -170,26 +178,25 @@ class AttachmentUploadQueue(
         streamingApi: StreamingAttachmentApi?
     ): Unit = withContext(Dispatchers.IO) {
         var firstTransientError: Exception? = null
-        val rows = dao.getForAccount(accountId)
+        // Retired rows are never retried by a background pass: they wait for an explicit discard.
+        val rows = dao.getPendingForAccount(accountId)
         for (row in rows) {
             val current = dao.getById(row.id) ?: continue
             val file = File(current.localPath)
             if (!file.exists()) {
-                // The staged bytes are gone; nothing can ever succeed. Drop it.
+                // The staged bytes are gone; nothing can ever succeed and there is nothing to
+                // show. Drop it.
                 dao.delete(current.id)
                 recordAudit(accountId, "REJECTED", current.clientId, "missing_local_file")
                 continue
             }
             if (current.attemptCount >= MAX_ATTEMPTS) {
-                // Retried too many times without a definitive server
-                // rejection: retire as permanently failed so the row stops
-                // consuming retries and blocking the rows behind it.
-                dao.delete(current.id)
-                file.delete()
-                recordAudit(accountId, "REJECTED", current.clientId, "max_attempts")
+                // Retried too many times without a definitive server rejection: retire it so it
+                // stops consuming retries and blocking the rows behind it.
+                retire(current, "max_attempts")
                 Log.w(
                     TAG,
-                    "replay: dropped ${current.filename} after ${current.attemptCount} attempts"
+                    "replay: retired ${current.filename} after ${current.attemptCount} attempts"
                 )
                 continue
             }
@@ -210,9 +217,7 @@ class AttachmentUploadQueue(
                     System.currentTimeMillis()
                 )
                 if (isPermanentUploadError(e)) {
-                    dao.delete(current.id)
-                    file.delete()
-                    recordAudit(accountId, "REJECTED", current.clientId, errorCode(e))
+                    retire(current, errorCode(e))
                 } else {
                     // Continue with the next row instead of aborting the
                     // pass; the rethrow after the loop lets the caller retry
@@ -223,6 +228,21 @@ class AttachmentUploadQueue(
             }
         }
         firstTransientError?.let { throw it }
+    }
+
+    /**
+     * Stops retrying one row without deleting it: the row and its staged bytes stay so the sync
+     * panel can list the attachment that never made it to the server. Discarding is explicit
+     * ([discard]); a silent delete here is how attachments used to disappear without a trace.
+     */
+    private suspend fun retire(row: AttachmentUpload, reason: String) {
+        dao.markPermanentlyFailed(
+            row.id,
+            row.attemptCount + 1,
+            reason,
+            System.currentTimeMillis()
+        )
+        recordAudit(row.accountId, "REJECTED", row.clientId, reason)
     }
 
     private suspend fun upload(

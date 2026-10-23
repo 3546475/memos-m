@@ -110,12 +110,12 @@ import org.example.memosm.R
 import org.example.memosm.model.EditGesture
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoRelationType
-import org.example.memosm.model.OfflineMemoPrefix
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.Reaction
 import org.example.memosm.model.User
 import org.example.memosm.ui.VisibilityIcon
 import org.example.memosm.ui.component.LocalMemoEditGesture
+import org.example.memosm.ui.component.LocalPendingMemoNames
 import org.example.memosm.ui.component.item.markdown.NativeComposeMarkdown
 import org.example.memosm.ui.component.item.media.AttachmentOrigins
 import org.example.memosm.ui.component.item.media.attachmentOrigin
@@ -161,6 +161,10 @@ fun MemoItem(
     val scope = rememberCoroutineScope()
     val pageColor = MaterialTheme.colorScheme.background
     val editGesture = LocalMemoEditGesture.current
+    // A queued write (create, edit, pin, archive, delete) for this memo has not been
+    // acknowledged by the server yet. Name-based, so it also covers edits; the old check
+    // only matched locally created memos whose name still carried OfflineMemoPrefix.
+    val isPendingSync = memo.name?.let { it in LocalPendingMemoNames.current } == true
     // The same shortcut applies in the detail page: it is the same card, and editing from there is
     // the same intent. Only owners get an onEdit callback, so guests see no difference.
     val cardEditGesture = editGesture
@@ -285,7 +289,7 @@ fun MemoItem(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                if (memo.name?.startsWith(OfflineMemoPrefix) == true) {
+                                if (isPendingSync) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = stringResource(R.string.memo_sync_pending),
@@ -343,7 +347,7 @@ fun MemoItem(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            if (memo.name?.startsWith(OfflineMemoPrefix) == true) {
+                            if (isPendingSync) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = stringResource(R.string.memo_sync_pending),

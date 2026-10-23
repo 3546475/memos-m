@@ -58,7 +58,7 @@ val appModule = module {
     single { AuditDatabase.getInstance(androidContext()) }
     single { get<AuditDatabase>().syncAuditDao() }
     single { MemoCacheRepository(get()) }
-    single { SyncRepository(get()) }
+    single { SyncRepository(get(), get<MemoCacheDatabase>()) }
     single { SyncAuditLogger(get()) }
     single { AttachmentUploadQueue(androidContext(), get(), get()) }
     single { org.example.memosm.data.backup.BackupService(androidContext(), get(), get(), get()) }

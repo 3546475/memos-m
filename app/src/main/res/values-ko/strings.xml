@@ -348,6 +348,7 @@
     <string name="offline_op_create">메모 만들기</string>
     <string name="offline_op_delete">메모 삭제</string>
     <string name="offline_op_reaction_delete">반응 삭제</string>
+    <string name="offline_op_attachment_delete">첨부파일 삭제</string>
     <string name="offline_op_reaction_upsert">반응 추가</string>
     <string name="offline_op_update">메모 수정</string>
     <string name="offline_predownload_failed">캐시에 실패했습니다: %1$s</string>
@@ -436,6 +437,10 @@
     <string name="sync_queue_fields">필드</string>
     <string name="sync_queue_last_attempt">마지막 시도</string>
     <string name="sync_queue_needs_attention">확인이 필요합니다. 수동으로 다시 시도하거나 이 변경사항을 버리세요.</string>
+    <string name="sync_queue_retry">다시 시도</string>
+    <string name="sync_panel_failed_uploads">업로드 실패 (%1$d)</string>
+    <string name="offline_upload_discard">파일 버리기</string>
+    <string name="offline_upload_discard_message">%1$s 파일을 버리시겠습니까? 업로드하지 못했으며 다시 시도하지 않습니다.</string>
     <string name="sync_queue_queued_at">대기열에 추가됨</string>
     <string name="sync_queue_target">대상</string>
     <string name="sync_status_idle">최신 상태</string>

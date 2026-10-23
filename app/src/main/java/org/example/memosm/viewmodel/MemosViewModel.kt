@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import java.io.IOException
 import org.example.memosm.api.AuthInterceptor
 import org.example.memosm.api.MemosApi
 import org.example.memosm.api.MemosApiFactory
@@ -30,6 +31,7 @@ import org.example.memosm.data.audit.SyncAuditLogger
 import org.example.memosm.data.cache.CacheListType
 import org.example.memosm.data.cache.MemoCacheRepository
 import org.example.memosm.data.media.AttachmentCacheManager
+import org.example.memosm.data.media.AttachmentUpload
 import org.example.memosm.data.media.AttachmentUploadQueue
 import org.example.memosm.data.network.ConnectivityObserver
 import org.example.memosm.data.offline.AttachmentCacheStore
@@ -493,13 +495,37 @@ class MemosViewModel(
         { _uiState.value.isOnline })
 
     private var manualRefreshJob: Job? = null
-    private val memoCacheReconciler = MemoCacheReconciler(accountSession, memoCacheRepository) { name ->
-        memoListUpdater.removeMemoFromLists(name)
-        if (_uiState.value.detailPane.selectedMemo?.name == name) {
-            commentManager.clearParent()
-            _uiState.update { it.copy(detailPane = DetailPaneState()) }
+    private val memoCacheReconciler = MemoCacheReconciler(
+        session = accountSession,
+        repository = memoCacheRepository,
+        onDeleted = { name ->
+            memoListUpdater.removeMemoFromLists(name)
+            if (_uiState.value.detailPane.selectedMemo?.name == name) {
+                commentManager.clearParent()
+                _uiState.update { it.copy(detailPane = DetailPaneState()) }
+            }
+            refreshTextCacheCount()
+        },
+        onStateMoved = { name, archived -> moveCachedMemoBetweenLists(name, archived) }
+    )
+
+    /** Mirror an archive-state reconciliation (cache already re-filed) into the visible lists. */
+    private suspend fun moveCachedMemoBetweenLists(name: String, archived: Boolean) {
+        val context = accountSession.current ?: return
+        val memo = memoCacheRepository.getCachedMemo(context.account.id, name) ?: return
+        if (!accountSession.isCurrent(context)) return
+        memoMapManager.upsert(memo)
+        if (archived) {
+            userMemoManager.remove { it.name == name }
+            exploreMemoManager.remove { it.name == name }
+            archivedMemoManager.upsert(memo, { it.name == name }, compareByDescending { it.displayTime })
+        } else {
+            archivedMemoManager.remove { it.name == name }
+            userMemoManager.upsert(memo, { it.name == name }, USER_MEMO_COMPARATOR)
         }
-        refreshTextCacheCount()
+        if (_uiState.value.detailPane.selectedMemo?.name == name) {
+            _uiState.update { it.copy(detailPane = it.detailPane.copy(selectedMemo = memo)) }
+        }
     }
 
     private val unregisterBackupHook = org.example.memosm.data.backup.BackupCoordinator.register { restoring ->
@@ -516,6 +542,9 @@ class MemosViewModel(
             if (org.example.memosm.data.backup.BackupCoordinator.startupReady.value) {
                 switchAccountInternal(dataStoreManager.getAccounts().firstOrNull { it.isActive })
                 userDelegate.updateCurrentAccountInList()
+                // A restore may have brought queued edits back into the outbox; replay them now
+                // that the account session is live again.
+                syncManager.pushPendingChanges()
             }
         }
     }
@@ -939,27 +968,79 @@ class MemosViewModel(
 
     /**
      * Delete an attachment on the server (the Resources page is the only place that offers it).
-     * The row disappears immediately; a failure restores it and reports the error.
+     * The row disappears immediately; a transport failure keeps the deletion in the outbox so it
+     * is not lost, while a server rejection restores it and reports the error.
      */
     fun deleteAttachment(attachment: Attachment) {
         val name = attachment.name ?: return
         val context = accountSession.current ?: return
         val accountId = context.account.id
+        val wasOnline = _uiState.value.isOnline && context.networkReady
         viewModelScope.launch {
             val snapshot = attachmentManager.listState.value.items
-            attachmentManager.remove { it.name == name }
-            try {
-                context.api.deleteAttachment(name)
+
+            suspend fun removeLocally() {
+                attachmentManager.remove { it.name == name }
                 attachmentCacheStore.removeMeta(accountId, name)
                 attachmentCacheManager.deleteCached(accountId, name)
-            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            }
+
+            suspend fun queueDeletion() {
+                syncManager.enqueue(
+                    PendingOp.new(
+                        accountId = accountId,
+                        type = PendingOpType.ATTACHMENT_DELETE,
+                        memoName = name,
+                        parentName = attachment.memo
+                    )
+                )
+            }
+
+            if (!wasOnline) {
+                // The row is already gone locally; queueing the server call is what keeps the
+                // next list refresh from bringing it back, and keeps the deletion across restarts.
+                removeLocally()
+                queueDeletion()
+                return@launch
+            }
+
+            try {
+                context.api.deleteAttachment(name)
+                removeLocally()
+            } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                attachmentManager.restoreItems(snapshot)
-                _uiState.update {
-                    it.copy(error = UiMessage(R.string.common_operation_failed))
+                if (error is IOException || !accountSession.isCurrent(context) || !_uiState.value.isOnline) {
+                    // Looks like a transport failure: keep the deletion and let the outbox retry.
+                    removeLocally()
+                    queueDeletion()
+                } else {
+                    attachmentManager.restoreItems(snapshot)
+                    _uiState.update {
+                        it.copy(error = UiMessage(R.string.common_operation_failed))
+                    }
                 }
             }
+        }
+    }
+
+    /**
+     * Load the attachment uploads a replay pass gave up on. The sync panel lists them so a file
+     * that never reached the server is not lost silently; call this when the panel opens.
+     */
+    suspend fun refreshFailedUploads() {
+        val context = accountSession.current ?: return
+        val failed = attachmentUploadQueue.getFailed(context.account.id)
+        accountSession.update(_uiState, context) { it.copy(failedUploads = failed) }
+    }
+
+    /** Discard a failed upload's staged bytes (the only way to free them). */
+    fun discardFailedUpload(upload: AttachmentUpload) {
+        val context = accountSession.current ?: return
+        if (upload.accountId != context.account.id) return
+        viewModelScope.launch {
+            attachmentUploadQueue.discard(upload.clientId)
+            refreshFailedUploads()
         }
     }
 
@@ -1033,6 +1114,17 @@ class MemosViewModel(
         viewModelScope.launch {
             if (syncRepository.getOp(opId)?.accountId != context.account.id) return@launch
             syncManager.deleteOp(opId)
+        }
+    }
+
+    /**
+     * Clear the recorded failure of a queued offline write and replay it now.
+     */
+    fun retryPendingOp(opId: String) {
+        val context = accountSession.current ?: return
+        viewModelScope.launch {
+            if (syncRepository.getOp(opId)?.accountId != context.account.id) return@launch
+            syncManager.retryOp(opId)
         }
     }
 

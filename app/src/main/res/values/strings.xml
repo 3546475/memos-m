@@ -271,6 +271,7 @@
     <string name="offline_op_comment_create">Add comment</string>
     <string name="offline_op_reaction_upsert">Add reaction</string>
     <string name="offline_op_reaction_delete">Remove reaction</string>
+    <string name="offline_op_attachment_delete">Delete attachment</string>
     <string name="offline_settings_title">Offline Cache</string>
     <string name="offline_settings_pre_download_text">Cache memo text</string>
     <string name="offline_settings_pre_download_attachments">Cache attachments</string>
@@ -355,6 +356,10 @@
     <string name="sync_queue_fields">Fields</string>
     <string name="sync_queue_error">Error</string>
     <string name="sync_queue_needs_attention">Needs attention — retry manually or discard this change.</string>
+    <string name="sync_queue_retry">Retry</string>
+    <string name="sync_panel_failed_uploads">Failed uploads (%1$d)</string>
+    <string name="offline_upload_discard">Discard file</string>
+    <string name="offline_upload_discard_message">Discard %1$s? It could not be uploaded and will not be retried.</string>
     <string name="sync_queue_delete_title">Discard pending change?</string>
     <string name="sync_queue_delete_message">Discard this unsynced change? This cannot be undone.</string>
     <string name="sync_panel_predownload_running">Caching %1$s (page %2$d)…</string>
@@ -493,7 +498,7 @@
     <string name="backup_restore_summary" tools:ignore="MissingTranslation">Restored %1$d accounts, %2$d cached memos, %3$d drafts, and %4$d media files. Selected queued edits are saved separately for review.</string>
     <string name="backup_legacy_explanation" tools:ignore="MissingTranslation">This older backup can restore its cache only. Queued operations and optimistic edits are ignored so they cannot change the server.</string>
     <string name="backup_edit_review_title" tools:ignore="MissingTranslation">Restored queued edits</string>
-    <string name="backup_edit_review_description" tools:ignore="MissingTranslation">Restored queued edits never sync automatically. Save memo edits as drafts to review and publish them yourself. Use the normal memo controls for deletions and reactions.</string>
+    <string name="backup_edit_review_description" tools:ignore="MissingTranslation">Restored queued edits are replayed automatically. Edits whose attachment never finished uploading are kept as drafts to review and publish yourself.</string>
     <string name="backup_save_as_draft" tools:ignore="MissingTranslation">Save as draft</string>
     <string name="backup_edit_saved_draft" tools:ignore="MissingTranslation">Saved as an unpublished draft. Open Drafts to review it.</string>
     <string name="backup_restore_before_login" tools:ignore="MissingTranslation">Restore a backup</string>

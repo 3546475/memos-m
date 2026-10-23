@@ -349,6 +349,7 @@
     <string name="offline_op_create">メモを作成</string>
     <string name="offline_op_delete">メモを削除</string>
     <string name="offline_op_reaction_delete">リアクションを削除</string>
+    <string name="offline_op_attachment_delete">添付ファイルを削除</string>
     <string name="offline_op_reaction_upsert">リアクションを追加</string>
     <string name="offline_op_update">メモを編集</string>
     <string name="offline_predownload_failed">キャッシュに失敗しました: %1$s</string>
@@ -437,6 +438,10 @@
     <string name="sync_queue_fields">項目</string>
     <string name="sync_queue_last_attempt">最終試行</string>
     <string name="sync_queue_needs_attention">対応が必要です。手動で再試行するか、この変更を破棄してください。</string>
+    <string name="sync_queue_retry">再試行</string>
+    <string name="sync_panel_failed_uploads">アップロード失敗（%1$d）</string>
+    <string name="offline_upload_discard">ファイルを破棄</string>
+    <string name="offline_upload_discard_message">%1$s を破棄しますか？アップロードできず、再試行もされません。</string>
     <string name="sync_queue_queued_at">追加日時</string>
     <string name="sync_queue_target">対象</string>
     <string name="sync_status_idle">最新の状態です</string>

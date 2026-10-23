@@ -1,6 +1,7 @@
 package org.example.memosm.viewmodel
 
 import org.example.memosm.data.media.AttachmentCacheManager
+import org.example.memosm.data.media.AttachmentUpload
 import org.example.memosm.data.sync.ConflictItem
 import org.example.memosm.data.sync.PendingOp
 import org.example.memosm.data.sync.PreDownloadState
@@ -135,6 +136,8 @@ data class MemosUiState(
     val connectionState: ConnectionState = ConnectionState.CHECKING,
     val pendingOps: List<PendingOp> = emptyList(),
     val pendingOpsCount: Int = 0,
+    /** Attachment uploads a replay pass gave up on; the sync panel lists them for discarding. */
+    val failedUploads: List<AttachmentUpload> = emptyList(),
     val isSyncing: Boolean = false,
     val lastSyncTime: Long = 0L,
     val preDownloadState: PreDownloadState = PreDownloadState.Idle,

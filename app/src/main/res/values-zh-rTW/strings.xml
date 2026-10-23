@@ -248,6 +248,7 @@
     <string name="offline_op_comment_create">新增留言</string>
     <string name="offline_op_reaction_upsert">新增表情</string>
     <string name="offline_op_reaction_delete">移除表情</string>
+    <string name="offline_op_attachment_delete">刪除附件</string>
     <string name="offline_settings_title">離線快取</string>
     <string name="offline_settings_pre_download_text">快取全部文字</string>
     <string name="offline_settings_pre_download_attachments">快取附件</string>
@@ -481,6 +482,10 @@
     <string name="sync_queue_fields">欄位</string>
     <string name="sync_queue_last_attempt">上次嘗試</string>
     <string name="sync_queue_needs_attention">需要處理，請手動重試或捨棄此變更。</string>
+    <string name="sync_queue_retry">重試</string>
+    <string name="sync_panel_failed_uploads">上傳失敗（%1$d）</string>
+    <string name="offline_upload_discard">捨棄檔案</string>
+    <string name="offline_upload_discard_message">要捨棄 %1$s 嗎？此檔案未能上傳，且不會再重試。</string>
     <string name="sync_queue_queued_at">加入佇列時間</string>
     <string name="sync_queue_target">目標</string>
     <string name="widget_stats_error_account_not_found">找不到帳戶</string>

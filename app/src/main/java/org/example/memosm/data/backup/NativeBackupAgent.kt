@@ -37,7 +37,9 @@ class NativeBackupAgent : BackupAgent() {
                 val store = DataStoreManager(PreferenceDataStoreFactory.create(scope = scope, produceFile = { preferencesDataStoreFile("settings") }))
                 val service = BackupService(this@NativeBackupAgent, store, MemoCacheDatabase.getInstance(this@NativeBackupAgent), DraftManager(this@NativeBackupAgent))
                 val ids = store.getAccounts().map { it.id }.toSet()
-                val categories = if (transfer) BackupCategory.entries.toSet() - BackupCategory.QUEUED_EDITS else setOf(BackupCategory.ACCOUNTS)
+                // A device-to-device migration carries the outbox too: the restored edits are
+                // replayed by the new installation. Android cloud backup stays accounts-only.
+                val categories = if (transfer) BackupCategory.entries.toSet() else setOf(BackupCategory.ACCOUNTS)
                 val file = service.export(BackupSelection(ids, categories)).getOrThrow()
                 try {
                     val quota = if (Build.VERSION.SDK_INT >= 26) data.quota else -1L

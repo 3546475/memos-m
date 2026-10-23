@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
@@ -47,6 +48,7 @@ import org.example.memosm.R
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppTextButton
 import org.example.memosm.api.GsonProvider
+import org.example.memosm.data.media.AttachmentUpload
 import org.example.memosm.data.sync.PendingOp
 import org.example.memosm.data.sync.PendingOpType
 import org.example.memosm.data.sync.PreDownloadState
@@ -121,7 +123,9 @@ fun SyncStatusPanel(
     uiState: MemosUiState,
     onDismiss: () -> Unit,
     onDeleteOp: (String) -> Unit,
-    onManageCache: () -> Unit
+    onManageCache: () -> Unit,
+    onRetryOp: (String) -> Unit = {},
+    onDiscardFailedUpload: (AttachmentUpload) -> Unit = {}
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -195,8 +199,25 @@ fun SyncStatusPanel(
                 uiState.pendingOps.forEach { op ->
                     PendingOperationItem(
                         op = op,
-                        onDelete = { onDeleteOp(op.id) }
+                        onDelete = { onDeleteOp(op.id) },
+                        onRetry = { onRetryOp(op.id) }
                     )
+                }
+            }
+
+            // Uploads that will never make it (server rejection or too many attempts). The memo
+            // went on without them, so the only useful action is discarding the staged bytes —
+            // but they are listed instead of disappearing silently.
+            if (uiState.failedUploads.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    stringResource(R.string.sync_panel_failed_uploads, uiState.failedUploads.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                uiState.failedUploads.forEach { upload ->
+                    FailedUploadItem(upload = upload, onDiscard = { onDiscardFailedUpload(upload) })
                 }
             }
 
@@ -243,7 +264,7 @@ fun SyncStatusPanel(
 }
 
 @Composable
-private fun PendingOperationItem(op: PendingOp, onDelete: () -> Unit) {
+private fun PendingOperationItem(op: PendingOp, onDelete: () -> Unit, onRetry: () -> Unit) {
     var expanded by remember(op.id) { mutableStateOf(false) }
     // Deleting a queued op discards an unsynced user write, so it needs an
     // explicit confirmation (same AlertDialog pattern as RecoveryCard).
@@ -290,6 +311,19 @@ private fun PendingOperationItem(op: PendingOp, onDelete: () -> Unit) {
                     ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // Only an op the server already rejected needs the manual retry: the others are
+                // scheduled (and retried) automatically. Retrying clears the failure
+                // bookkeeping, so the row also stops being reported as needing attention.
+                if (op.permanentlyFailed) {
+                    IconButton(onClick = onRetry) {
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = stringResource(R.string.sync_queue_retry),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
                 IconButton(onClick = { confirmDelete = true }) {
                     Icon(
                         Icons.Outlined.Delete,
@@ -372,6 +406,76 @@ private fun PendingOperationItem(op: PendingOp, onDelete: () -> Unit) {
 }
 
 @Composable
+private fun FailedUploadItem(upload: AttachmentUpload, onDiscard: () -> Unit) {
+    var confirmDiscard by remember(upload.id) { mutableStateOf(false) }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = upload.filename,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = upload.lastError ?: stringResource(R.string.sync_queue_needs_attention),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(onClick = { confirmDiscard = true }) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = stringResource(R.string.offline_upload_discard),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+
+    if (confirmDiscard) {
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.offline_upload_discard),
+            summary = stringResource(R.string.offline_upload_discard_message, upload.filename),
+            onDismissRequest = { confirmDiscard = false },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { confirmDiscard = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.offline_upload_discard),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
+                    onClick = {
+                        confirmDiscard = false
+                        onDiscard()
+                    }
+                )
+            }
+        )
+    }
+}
+
+@Composable
 private fun PendingOperationDetail(label: String, value: String, isError: Boolean = false) {
     Row(
         modifier = Modifier
@@ -419,6 +523,7 @@ private fun opTypeLabel(op: PendingOp): String {
             PendingOpType.COMMENT_CREATE -> R.string.offline_op_comment_create
             PendingOpType.REACTION_UPSERT -> R.string.offline_op_reaction_upsert
             PendingOpType.REACTION_DELETE -> R.string.offline_op_reaction_delete
+            PendingOpType.ATTACHMENT_DELETE -> R.string.offline_op_attachment_delete
         }
     )
 }

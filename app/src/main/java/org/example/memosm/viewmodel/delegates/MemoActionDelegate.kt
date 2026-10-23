@@ -323,9 +323,11 @@ class MemoActionDelegateImpl(
                     }
                     .ifEmpty { null }
             )
-            // The card must exist before the op is queued: once queued, a replay can land at any
-            // moment and insert the server copy, which would leave the temporary card behind.
-            applyLocalCreate(context, localMemo, draftIdToDelete)
+            // The card and its op must land together. A list refresh that replaces the cache
+            // between the two writes would drop a card the outbox still owns (the protection
+            // subqueries only know names that are already queued), and queueing first would let
+            // a replay insert the server copy before the temporary card exists. One transaction
+            // covers both directions; the UI catches up right after it commits.
             syncManager.enqueue(
                 PendingOp.new(
                     accountId = accountId,
@@ -333,8 +335,14 @@ class MemoActionDelegateImpl(
                     memoName = tempName,
                     payloadJson = gson.toJson(localMemo),
                     id = clientId
-                )
+                ),
+                writeLocal = {
+                    memoCacheRepository.upsertCachedMemo(
+                        accountId, localMemo, CacheListType.USER, order = 0
+                    )
+                }
             )
+            applyLocalCreateUi(context, localMemo, draftIdToDelete)
             if (accountSession.isCurrent(context)) onSuccess()
             if (!wasOnline) {
                 // The user asked for an offline write: say so instead of pretending it synced.
@@ -347,13 +355,11 @@ class MemoActionDelegateImpl(
         }
     }
 
-    private suspend fun applyLocalCreate(context: AccountContext, localMemo: Memo, draftIdToDelete: String?) {
-        val accountId = context.account.id
-        // Storage first: a list refresh racing with this write would otherwise replace the items
-        // with a cache that does not contain the temporary memo yet, hiding the card.
-        memoCacheRepository.upsertCachedMemo(
-            accountId, localMemo, CacheListType.USER, order = 0
-        )
+    /**
+     * UI half of a local create. The cache row is already committed by the caller, together with
+     * the outbox op, so everything here is either in-memory list state or draft bookkeeping.
+     */
+    private suspend fun applyLocalCreateUi(context: AccountContext, localMemo: Memo, draftIdToDelete: String?) {
         if (accountSession.isCurrent(context)) listUpdater.insertMemoIntoUserList(localMemo)
         draftIdToDelete?.let { draftManager.deleteDraft(context.account.id, it) }
         if (accountSession.isCurrent(context) && uiState.value.draft.currentEditingDraftId == draftIdToDelete) {

@@ -28,9 +28,16 @@ import org.example.memosm.model.Memo
  * and downloaded attachment metadata. The sync audit log lives in the
  * separate AuditDatabase so it survives cache-database corruption.
  */
+/**
+ * Schema version of the cache/outbox database. Bump it together with a new entry in
+ * [MemoCacheDatabase.ALL_MIGRATIONS]; tests target this constant so they cannot silently
+ * keep validating an older schema.
+ */
+const val MEMO_CACHE_DB_VERSION = 10
+
 @Database(
     entities = [CachedMemo::class, PendingOp::class, CachedAttachment::class, AttachmentUpload::class, CachedAttachmentMeta::class],
-    version = 8,
+    version = MEMO_CACHE_DB_VERSION,
     exportSchema = true
 )
 abstract class MemoCacheDatabase : RoomDatabase() {
@@ -134,7 +141,7 @@ abstract class MemoCacheDatabase : RoomDatabase() {
                     }
                 )
             )
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
             // The eager open below runs on the main thread (Application.onCreate
             // -> getInstance). allowMainThreadQueries() makes that one-time probe
             // legal; actual DAO suspend functions still execute off the main thread.
@@ -151,7 +158,7 @@ abstract class MemoCacheDatabase : RoomDatabase() {
         }
 
         val ALL_MIGRATIONS: Array<Migration>
-            get() = arrayOf(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            get() = arrayOf(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
 
         const val DATABASE_NAME = "memo_cache_database"
         private const val TAG = "MemoCacheDatabase"
@@ -166,6 +173,30 @@ abstract class MemoCacheDatabase : RoomDatabase() {
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("DROP TABLE IF EXISTS sync_audit_log")
+            }
+        }
+
+        /**
+         * v9 -> v10: keep permanently failed attachment uploads (with their staged bytes) instead
+         * of deleting them, so the sync panel can show what was not uploaded. Existing rows are
+         * pending uploads by definition.
+         */
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE attachment_uploads ADD COLUMN permanentlyFailed INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * v8 -> v9: index the outbox lookup keys. Every cache prune/trim/delete runs a
+         * `NOT EXISTS (SELECT 1 FROM pending_ops WHERE accountId = ? AND (memoName = ? OR
+         * parentName = ?))` guard, and enqueue/rename look rows up by memo name, so without
+         * these indices each of those degrades into a full scan of pending_ops.
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pending_ops_accountId_memoName ON pending_ops(accountId, memoName)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pending_ops_accountId_parentName ON pending_ops(accountId, parentName)")
             }
         }
 

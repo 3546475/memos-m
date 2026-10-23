@@ -18,6 +18,8 @@ import org.example.memosm.data.cache.CachedMemo
 import org.example.memosm.data.cache.MemoCacheDatabase
 import org.example.memosm.data.media.CachedAttachment
 import org.example.memosm.data.media.CachedAttachmentMeta
+import org.example.memosm.data.sync.PendingOp
+import org.example.memosm.data.sync.PendingOpType
 import org.example.memosm.model.Account
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Draft
@@ -216,8 +218,7 @@ class BackupService(
             if (BackupCategory.SETTINGS in selection.categories) settings.backupSettings() else null)
     }
 
-    private suspend fun validateAccountTargets(manifest: BackupManifest) {
-        val current = settings.getAccounts().associateBy { it.id }
+    private suspend fun validateAccountTargets(manifest: BackupManifest) {        val current = settings.getAccounts().associateBy { it.id }
         manifest.accounts.forEach { data ->
             val existing = current[data.identity.id]
             if (existing != null) {
@@ -230,6 +231,20 @@ class BackupService(
         }
     }
 
+    /** Points a review record's attachment paths at the restored files. */
+    private fun rewriteReviewEdit(edit: JsonObject, attachmentRoot: File): JsonObject =
+        edit.deepCopy().apply {
+            getAsJsonObject("payload")?.getAsJsonArray("attachments")?.forEach { item ->
+                val obj = item.asJsonObject
+                obj.get("localPath")?.takeUnless { it.isJsonNull }?.asString?.let { path ->
+                    obj.addProperty(
+                        "localPath",
+                        File(attachmentRoot, path.removePrefix("blob:")).absolutePath
+                    )
+                }
+            }
+        }
+
     private suspend fun applyJournal(): RestoreSummary {
         val decoded = BackupArchive.read(journal, staging)
         decoded.use {
@@ -238,6 +253,25 @@ class BackupService(
             validateAccountTargets(manifest)
             val filesRoot = File(context.filesDir, "restored_backup_files")
             val draftFiles = File(filesRoot, "drafts")
+
+            // Queued edits are replayed from the restored outbox. An edit whose payload still
+            // references an attachment that never reached the server cannot be replayed: the
+            // upload queue and its staged bytes are not part of the archive, so such an edit stays
+            // a review record instead of being replayed with a dangling attachment reference.
+            val liveOps = mutableMapOf<String, List<PendingOp>>()
+            val reviewEdits = mutableMapOf<String, List<JsonObject>>()
+            if (BackupCategory.QUEUED_EDITS in manifest.categories) {
+                manifest.accounts.forEach { data ->
+                    val ops = mutableListOf<PendingOp>()
+                    val reviews = mutableListOf<JsonObject>()
+                    data.queuedEdits.forEach { edit ->
+                        val op = livePendingOp(data.identity.id, edit, draftFiles)
+                        if (op != null) ops += op else reviews += rewriteReviewEdit(edit, draftFiles)
+                    }
+                    liveOps[data.identity.id] = ops
+                    reviewEdits[data.identity.id] = reviews
+                }
+            }
             fun mediaFile(accountId: String, attachmentName: String, blobId: String): File {
                 val accountKey = MessageDigest.getInstance("SHA-256").digest(accountId.toByteArray()).joinToString("") { "%02x".format(it) }
                 val attachmentKey = MessageDigest.getInstance("SHA-256").digest(attachmentName.toByteArray()).joinToString("") { "%02x".format(it) }
@@ -279,6 +313,9 @@ class BackupService(
                         data.media.forEach { media -> database.cachedAttachmentDao().upsert(CachedAttachment(id, media.attachmentName, media.memoName, media.url,
                             mediaFile(id, media.attachmentName, media.blobId).absolutePath, media.size, media.downloadedAt, media.downloadedAt)) }
                     }
+                    // Restored edits join the live outbox in the same transaction as the cache
+                    // they belong to, so the next sync replays them like any other local write.
+                    liveOps[id]?.forEach { op -> database.pendingOpDao().insert(op) }
                 }
             }
             if (BackupCategory.DRAFTS in manifest.categories) manifest.accounts.forEach { data ->
@@ -288,15 +325,11 @@ class BackupService(
                         localPath = attachment.localPath?.removePrefix("blob:")?.let { blobId -> File(draftFiles, blobId).absolutePath }) })
                 })
             }
-            // Review records stay outside the live outbox, with durable local attachment paths.
-            val applied = manifest.copy(accounts = manifest.accounts.map { data -> data.copy(queuedEdits = data.queuedEdits.map { edit -> edit.deepCopy().apply {
-                getAsJsonObject("payload")?.getAsJsonArray("attachments")?.forEach { item ->
-                    val obj = item.asJsonObject
-                    obj.get("localPath")?.takeUnless { it.isJsonNull }?.asString?.let { path ->
-                        obj.addProperty("localPath", File(draftFiles, path.removePrefix("blob:")).absolutePath)
-                    }
-                }
-            } }) })
+            // Only the edits that could not be replayed stay as review records, with durable local
+            // attachment paths.
+            val applied = manifest.copy(accounts = manifest.accounts.map { data ->
+                data.copy(queuedEdits = reviewEdits[data.identity.id].orEmpty())
+            })
             // Publish credentials last, after every account's data has landed.
             settings.applyBackup(applied)
             check(journal.delete()) { "Could not finish restore" }
@@ -483,3 +516,50 @@ internal object CacheBackupPolicy {
         normalize(identity.hostUrl) == normalize(account.hostUrl) && (identity.userName == null || account.user?.name == null || identity.userName == account.user.name)
     private fun normalize(host: String) = host.trim().trimEnd('/').removeSuffix("/api/v1").trimEnd('/')
 }
+
+/**
+ * Rebuilds a live outbox row from a backed-up queued edit, or null when the edit cannot be
+ * replayed faithfully. The only blocked case is an attachment the payload still references
+ * without a server name: the archive carries the bytes but not the upload queue, so replaying it
+ * would post a dangling reference. Such an edit stays a review record instead.
+ *
+ * The restored row starts with a clean retry budget — it is new work for this installation, not a
+ * failure carried over from the old one.
+ */
+internal fun livePendingOp(accountId: String, edit: JsonObject, attachmentRoot: File): PendingOp? {
+    val type = runCatching { PendingOpType.valueOf(edit.get("type").asString) }.getOrNull()
+        ?: return null
+    val payload = edit.get("payload")?.takeUnless { it.isJsonNull }?.asJsonObject
+    val unresolved = payload?.getAsJsonArray("attachments")?.any { item ->
+        item.asJsonObject.get("name")?.takeUnless { it.isJsonNull }?.asString.isNullOrBlank()
+    } ?: false
+    if (unresolved) return null
+    val rewritten = payload?.deepCopy()?.also { obj ->
+        obj.getAsJsonArray("attachments")?.forEach { item ->
+            val attachment = item.asJsonObject
+            val path = attachment.get("localPath")?.takeUnless { it.isJsonNull }?.asString
+                ?: return@forEach
+            if (path.startsWith("blob:")) {
+                attachment.addProperty(
+                    "localPath",
+                    File(attachmentRoot, path.removePrefix("blob:")).absolutePath
+                )
+            }
+        }
+    }
+    return PendingOp(
+        id = edit.get("id").asString,
+        accountId = accountId,
+        type = type.name,
+        memoName = edit.stringOrNull("memoName"),
+        parentName = edit.stringOrNull("parentName"),
+        payloadJson = rewritten?.toString(),
+        updateMask = edit.stringOrNull("updateMask"),
+        baseUpdateTime = edit.stringOrNull("baseUpdateTime"),
+        createdAt = edit.get("createdAt")?.takeUnless { it.isJsonNull }?.asLong
+            ?: System.currentTimeMillis()
+    )
+}
+
+private fun JsonObject.stringOrNull(name: String): String? =
+    get(name)?.takeUnless { it.isJsonNull }?.asString

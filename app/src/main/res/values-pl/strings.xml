@@ -312,6 +312,7 @@
     <string name="offline_op_create">Utwórz notatkę</string>
     <string name="offline_op_delete">Usuń notatkę</string>
     <string name="offline_op_reaction_delete">Usuń reakcję</string>
+    <string name="offline_op_attachment_delete">Usuń załącznik</string>
     <string name="offline_op_reaction_upsert">Dodaj reakcję</string>
     <string name="offline_op_update">Edytuj notatkę</string>
     <string name="offline_predownload_failed">Nie udało się zapisać w pamięci podręcznej: %1$s</string>
@@ -398,6 +399,10 @@
     <string name="sync_queue_fields">Pola</string>
     <string name="sync_queue_last_attempt">Ostatnia próba</string>
     <string name="sync_queue_needs_attention">Wymaga uwagi — ponów próbę ręcznie lub odrzuć tę zmianę.</string>
+    <string name="sync_queue_retry">Ponów</string>
+    <string name="sync_panel_failed_uploads">Nieudane przesyłanie (%1$d)</string>
+    <string name="offline_upload_discard">Odrzuć plik</string>
+    <string name="offline_upload_discard_message">Odrzucić %1$s? Plik nie został przesłany i nie będzie ponawiany.</string>
     <string name="sync_queue_queued_at">Dodano do kolejki</string>
     <string name="sync_queue_target">Cel</string>
     <string name="sync_status_idle">Aktualne</string>

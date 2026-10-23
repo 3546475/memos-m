@@ -255,6 +255,7 @@
     <string name="offline_op_comment_create">添加评论</string>
     <string name="offline_op_reaction_upsert">添加表情</string>
     <string name="offline_op_reaction_delete">移除表情</string>
+    <string name="offline_op_attachment_delete">删除附件</string>
     <string name="offline_settings_title">离线缓存</string>
     <string name="offline_settings_pre_download_text">缓存全部文本</string>
     <string name="offline_settings_pre_download_attachments">缓存附件</string>
@@ -300,6 +301,10 @@
     <string name="sync_queue_fields">更改字段</string>
     <string name="sync_queue_error">错误</string>
     <string name="sync_queue_needs_attention">需要处理——请手动重试或放弃此更改。</string>
+    <string name="sync_queue_retry">重试</string>
+    <string name="sync_panel_failed_uploads">上传失败（%1$d）</string>
+    <string name="offline_upload_discard">丢弃文件</string>
+    <string name="offline_upload_discard_message">要丢弃 %1$s 吗？该文件未能上传，且不会再重试。</string>
     <string name="sync_queue_delete_title">放弃待同步的更改？</string>
     <string name="sync_queue_delete_message">要放弃这条尚未同步的更改吗？此操作无法撤销。</string>
     <string name="sync_panel_predownload_running">正在缓存%1$s（第 %2$d 页）…</string>

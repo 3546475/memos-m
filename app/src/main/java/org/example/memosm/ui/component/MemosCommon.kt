@@ -118,6 +118,13 @@ val LocalMemoCommenter = compositionLocalOf<(Memo) -> Unit> { { } }
 val LocalMemoEditGesture = compositionLocalOf { EditGesture.NONE }
 
 /**
+ * Memo names with a queued local write the server has not acknowledged yet. Read by the card so
+ * an edited memo shows the same "pending sync" hint as a locally created one; without it only the
+ * global queue counter hinted at unsent edits.
+ */
+val LocalPendingMemoNames = compositionLocalOf { emptySet<String>() }
+
+/**
  * The list content, recorded as a backdrop layer, so anything floating above it (the frosted
  * header, the compose button) can sample and blur what is scrolling underneath. Null when the
  * blur is unavailable, which is every MD session and every device below API 33.
@@ -299,6 +306,9 @@ fun MemosScaffold(
         LocalMemoEditor provides editMemo,
         LocalMemoCommenter provides commentMemo,
         LocalMemoEditGesture provides memoEditGesture,
+        LocalPendingMemoNames provides remember(uiState.pendingOps) {
+            uiState.pendingOps.mapNotNullTo(HashSet()) { it.memoName }
+        },
         LocalListBackdrop provides if (fabBlurEnabled) headerBackdrop else null
     ) {
         Box(Modifier.fillMaxSize()) {

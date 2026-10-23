@@ -498,6 +498,12 @@ fun MemosScreen(
             }
         })
 
+    // Failed attachment uploads are only read when the panel is opened: they change rarely and the
+    // list is a diagnostic view.
+    LaunchedEffect(showSyncPanel) {
+        if (showSyncPanel) viewModel.refreshFailedUploads()
+    }
+
     if (showSyncPanel) {
         SyncStatusPanel(
             uiState = uiState,
@@ -508,7 +514,9 @@ fun MemosScreen(
                 cacheSettingsLauncher.launch(
                     SettingsActivity.createIntent(context, SettingsSection.OFFLINE)
                 )
-            }
+            },
+            onRetryOp = { opId -> viewModel.retryPendingOp(opId) },
+            onDiscardFailedUpload = { upload -> viewModel.discardFailedUpload(upload) }
         )
     }
 

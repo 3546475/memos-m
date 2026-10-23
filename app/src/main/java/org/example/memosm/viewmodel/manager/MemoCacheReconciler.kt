@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import org.example.memosm.data.cache.CacheListType
 import org.example.memosm.data.cache.MemoCacheRepository
 import org.example.memosm.viewmodel.AccountSession
 import retrofit2.HttpException
@@ -19,7 +20,12 @@ import kotlin.coroutines.coroutineContext
 class MemoCacheReconciler(
     private val session: AccountSession,
     private val repository: MemoCacheRepository,
-    private val onDeleted: (String) -> Unit
+    /**
+     * Called after a cached memo was re-filed because the server reported a different archive
+     * state, so the visible lists can move it without a network round trip.
+     */
+    private val onStateMoved: suspend (name: String, archived: Boolean) -> Unit = { _, _ -> },
+    private val onDeleted: (String) -> Unit = {}
 ) {
     private var job: Job? = null
     private val confirmedNames = mutableSetOf<String>()
@@ -52,6 +58,7 @@ class MemoCacheReconciler(
                 // Inventory pages confirm hundreds of resources with a single request.
                 // Finish BOTH snapshots before checking omissions; partial lists prove nothing.
                 val inventoryNames = mutableSetOf<String>()
+                val archivedNames = mutableSetOf<String>()
                 for (state in listOf("NORMAL", "ARCHIVED")) {
                     var token: String? = null
                     val tokens = mutableSetOf<String>()
@@ -63,11 +70,37 @@ class MemoCacheReconciler(
                             expectedApi.listMemos(pageSize = 100, pageToken = token, state = state)
                         }
                         val memos = page.memos ?: throw IOException("Incomplete memo inventory")
-                        inventoryNames.addAll(memos.mapNotNull { it.name })
+                        val pageNames = memos.mapNotNull { it.name }
+                        inventoryNames.addAll(pageNames)
+                        if (state == "ARCHIVED") archivedNames.addAll(pageNames)
                         token = page.nextPageToken?.takeIf { it.isNotBlank() }
                         if (token != null && !tokens.add(token)) throw IOException("Repeated inventory page token")
                     } while (token != null)
                 }
+                val normalNames = inventoryNames - archivedNames
+
+                // The two inventories are the server's current archive state. Re-file cached rows
+                // whose list type disagrees, so a memo archived on another device leaves the feed
+                // now instead of waiting for the next full pre-download to prune it. Names with a
+                // queued write are skipped: the server has not seen that change yet.
+                val protectedNames = repository.protectedMemoNames(context.account.id)
+                repository.cachedArchiveStates(context.account.id)
+                    .asSequence()
+                    .filterNot { it.name in protectedNames || it.name in confirmedNames }
+                    .forEach { cached ->
+                        val targetArchived = when {
+                            cached.name in archivedNames && cached.name !in normalNames -> true
+                            cached.name in normalNames && cached.name !in archivedNames -> false
+                            // Absent from both: the deletion check below decides. Present in both:
+                            // the server is contradicting itself, so leave the row alone.
+                            else -> return@forEach
+                        }
+                        if ((cached.listType == CacheListType.ARCHIVED.name) == targetArchived) return@forEach
+                        coroutineContext.ensureActive()
+                        if (repository.moveCachedMemo(context.account.id, cached.name, targetArchived)) {
+                            if (session.isCurrent(context)) onStateMoved(cached.name, targetArchived)
+                        }
+                    }
                 for (candidate in candidates) {
                     if (candidate.name in inventoryNames || candidate.name in confirmedNames) continue
                     delay(250)

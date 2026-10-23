@@ -47,6 +47,13 @@ class AttachmentUploadWorker(
 
         try {
             queue.replay(accountId, api, streamingApi)
+            // A memo op waiting on one of these placeholders is deferred with a
+            // backoff retry of its own; kick the outbox replay as soon as the bytes
+            // have landed so the memo is posted without that extra wait.
+            if (!queue.hasPending(accountId)) {
+                org.example.memosm.data.sync.WorkManagerSyncWorkScheduler(applicationContext)
+                    .schedule(accountId)
+            }
             Result.success()
         } catch (error: CancellationException) {
             throw error

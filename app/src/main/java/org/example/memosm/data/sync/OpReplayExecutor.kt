@@ -61,6 +61,7 @@ class OpReplayExecutor(
         PendingOpType.COMMENT_CREATE -> syncCommentCreate(op)
         PendingOpType.REACTION_UPSERT -> syncReactionUpsert(op)
         PendingOpType.REACTION_DELETE -> syncReactionDelete(op)
+        PendingOpType.ATTACHMENT_DELETE -> syncAttachmentDelete(op)
     }
 
     }
@@ -142,6 +143,14 @@ class OpReplayExecutor(
         val local = gson.fromJson(op.payloadJson, Memo::class.java) ?: return true
         val server = api.getMemo(name)
         val serverUpdate = server.updateTime?.toString()
+        if (op.baseUpdateTime == null) {
+            // Nothing to compare against, so this pushes over whatever the server has. That is
+            // not a conflict (there is no base version to conflict with), but it is recorded so
+            // an unconditional overwrite leaves a trace instead of looking like a normal sync.
+            auditLogger.record(
+                accountId, "SYNC", "OVERWRITE", op.type, name, "missing_base_update_time"
+            )
+        }
         if (op.baseUpdateTime != null && serverUpdate != op.baseUpdateTime) {
             Log.d(TAG, "Conflict on $name: local base=${op.baseUpdateTime} vs server=$serverUpdate")
             // Record the attempt timestamp so a deferred (LATER) conflict is
@@ -201,6 +210,7 @@ class OpReplayExecutor(
             list.any { it.name.isNullOrBlank() && it.clientId != null }
         } ?: return memo.stripLocalAttachmentFields()
         val queue = attachmentUploadQueueProvider()
+            ?: error("Attachment upload queue is unavailable; queued attachments cannot be resolved")
         val resolved = mutableListOf<Attachment>()
         var dropped = 0
         for (attachment in memo.attachments.orEmpty()) {
@@ -209,20 +219,20 @@ class OpReplayExecutor(
                 resolved += attachment
                 continue
             }
-            if (queue == null || queue.get(clientId) != null) {
-                // The upload is still queued (or its state is unknowable
-                // without the queue): posting now would persist a dangling
-                // ref. Kick the queue and defer; the retry/backoff path
-                // replays the op once the upload has landed.
-                queue?.schedule(accountId)
+            val queued = queue.get(clientId)
+            if (queued != null && !queued.permanentlyFailed) {
+                // The upload is still queued: posting now would persist a dangling
+                // ref. Kick the queue and defer; the retry/backoff path replays the
+                // op once the upload has landed.
+                queue.schedule(accountId)
                 repository.markFailed(
                     op.id, op.attemptCount + 1, "attachments pending upload",
                     System.currentTimeMillis(), permanentlyFailed = false
                 )
                 return null
             }
-            // Row gone: the upload finished (rows are deleted on success) or
-            // was retired. Verify the attachment exists before binding it.
+            // Row gone (uploaded, or its staged bytes were lost) or retired as permanently
+            // failed: it will never bind itself, so verify server-side before dropping it.
             val uploaded = try {
                 api.getAttachment("attachments/$clientId")
             } catch (e: HttpException) {
@@ -257,6 +267,21 @@ class OpReplayExecutor(
         api.deleteMemo(name)
         memoCacheRepository.removeCachedMemo(accountId, name)
         onMemoDeleted(name)
+        return true
+    }
+
+    /**
+     * Deletes an attachment from the server. The local list and caches were already cleared when
+     * the op was queued, so a 404 (already gone) is the desired end state, not a failure.
+     */
+    private suspend fun syncAttachmentDelete(op: PendingOp): Boolean {
+        val name = op.memoName ?: return true
+        try {
+            api.deleteAttachment(name)
+        } catch (e: HttpException) {
+            if (e.code() != 404) throw e
+            Log.d(TAG, "Attachment $name was already deleted")
+        }
         return true
     }
 

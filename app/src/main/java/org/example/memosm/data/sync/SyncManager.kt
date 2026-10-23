@@ -73,6 +73,14 @@ class SyncManager(
     private var syncJob: Job? = null
     private var retryJob: Job? = null
 
+    /**
+     * Set when a push is requested while a pass is already running. The running pass
+     * takes its queue snapshot up front, so an op queued afterwards would otherwise
+     * wait for the WorkManager fallback (up to six hours on the periodic request).
+     */
+    @Volatile
+    private var rerunRequested = false
+
     @OptIn(ExperimentalCoroutinesApi::class)
     fun startObserving(accountIdFlow: Flow<String?>) {
         scope.launch {
@@ -85,8 +93,8 @@ class SyncManager(
         }
     }
 
-    suspend fun enqueue(op: PendingOp) {
-        repository.enqueue(op)
+    suspend fun enqueue(op: PendingOp, writeLocal: (suspend () -> Unit)? = null) {
+        repository.enqueue(op, writeLocal)
         auditLogger.record(op.accountId, "QUEUE", "ENQUEUED", op.type, op.memoName)
         workScheduler.schedule(op.accountId)
     }
@@ -98,15 +106,31 @@ class SyncManager(
 
     suspend fun clearForAccount(accountId: String) = repository.clearForAccount(accountId)
 
+    /**
+     * Clears the recorded failure of one queued op and pushes again. The background
+     * worker skips permanently failed ops, so this is the way out of "needs
+     * attention" without discarding the user's write.
+     */
+    suspend fun retryOp(id: String) {
+        val op = repository.getOp(id) ?: return
+        repository.retryOp(id)
+        auditLogger.record(op.accountId, "QUEUE", "RETRY", op.type, op.memoName)
+        pushPendingChanges()
+    }
+
     fun cancelSync() {
         syncJob?.cancel()
         retryJob?.cancel()
+        rerunRequested = false
         _isSyncing.value = false
     }
 
     /** Push all queued changes to the server, regardless of previous failures. */
     fun pushPendingChanges() {
-        if (_isSyncing.value) return
+        if (_isSyncing.value) {
+            rerunRequested = true
+            return
+        }
         val context = accountSession.current ?: return
         if (!context.networkReady) return
         val accountId = context.account.id
@@ -182,6 +206,12 @@ class SyncManager(
             } finally {
                 if (accountSession.isCurrent(context)) _isSyncing.value = false
             }
+            // Honour a request that arrived while this pass ran: the op it cares about may
+            // have been queued after the queue snapshot was taken.
+            if (rerunRequested) {
+                rerunRequested = false
+                if (accountSession.isCurrent(context)) pushPendingChanges()
+            }
         }
     }
 
@@ -223,6 +253,14 @@ class SyncManager(
                 val ownedOp = repository.getOp(item.opId) ?: return@withAccountLock
                 if (ownedOp.accountId != accountId || ownedOp.memoName != item.memoName) return@withAccountLock
                 val executor = newExecutor(context, user)
+                // KEEP_LOCAL and MERGE overwrite the server copy, and the dialog may have been
+                // open for minutes. Re-read before writing: pushing the version snapshotted when
+                // the conflict was detected would silently drop a newer server version.
+                val overwritesServer = resolution == ConflictResolution.KEEP_LOCAL ||
+                    resolution == ConflictResolution.MERGE
+                if (overwritesServer && !serverUnchangedSinceConflict(item, context, api)) {
+                    return@withAccountLock
+                }
                 when (resolution) {
                     ConflictResolution.KEEP_LOCAL -> {
                         val op = repository.getOp(item.opId) ?: return@withAccountLock
@@ -302,6 +340,45 @@ class SyncManager(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * True while the server still holds the version the conflict was reported against. When it
+     * changed again, the newer version is surfaced as a fresh conflict instead of being
+     * overwritten by the stale local payload; an unreadable server is treated the same way so a
+     * transient failure cannot silently approve an overwrite.
+     */
+    private suspend fun serverUnchangedSinceConflict(
+        item: ConflictItem,
+        context: AccountContext,
+        api: MemosApi
+    ): Boolean {
+        return try {
+            val fresh = api.getMemo(item.memoName)
+            if (fresh.updateTime == item.serverMemo.updateTime) {
+                true
+            } else {
+                Log.d(TAG, "Conflict on ${item.memoName} changed again; re-surfacing")
+                if (accountSession.isCurrent(context)) {
+                    onConflict(
+                        ConflictItem(
+                            opId = item.opId,
+                            accountId = item.accountId,
+                            memoName = item.memoName,
+                            localMemo = item.localMemo,
+                            serverMemo = fresh
+                        )
+                    )
+                }
+                false
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not re-read ${item.memoName} before resolving", e)
+            if (accountSession.isCurrent(context)) onConflict(item)
+            false
         }
     }
 

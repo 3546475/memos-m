@@ -13,7 +13,8 @@ enum class PendingOpType {
     DELETE,             // Delete a memo/comment
     COMMENT_CREATE,     // Create a comment on a memo
     REACTION_UPSERT,    // Add/refresh a reaction on a memo/comment
-    REACTION_DELETE     // Remove a reaction from a memo/comment
+    REACTION_DELETE,    // Remove a reaction from a memo/comment
+    ATTACHMENT_DELETE   // Delete an uploaded attachment (Resources page, offline)
 }
 
 /**
@@ -23,7 +24,17 @@ enum class PendingOpType {
  */
 @Entity(
     tableName = "pending_ops",
-    indices = [Index("accountId")]
+    indices = [
+        Index("accountId"),
+        // Lookup key of SyncRepository.enqueue (latest UPDATE for one memo),
+        // PendingOpDao.renameMemo, and the `NOT EXISTS (SELECT 1 FROM pending_ops ...)`
+        // guards that keep unsent writes from being pruned or trimmed out of
+        // cached_memos. Those guards run once per cache row, so without this index
+        // they degrade into a table scan of the outbox.
+        Index("accountId", "memoName"),
+        // Same guards also protect rows by parent memo (queued comments).
+        Index("accountId", "parentName")
+    ]
 )
 data class PendingOp(
     @PrimaryKey

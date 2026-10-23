@@ -348,6 +348,7 @@
     <string name="offline_op_create">Memo erstellen</string>
     <string name="offline_op_delete">Memo löschen</string>
     <string name="offline_op_reaction_delete">Reaktion entfernen</string>
+    <string name="offline_op_attachment_delete">Anhang löschen</string>
     <string name="offline_op_reaction_upsert">Reaktion hinzufügen</string>
     <string name="offline_op_update">Memo bearbeiten</string>
     <string name="offline_predownload_failed">Cache konnte nicht geladen werden: %1$s</string>
@@ -436,6 +437,10 @@
     <string name="sync_queue_fields">Felder</string>
     <string name="sync_queue_last_attempt">Letzter Versuch</string>
     <string name="sync_queue_needs_attention">Aktion erforderlich — versuche es manuell erneut oder verwirf diese Änderung.</string>
+    <string name="sync_queue_retry">Erneut versuchen</string>
+    <string name="sync_panel_failed_uploads">Fehlgeschlagene Uploads (%1$d)</string>
+    <string name="offline_upload_discard">Datei verwerfen</string>
+    <string name="offline_upload_discard_message">%1$s verwerfen? Die Datei konnte nicht hochgeladen werden und wird nicht erneut versucht.</string>
     <string name="sync_queue_queued_at">Eingereiht</string>
     <string name="sync_queue_target">Ziel</string>
     <string name="sync_status_idle">Aktuell</string>

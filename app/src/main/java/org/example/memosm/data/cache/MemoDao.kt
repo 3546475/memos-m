@@ -96,6 +96,21 @@ interface MemoDao {
     @Query("SELECT DISTINCT memoName FROM pending_ops WHERE accountId = :accountId AND memoName IS NOT NULL")
     suspend fun protectedMemoNames(accountId: String): List<String>
 
+    /** The user/archived row of every cached memo, for archive-state reconciliation. */
+    @Query("SELECT name, listType FROM cached_memos WHERE accountId = :accountId AND listType IN ('USER', 'ARCHIVED')")
+    suspend fun cachedArchiveStates(accountId: String): List<CachedMemoState>
+
+    /**
+     * Re-homes a cached memo whose archive state changed on the server. Skips the move when a row
+     * already exists under the target list type (the primary key would collide).
+     */
+    @Query(
+        "UPDATE cached_memos SET listType = :to WHERE accountId = :accountId AND name = :name " +
+            "AND listType = :from " +
+            "AND NOT EXISTS (SELECT 1 FROM cached_memos WHERE accountId = :accountId AND name = :name AND listType = :to)"
+    )
+    suspend fun moveListType(accountId: String, name: String, from: String, to: String): Int
+
     @Query("SELECT name, MAX(cachedAt) AS cachedAt FROM cached_memos WHERE accountId = :accountId AND name LIKE 'memos/%' GROUP BY name")
     suspend fun reconciliationCandidates(accountId: String): List<CachedMemoCandidate>
 
