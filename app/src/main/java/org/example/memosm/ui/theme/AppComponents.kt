@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -29,9 +28,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,7 +83,6 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixDivider
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator as MiuixLinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults as MiuixProgressDefaults
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
-import top.yukonga.miuix.kmp.basic.PullToRefresh as MiuixPullToRefresh
 import top.yukonga.miuix.kmp.basic.RadioButton as MiuixRadioButton
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar as MiuixSmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Slider as MiuixSlider
@@ -773,47 +768,6 @@ fun AppFilterChip(
 }
 
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
-
-
-/** Pull-to-refresh container: Miuix's own indicator, or Material's while MD is active. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AppPullToRefresh(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    /** Miuix offsets its spinner by this much; screens with a floating header use it to clear it. */
-    indicatorTopPadding: Dp = 0.dp,
-    content: @Composable () -> Unit
-) {
-    if (usesMiuix) {
-        MiuixPullToRefresh(
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh,
-            modifier = modifier,
-            contentPadding = PaddingValues(top = indicatorTopPadding)
-        ) {
-            content()
-        }
-    } else {
-        val state = rememberPullToRefreshState()
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh,
-            state = state,
-            modifier = modifier,
-            indicator = {
-                PullToRefreshDefaults.Indicator(
-                    state = state,
-                    isRefreshing = isRefreshing,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)
-                )
-            }
-        ) {
-            content()
-        }
-    }
-}
 
 /**
  * An anchored menu. Miuix renders a window-level list popup (so no popup host is required);

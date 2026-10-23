@@ -233,7 +233,9 @@ private fun ProfileListPane(
             viewModel.fetchUserMemos(refresh = true)
             viewModel.userDelegate.refreshInstanceSettings()
             viewModel.userDelegate.refreshUserStats()
-        }, modifier = Modifier.fillMaxSize()
+        }, modifier = Modifier.fillMaxSize(),
+        // This page is hosted edge to edge, so the chip has to clear the status bar itself.
+        indicatorTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     ) {
         LazyColumn(
             state = listState,
