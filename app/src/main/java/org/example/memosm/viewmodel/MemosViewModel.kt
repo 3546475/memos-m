@@ -942,6 +942,19 @@ class MemosViewModel(
         draftDelegate.loadDraftsForAccount(context.account.id)
         refreshAfterProfileDetails()
         viewModelScope.launch {
+            // The composer runs in its own activity with its own view model instance, so the
+            // memo it created lives in the shared cache but not in this instance's lists. Re-read
+            // the page and the new cards from the cache: that is what makes them visible the
+            // moment the composer closes instead of after a server round trip.
+            val accountId = context.account.id
+            val visible = userMemoManager.listState.value.items
+            val refreshed = visible.mapNotNull { memo ->
+                memo.name?.let { name -> memoCacheRepository.getCachedMemo(accountId, name) }
+            }
+            if (accountSession.isCurrent(context)) refreshed.forEach { updateMemoInState(it) }
+            memoCacheRepository.getPendingLocalMemos(accountId, CacheListType.USER)
+                .forEach { memoListUpdater.insertMemoIntoUserList(it) }
+
             val selected = _uiState.value.detailPane.selectedMemo
             selected?.name?.let { name ->
                 memoCacheRepository.getCachedMemo(context.account.id, name)?.let { updated ->
@@ -1211,14 +1224,24 @@ class MemosViewModel(
         // A card written a moment ago may not have had its op observed yet, so only clean up
         // entries that have had time to be acknowledged.
         val cutoff = System.currentTimeMillis() - ORPHAN_GRACE_MS
-        val stale = _uiState.value.userMemoList.list.items
-            .mapNotNull { memo ->
-                val created = memo.createTime?.toEpochMilliseconds() ?: 0L
-                memo.name?.takeIf {
-                    it.startsWith(OfflineMemoPrefix) && it !in pending && created < cutoff
+        val cards = _uiState.value.userMemoList.list.items
+            .filter { it.name?.startsWith(OfflineMemoPrefix) == true }
+        if (cards.isEmpty()) return
+        val stale = cards.mapNotNull { memo ->
+            val created = memo.createTime?.toEpochMilliseconds() ?: 0L
+            memo.name?.takeIf { it !in pending && created < cutoff }
+        }
+        if (stale.isEmpty()) {
+            // A card whose op is already gone may simply be younger than the grace period. Check
+            // again once it has aged, otherwise it would sit at "待同步" until the next event.
+            if (cards.any { it.name !in pending }) {
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(ORPHAN_GRACE_MS)
+                    pruneOrphanedLocalMemos(context, syncManager.pendingOps.value)
                 }
             }
-        if (stale.isEmpty()) return
+            return
+        }
         viewModelScope.launch {
             stale.forEach { name ->
                 memoCacheRepository.removeCachedMemo(context.account.id, name)
