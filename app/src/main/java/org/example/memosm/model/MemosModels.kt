@@ -213,3 +213,10 @@ data class MemoRelationWire(
 data class SetMemoRelationsRequest(
     val name: String, val relations: List<MemoRelationWire>
 )
+
+/**
+ * Marker of a memo that only exists locally so far: the outbox still has to create it on the
+ * server, which hands back the real name and replaces this one everywhere.
+ */
+const val OfflineMemoPrefix = "offline-"
+

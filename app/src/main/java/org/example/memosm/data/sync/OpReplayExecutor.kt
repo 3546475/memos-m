@@ -11,6 +11,10 @@ import org.example.memosm.data.media.AttachmentUploadQueue
 import org.example.memosm.model.Attachment
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoState
+import org.example.memosm.model.MemoRelationType
+import org.example.memosm.model.MemoRelationWire
+import org.example.memosm.model.MemoSnippet
+import org.example.memosm.model.SetMemoRelationsRequest
 import org.example.memosm.model.Reaction
 import org.example.memosm.model.UpsertMemoReactionRequest
 import org.example.memosm.model.User
@@ -88,8 +92,41 @@ class OpReplayExecutor(
         if (tempName != null && tempName != serverName) {
             memoCacheRepository.removeCachedMemo(accountId, tempName)
         }
+        writeAttachedLinks(local, tempName, serverName)
         onMemoSynced(created, tempName)
         return true
+    }
+
+    /**
+     * Links of a locally created memo travel inside its payload, because a relation needs the
+     * server name that only exists after the create. Best effort: the memo is already saved, so a
+     * rejected relation must not turn the create into a failure.
+     */
+    private suspend fun writeAttachedLinks(local: Memo, tempName: String?, serverName: String) {
+        val targets = local.relations.orEmpty()
+            .filter { it.type == MemoRelationType.REPLY && it.memo.name == tempName }
+            .map { it.relatedMemo.name }
+            .filter { it.isNotBlank() && it != serverName }
+            .distinct()
+        if (targets.isEmpty()) return
+        try {
+            api.setMemoRelations(
+                serverName,
+                SetMemoRelationsRequest(
+                    name = serverName,
+                    relations = targets.map { target ->
+                        MemoRelationWire.reference(
+                            memo = MemoSnippet(name = serverName),
+                            related = MemoSnippet(name = target)
+                        )
+                    }
+                )
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not write the links of $serverName", e)
+        }
     }
 
     private suspend fun syncUpdate(op: PendingOp): Boolean {

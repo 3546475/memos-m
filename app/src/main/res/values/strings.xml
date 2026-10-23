@@ -189,6 +189,7 @@
     <string name="memo_detail_title">Memo Details</string>
         <string name="memo_detail_linked">Linked memos</string>
     <string name="memo_detail_comments">Comments (%1$d)</string>
+    <string name="memo_sync_pending">Syncing…</string>
     <string name="memo_detail_no_comments">No comments yet</string>
     <string name="memo_detail_add_comment">Add Comment</string>
     <string name="memo_detail_comment_placeholder">Write your comment here…</string>

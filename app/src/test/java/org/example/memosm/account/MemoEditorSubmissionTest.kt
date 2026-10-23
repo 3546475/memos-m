@@ -16,6 +16,7 @@ import org.example.memosm.data.audit.SyncAuditLogger
 import org.example.memosm.data.cache.CachedMemo
 import org.example.memosm.data.cache.MemoCacheRepository
 import org.example.memosm.data.cache.MemoDao
+import org.example.memosm.data.sync.PendingOp
 import org.example.memosm.data.sync.PendingOpDao
 import org.example.memosm.data.sync.SyncManager
 import org.example.memosm.data.sync.SyncRepository
@@ -31,62 +32,98 @@ import org.example.memosm.viewmodel.delegates.MemoListUpdater
 import org.junit.Assert.*
 import org.junit.Test
 
+/**
+ * The editor contract: closing the composer must never race the write that produced it. Creates are
+ * local-first now (the card and the queued op are written before the server is asked), edits apply
+ * optimistically and roll back when the server rejects them.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MemoEditorSubmissionTest {
     private class Fixture(scope: CoroutineScope) {
         var reject = false
         val cacheWrite = CompletableDeferred<Unit>()
         val stored = mutableListOf<CachedMemo>()
+        val ops = linkedMapOf<String, PendingOp>()
         val state = MutableStateFlow(MemosUiState(isOnline = true))
         val sessions = AccountSession(scope)
         val api = stub<MemosApi> { name, _ ->
             if (reject) error("Server rejected $name")
             when (name) {
-                "createMemo", "updateMemo", "createMemoComment" -> Memo(name = "memos/result", content = "Saved")
+                "createMemo", "updateMemo", "createMemoComment", "getMemo" ->
+                    Memo(name = "memos/result", content = "Saved")
                 else -> error(name)
             }
         }
         init { sessions.activate(Account(id = "editor-submission"), api, OkHttpClient()) }
         val cache = MemoCacheRepository(stub<MemoDao> { name, args ->
-            check(name == "insertMemo" || name == "saveMemoState")
-            cacheWrite.await()
-            stored += args[0] as CachedMemo
-            Unit
+            when (name) {
+                "insertMemo", "saveMemoState" -> {
+                    cacheWrite.await()
+                    stored += args[0] as CachedMemo
+                    Unit
+                }
+                else -> Unit
+            }
         })
-        val sync = SyncManager(scope, SyncRepository(stub<PendingOpDao> { name, _ -> error(name) }),
-            cache, DataStoreManager(MemoryPreferences()), object : SyncWorkScheduler {
+        val sync = SyncManager(scope, SyncRepository(stub<PendingOpDao> { name, args ->
+            when (name) {
+                "insert" -> {
+                    val op = args[0] as PendingOp
+                    ops[op.id] = op
+                    Unit
+                }
+                "getOps" -> ops.values.toList()
+                "getOp" -> ops[args[0] as String]
+                "deleteOp" -> {
+                    ops.remove(args[0] as String)
+                    Unit
+                }
+                else -> Unit
+            }
+        }), cache, DataStoreManager(MemoryPreferences()), object : SyncWorkScheduler {
                 override fun schedule(accountId: String) {}
                 override fun cancel(accountId: String) {}
-            }, SyncAuditLogger(stub<SyncAuditDao> { name, _ -> error(name) }), sessions, { null },
+            }, SyncAuditLogger(stub<SyncAuditDao> { name, _ ->
+                when (name) {
+                    "insert" -> Unit
+                    "count" -> 0
+                    else -> Unit
+                }
+            }), sessions, { null },
             onMemoSynced = { _, _ -> }, onMemoDeleted = {}, onCommentsRefresh = {}, onConflict = {})
         val actions = MemoActionDelegateImpl(scope, state,
             stub<MemoListUpdater> { _, _ -> Unit }, stub<DraftDelegate> { _, _ -> Unit },
             { null }, { null }, sync, cache, sessions, DraftManager(ContextWrapper(null)), { true })
     }
 
-    @Test fun `create success waits for cache before editor can finish`() = runTest {
+    @Test fun `create writes the memo locally and queues it without waiting for the server`() = runTest {
         val fixture = Fixture(backgroundScope)
         var success = false
         fixture.actions.createMemo("Saved", Visibility.PRIVATE, onSuccess = { success = true })
         runCurrent()
-        assertFalse(success)
+        assertFalse("the editor waits for the local write", success)
+        // Queued before the card is even stored, so a crash cannot lose the intent.
+        val queued = fixture.ops.values.single()
+        assertTrue(queued.memoName!!.startsWith("offline-"))
         fixture.cacheWrite.complete(Unit)
         runCurrent()
         assertTrue(success)
-        assertEquals("Saved", fixture.stored.single().toMemo()!!.content)
+        // The local card exists under that temporary identity.
+        assertEquals("Saved", fixture.stored.first().toMemo()!!.content)
+        assertEquals(queued.memoName, fixture.stored.first().toMemo()!!.name)
     }
 
-    @Test fun `update success waits for cache before editor can finish`() = runTest {
+    @Test fun `update waits for the cache before the editor can finish`() = runTest {
         val fixture = Fixture(backgroundScope)
         var success = false
         fixture.actions.updateMemo(Memo(name = "memos/original", content = "Original"), "Saved",
             Visibility.PRIVATE, emptyList(), onSuccess = { success = true })
         runCurrent()
-        assertFalse(success)
+        assertFalse("the editor waits for the local write", success)
         fixture.cacheWrite.complete(Unit)
         runCurrent()
         assertTrue(success)
-        assertEquals("Saved", fixture.stored.single().toMemo()!!.content)
+        assertTrue(fixture.stored.any { it.toMemo()!!.content == "Saved" })
     }
 
     @Test fun `comment success waits for cache before editor can finish`() = runTest {
@@ -102,8 +139,9 @@ class MemoEditorSubmissionTest {
         assertEquals("memos/parent", fixture.stored.single().parentName)
     }
 
-    @Test fun `rejected update reports failure and a retry can succeed`() = runTest {
+    @Test fun `rejected update reports failure and rolls the optimistic edit back`() = runTest {
         val fixture = Fixture(backgroundScope)
+        fixture.cacheWrite.complete(Unit)
         fixture.reject = true
         var failed = false
         var success = false
@@ -114,11 +152,9 @@ class MemoEditorSubmissionTest {
         assertTrue(failed)
         assertFalse(success)
         assertNotNull(fixture.state.value.error)
-        fixture.reject = false
-        fixture.cacheWrite.complete(Unit)
-        fixture.actions.updateMemo(memo, "Saved", Visibility.PRIVATE, emptyList(), onSuccess = { success = true })
-        runCurrent()
-        assertTrue(success)
+        // Optimistic write first, then the rollback to the original content.
+        assertEquals("Saved", fixture.stored.first().toMemo()!!.content)
+        assertEquals("Original", fixture.stored.last().toMemo()!!.content)
     }
 
     @Test fun `rejected comment reports failure without success`() = runTest {

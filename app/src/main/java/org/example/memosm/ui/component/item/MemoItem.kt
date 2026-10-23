@@ -110,6 +110,7 @@ import org.example.memosm.R
 import org.example.memosm.model.EditGesture
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoRelationType
+import org.example.memosm.model.OfflineMemoPrefix
 import org.example.memosm.model.MemoState
 import org.example.memosm.model.Reaction
 import org.example.memosm.model.User
@@ -284,6 +285,14 @@ fun MemoItem(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                if (memo.name?.startsWith(OfflineMemoPrefix) == true) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.memo_sync_pending),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 if (memo.pinned == true) {
                                     Icon(
@@ -334,6 +343,14 @@ fun MemoItem(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (memo.name?.startsWith(OfflineMemoPrefix) == true) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.memo_sync_pending),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Spacer(modifier = Modifier.width(4.dp))
                             if (memo.pinned == true) {
                                 Icon(

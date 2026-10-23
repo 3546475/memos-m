@@ -145,7 +145,12 @@ class MemoWriteAccountIsolationTest {
             sessions, { null },
             onMemoSynced = { _, _ -> }, onMemoDeleted = {}, onCommentsRefresh = {}, onConflict = {}
         )
-        val updater = stub<MemoListUpdater> { name, _ -> error("Stale UI update: $name") }
+        // The optimistic phase is allowed to touch the UI while A is still current; once B is
+        // active, nothing may be applied on A's behalf.
+        val updater = stub<MemoListUpdater> { name, _ ->
+            check(sessions.current?.account?.id == "A") { "Stale UI update: $name" }
+            Unit
+        }
         val delegate = MemoActionDelegateImpl(
             backgroundScope, state, updater,
             stub<DraftDelegate> { name, _ -> error("Stale draft update: $name") },
@@ -159,8 +164,9 @@ class MemoWriteAccountIsolationTest {
         release.complete(Unit)
         runCurrent()
         assertEquals(listOf("A"), calls)
-        assertEquals(listOf("A"), writes.map { it.accountId })
-        assertEquals("A", writes.single().toMemo()?.content)
+        // Optimistic write, then the rollback-free reconcile with the server copy: both for A.
+        assertEquals(listOf("A", "A"), writes.map { it.accountId })
+        assertEquals("A", writes.last().toMemo()?.content)
         assertFalse(callback)
         assertTrue(state.value.userMemoList.list.items.isEmpty())
     }

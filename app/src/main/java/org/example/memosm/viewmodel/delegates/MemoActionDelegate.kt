@@ -28,6 +28,8 @@ import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.Memo
 import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoRelation
+import org.example.memosm.model.MemoRelationType
+import org.example.memosm.model.OfflineMemoPrefix
 import org.example.memosm.model.isLinkTo
 import org.example.memosm.model.MemoRelationWire
 import org.example.memosm.model.isLinkTo
@@ -250,14 +252,11 @@ class MemoActionDelegateImpl(
     ) {
         val context = accountSession.current ?: return
         val connection = context.connection
-        val api = connection.api
         val wasOnline = connection.networkReady && isOnlineProvider()
         val draftIdToDelete = uiState.value.draft.currentEditingDraftId
         val accountId = context.account.id
-        // One idempotency key per user create action: the online attempt and any
-        // offline-queue fallback must reuse the same memoId so a replay after a
-        // timeout cannot create a duplicate server-side. Callers with their own
-        // stable identity (e.g. draft publishing) can supply [memoId].
+        // One idempotency key per user create action: the local card, the queued op and every
+        // replay share it, so a retry after a lost response cannot create the memo twice.
         val clientId = memoId ?: UUID.randomUUID().toString()
         var memo = Memo(
             content = content,
@@ -271,93 +270,52 @@ class MemoActionDelegateImpl(
                 memo = memo.copy(attachments = prepared.ifEmpty { null })
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (error: Exception) { reportOperationFailure(context, error); if (accountSession.isCurrent(context)) onError(); return@launch }
-            val attachmentsPending = memo.attachments.orEmpty().any { it.name.isNullOrBlank() && it.clientId != null }
-            if (!wasOnline || attachmentsPending) {
-                // Offline: queue the create and show the memo locally right away.
-                val tempName = "offline-$clientId"
-                // Stamp local timestamps so the optimistic memo sorts to the
-                // top of the list (null displayTime would sort to the bottom).
-                val now = Clock.System.now()
-                val localMemo = memo.copy(
-                    name = tempName,
-                    state = MemoState.NORMAL,
-                    createTime = now,
-                    updateTime = now,
-                    displayTime = now
-                )
-                applyOffline(
-                    context,
-                    PendingOp.new(
-                        accountId = accountId,
-                        type = PendingOpType.CREATE,
-                        memoName = tempName,
-                        payloadJson = gson.toJson(localMemo),
-                        id = clientId
-                    ),
-                    onSuccess
-                ) {
-                    applyLocalCreate(context, localMemo, draftIdToDelete)
-                }
-                return@launch
-            }
 
-            try {
-                accountSession.update(uiState, context) { it.copy(isPosting = true) }
-                val created = api.createMemo(memo, clientId)
-                // Link after the create: the relation needs the server name of the new memo.
-                linkMemos(api, created.name, linkedMemoNames)
-                draftIdToDelete?.let { draftManager.deleteDraft(context.account.id, it) }
-                if (accountSession.isCurrent(context) && uiState.value.draft.currentEditingDraftId == draftIdToDelete) {
-                    draftDelegate.setCurrentEditingDraft(null)
-                }
-                if (accountSession.isCurrent(context)) listUpdater.refreshUserMemos()
-                // Keep the local cache fresh for offline browsing.
-                memoCacheRepository.upsertCachedMemo(accountId, created, CacheListType.USER)
-                accountSession.update(uiState, context) {
-                    it.copy(
-                        draft = it.draft.copy(
-                            composerResetToken = System.currentTimeMillis().toInt()
+            // Local first, online or not: the card exists before the network is touched and the
+            // outbox owns the request from here. The composer closes immediately; the memo takes
+            // its server identity when the create lands.
+            val tempName = OfflineMemoPrefix + clientId
+            // Stamp local timestamps so the optimistic memo sorts to the top of the list
+            // (null displayTime would sort to the bottom).
+            val now = Clock.System.now()
+            val localMemo = memo.copy(
+                name = tempName,
+                state = MemoState.NORMAL,
+                createTime = now,
+                updateTime = now,
+                displayTime = now,
+                // Links ride along inside the payload: a relation needs the server name, so the
+                // replay writes them once the create has returned one.
+                relations = linkedMemoNames
+                    .filter { it.isNotBlank() && it != tempName }
+                    .distinct()
+                    .map { target ->
+                        MemoRelation(
+                            memo = MemoSnippet(name = tempName),
+                            relatedMemo = MemoSnippet(name = target),
+                            type = MemoRelationType.REPLY
                         )
-                    )
-                }
-                if (accountSession.isCurrent(context)) onSuccess()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (shouldQueueOffline(context, e)) {
-                    val tempName = "offline-$clientId"
-                    // Stamp local timestamps so the optimistic memo sorts to the
-                    // top of the list (null displayTime would sort to the bottom).
-                    val now = Clock.System.now()
-                    val localMemo = memo.copy(
-                        name = tempName,
-                        state = MemoState.NORMAL,
-                        createTime = now,
-                        updateTime = now,
-                        displayTime = now
-                    )
-                    applyOffline(
-                        context,
-                        PendingOp.new(
-                            accountId = accountId,
-                            type = PendingOpType.CREATE,
-                            memoName = tempName,
-                            payloadJson = gson.toJson(localMemo),
-                            // The server may already have created this memo before
-                            // the request failed; reuse the same memoId so the
-                            // replay deduplicates instead of creating a duplicate.
-                            id = clientId
-                        ),
-                        onSuccess
-                    ) {
-                        applyLocalCreate(context, localMemo, draftIdToDelete)
                     }
-                } else {
-                    reportOperationFailure(context, e)
-                    if (accountSession.isCurrent(context)) onError()
-                }
-            } finally {
-                accountSession.update(uiState, context) { it.copy(isPosting = false) }
+                    .ifEmpty { null }
+            )
+            syncManager.enqueue(
+                PendingOp.new(
+                    accountId = accountId,
+                    type = PendingOpType.CREATE,
+                    memoName = tempName,
+                    payloadJson = gson.toJson(localMemo),
+                    id = clientId
+                )
+            )
+            applyLocalCreate(context, localMemo, draftIdToDelete)
+            if (accountSession.isCurrent(context)) onSuccess()
+            if (!wasOnline) {
+                // The user asked for an offline write: say so instead of pretending it synced.
+                notifyOfflineSaved()
+            } else {
+                // Push now instead of waiting for the next outbox tick. A failure stays queued
+                // and is retried exactly like any other offline write.
+                syncManager.pushPendingChanges()
             }
         }
     }
@@ -427,8 +385,14 @@ class MemoActionDelegateImpl(
                 return@launch
             }
 
+            // Optimistic: the edit (or the archive move) lands in the lists now, not after the
+            // round trip. The server copy replaces it below.
+            if (accountSession.isCurrent(context)) applyLocalUpdate(context, memo, update)
+
             try {
                 val updated = api.updateMemo(name, update, mask)
+                if (accountSession.isCurrent(context)) listUpdater.updateMemoInLists(updated)
+                cacheLocalMemo(context, updated)
                 // Only when the caller manages the links (the composer): other update paths — pin,
                 // inline text edit — must not touch the relation list.
                 if (linkedMemoNames != null) {
@@ -437,16 +401,6 @@ class MemoActionDelegateImpl(
                     // page stops showing a link that was just removed.
                     if (accountSession.isCurrent(context)) listUpdater.refreshUserMemos()
                 }
-                // Handle local list moves if state changed
-                val oldState = memo.state ?: MemoState.NORMAL
-                val newState = updated.state ?: MemoState.NORMAL
-
-                if (oldState != newState) {
-                    if (accountSession.isCurrent(context)) listUpdater.handleMemoStateChange(memo, updated)
-                }
-
-                if (accountSession.isCurrent(context)) listUpdater.updateMemoInLists(updated)
-                cacheLocalMemo(context, updated)
                 if (accountSession.isCurrent(context)) onSuccess()
             } catch (e: CancellationException) {
                 throw e
@@ -456,6 +410,8 @@ class MemoActionDelegateImpl(
                         applyLocalUpdate(context, memo, update)
                     }
                 } else {
+                    // Roll the optimistic edit back so the lists match the server again.
+                    if (accountSession.isCurrent(context)) applyLocalUpdate(context, update, memo)
                     reportOperationFailure(context, e)
                     if (accountSession.isCurrent(context)) onError()
                 }
@@ -517,22 +473,21 @@ class MemoActionDelegateImpl(
                 return@launch
             }
 
+            // Optimistic: the card is gone now; the request (or the outbox) is bookkeeping.
+            memoCacheRepository.removeCachedMemo(accountId, name)
+            if (accountSession.isCurrent(context)) listUpdater.removeMemoFromLists(name)
+
             try {
                 api.deleteMemo(name)
                 if (accountSession.isCurrent(context)) onSuccess()
-
-                // Local update: Remove from all lists
-                if (accountSession.isCurrent(context)) listUpdater.removeMemoFromLists(name)
-                memoCacheRepository.removeCachedMemo(accountId, name)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 if (shouldQueueOffline(context, e)) {
-                    applyOffline(context, pendingOp, onSuccess) {
-                        memoCacheRepository.removeCachedMemo(accountId, name)
-                        if (accountSession.isCurrent(context)) listUpdater.removeMemoFromLists(name)
-                    }
+                    applyOffline(context, pendingOp, onSuccess) {}
                 } else {
+                    // The server refused it: bring the memo back with a fresh read.
+                    if (accountSession.isCurrent(context)) listUpdater.refreshUserMemos()
                     reportOperationFailure(context, e)
                 }
             }
@@ -564,20 +519,24 @@ class MemoActionDelegateImpl(
                 return@launch
             }
 
+            // Optimistic: the pin switch flips immediately; the server catches up in the background.
+            if (accountSession.isCurrent(context)) listUpdater.updateMemoInLists(update)
+            cacheLocalMemo(context, update)
+
             try {
                 val updated = api.updateMemo(name, update, "pinned")
-                if (accountSession.isCurrent(context)) onSuccess()
                 if (accountSession.isCurrent(context)) listUpdater.updateMemoInLists(updated)
                 cacheLocalMemo(context, updated)
+                if (accountSession.isCurrent(context)) onSuccess()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 if (shouldQueueOffline(context, e)) {
-                    applyOffline(context, pendingOp, onSuccess) {
-                        if (accountSession.isCurrent(context)) listUpdater.updateMemoInLists(update)
-                        cacheLocalMemo(context, update)
-                    }
+                    applyOffline(context, pendingOp, onSuccess) {}
                 } else {
+                    // Put the switch back where it was.
+                    if (accountSession.isCurrent(context)) listUpdater.updateMemoInLists(memo)
+                    cacheLocalMemo(context, memo)
                     reportOperationFailure(context, e)
                 }
             }
