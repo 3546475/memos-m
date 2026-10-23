@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -100,6 +102,19 @@ class MemosViewModel(
 
     private val _sessionReady = MutableStateFlow(false)
     val sessionReady: StateFlow<Boolean> = _sessionReady.asStateFlow()
+
+    /**
+     * True once the account session is live and the memo feed has its first real content: cached
+     * notes, or the first network page (or its failure) when nothing was cached. The cold-start
+     * cover waits for this so the home page is revealed with content instead of being assembled
+     * in front of the user.
+     */
+    val homeReady: StateFlow<Boolean> = combine(sessionReady, _uiState) { ready, state ->
+        ready && (
+            state.userMemoList.list.items.isNotEmpty() ||
+                state.userMemoList.list.initialLoadFinished
+            )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _linkPreviews = MutableStateFlow<LinkPreviewRepository?>(null)
     val linkPreviews = _linkPreviews.asStateFlow()

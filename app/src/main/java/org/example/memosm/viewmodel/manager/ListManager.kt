@@ -199,7 +199,12 @@ abstract class BaseListManager<T>(
      * refresh merges instead of shrinking the cached history.
      */
     open fun loadFromCache() {
-        if (cacheCallbacks == null) return
+        if (cacheCallbacks == null) {
+            // Nothing to read: the list still counts as settled so a startup gate waiting on it
+            // does not sit on the cover forever.
+            _listState.update { it.copy(cacheLoaded = true) }
+            return
+        }
         launchRequest { checkCurrent ->
             try {
                 val cachedItems = cacheCallbacks.getCachedData(null).filterNot { nameProvider?.invoke(it) in removedNames }
@@ -211,8 +216,11 @@ abstract class BaseListManager<T>(
                         isLoading = false,
                         nextPageToken = null,
                         isOffline = true,
-                        showingCached = true
+                        showingCached = true,
+                        cacheLoaded = true
                     ) }
+                } else {
+                    _listState.update { it.copy(cacheLoaded = true) }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -454,7 +462,8 @@ abstract class BaseListManager<T>(
                         isLoading = false,
                         isOffline = false,
                         errorMessage = null,  // Clear any previous error on success
-                        showingCached = resolvedShowingCached
+                        showingCached = resolvedShowingCached,
+                        initialLoadFinished = true
                     )
                 }
 
@@ -498,7 +507,8 @@ abstract class BaseListManager<T>(
                                 nextPageToken = null, // All cached pages are already served
                                 isOffline = true,  // Mark as offline/cached data
                                 showingCached = true,
-                                errorMessage = errorMessage
+                                errorMessage = errorMessage,
+                                initialLoadFinished = true
                             ) }
                             return@launchRequest
                         }
@@ -512,7 +522,12 @@ abstract class BaseListManager<T>(
                 }
 
                 _listState.update {
-                    it.copy(isLoading = false, nextPageToken = null, errorMessage = errorMessage)
+                    it.copy(
+                        isLoading = false,
+                        nextPageToken = null,
+                        errorMessage = errorMessage,
+                        initialLoadFinished = true
+                    )
                 }
             }
         }
