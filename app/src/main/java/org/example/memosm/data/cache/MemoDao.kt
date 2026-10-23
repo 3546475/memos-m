@@ -71,6 +71,12 @@ interface MemoDao {
         limit: Int
     ): List<CachedMemo>
 
+    @Query(
+        "SELECT * FROM cached_memos WHERE accountId = :accountId AND listType = :listType " +
+            "AND name LIKE :prefix || '%' ORDER BY displayOrder ASC"
+    )
+    suspend fun getMemosByNamePrefix(accountId: String, listType: String, prefix: String): List<CachedMemo>
+
     @Query("SELECT * FROM cached_memos WHERE accountId = :accountId AND name = :name LIMIT 1")
     suspend fun getMemoByName(accountId: String, name: String): CachedMemo?
 

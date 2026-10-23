@@ -3,6 +3,7 @@ package org.example.memosm.data.cache
 import android.util.Log
 import kotlinx.coroutines.CancellationException
 import org.example.memosm.model.Memo
+import org.example.memosm.model.OfflineMemoPrefix
 
 private const val TAG = "MemoCacheRepository"
 
@@ -89,6 +90,18 @@ class MemoCacheRepository(private val memoDao: MemoDao) {
     /**
      * Return a single cached memo by name (across all list types), or null.
      */
+    /** The memos that exist only locally so far, i.e. their create has not been acknowledged. */
+    suspend fun getPendingLocalMemos(accountId: String, listType: CacheListType): List<Memo> {
+        return try {
+            memoDao.getMemosByNamePrefix(accountId, listType.name, OfflineMemoPrefix).mapNotNull { it.toMemo() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Error retrieving pending local memos", e)
+            emptyList()
+        }
+    }
+
     suspend fun getCachedMemo(accountId: String, name: String): Memo? {
         return try {
             memoDao.getMemoByName(accountId, name)?.toMemo()

@@ -142,6 +142,10 @@ class MemosViewModel(
             // full-history text cache built by the pre-downloader.
             memoCacheRepository.cacheMemos(accountId, CacheListType.USER, memos, replace = false)
             if (!accountSession.isCurrent(context)) return@CacheCallbacks
+            // A server page only contains what the server knows: the memos whose create is still
+            // in the outbox would vanish from the feed on every refresh without this.
+            memoCacheRepository.getPendingLocalMemos(accountId, CacheListType.USER)
+                .forEach { memoListUpdater.insertMemoIntoUserList(it) }
             refreshTextCacheCount()
             // Pre-download attachments of what is now visible, for offline viewing.
             preDownloadManager.preloadVisibleAttachments(memos)
@@ -1219,11 +1223,13 @@ class MemosViewModel(
             stale.forEach { name ->
                 memoCacheRepository.removeCachedMemo(context.account.id, name)
                 memoListUpdater.removeMemoFromLists(name)
+                // The create was acknowledged, so the memo lives under its server name, which the
+                // replay derived from the same id: swap the card without a network round trip.
+                val serverName = "memos/" + name.removePrefix(OfflineMemoPrefix)
+                memoCacheRepository.getCachedMemo(context.account.id, serverName)?.let { memo ->
+                    memoListUpdater.insertMemoIntoUserList(memo)
+                }
             }
-            // Those creates landed on the server (the outbox only drops an op it acknowledged),
-            // so pull the real memos back in: otherwise a background replay would leave the feed
-            // without the notes it just finished.
-            memoListUpdater.refreshUserMemos()
         }
     }
 
