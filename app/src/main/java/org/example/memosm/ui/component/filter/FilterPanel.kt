@@ -542,20 +542,22 @@ private fun ChoiceRow(
 }
 
 private val TagTreeRowHeight = 44.dp
-private val TagTreeIndent = 20.dp
+private val TagTreeIndent = 24.dp
 private val TagTreeLabelStart = 12.dp
+private val TagTreeBarWidth = 3.dp
+private val TagTreeBarGap = 3.dp
+private val TagTreeChevronSlot = 18.dp
+private val TagTreeLabelGap = 4.dp
 private val TagTreeGuideGap = 3.dp
 private val TagTreeConnectorGap = 5.dp
-private val TagTreeAccentWidth = 3.dp
 private val TagTreeAccentHeight = 18.dp
-private val TagTreeChevronSlot = 28.dp
 
 /**
  * One row of the file-tree-style tag picker: no checkbox, the whole row toggles the tag, and the
- * fold arrow lives at the row end so the left gutter only carries the tree itself. The 1dp guides
- * hang under the parent's `#` (not under its arrow), and a child's horizontal connector stops a
- * few dp before its own `#`. A selected row gets an accent bar plus accent text, while a branch
- * whose subtree holds selections gets a dimmed bar so the partial state stays visible.
+ * fold arrow stays at the head of the row. The 1dp guides hang under the parent's `#` rather than
+ * under the arrow, and a child's horizontal connector runs to just short of its own `#`, so the
+ * arrow sits on the connector like a node on the line. A selected row gets an accent bar plus
+ * accent text; a branch whose subtree holds selections gets a dimmed bar.
  */
 @Composable
 private fun TagTreeRow(
@@ -568,7 +570,9 @@ private fun TagTreeRow(
 ) {
     val guideColor = MaterialTheme.colorScheme.outlineVariant
     val accent = MaterialTheme.colorScheme.primary
-    val labelX = TagTreeLabelStart + TagTreeIndent * node.depth
+    val contentStart = TagTreeLabelStart + TagTreeIndent * node.depth
+    val labelOffset = TagTreeBarWidth + TagTreeBarGap + TagTreeChevronSlot + TagTreeLabelGap
+    val labelX = contentStart + labelOffset
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -578,14 +582,19 @@ private fun TagTreeRow(
                 val overshoot = 2.dp.toPx()
                 val centerY = size.height / 2f
                 val labelPx = labelX.toPx()
-                // The guide sits at the parent's '#' edge, so it reads as the tag's own column.
+                // A guide sits three dp left of its level's '#', so the tree column reads as the
+                // tag's own column instead of the arrow gutter.
                 for (level in 0 until node.depth) {
-                    val x = (TagTreeLabelStart + TagTreeIndent * level - TagTreeGuideGap).toPx()
+                    val x = (
+                        TagTreeLabelStart + TagTreeIndent * level + labelOffset - TagTreeGuideGap
+                        ).toPx()
                     drawLine(guideColor, Offset(x, -overshoot), Offset(x, size.height + overshoot), stroke)
                 }
                 if (node.depth > 0) {
-                    val parentX =
-                        (TagTreeLabelStart + TagTreeIndent * (node.depth - 1) - TagTreeGuideGap).toPx()
+                    val parentX = (
+                        TagTreeLabelStart + TagTreeIndent * (node.depth - 1) + labelOffset -
+                            TagTreeGuideGap
+                        ).toPx()
                     drawLine(
                         guideColor,
                         Offset(parentX, centerY),
@@ -597,12 +606,9 @@ private fun TagTreeRow(
                     val barHeight = TagTreeAccentHeight.toPx()
                     drawRoundRect(
                         color = if (selected) accent else accent.copy(alpha = 0.35f),
-                        topLeft = Offset(
-                            labelPx - TagTreeConnectorGap.toPx(),
-                            centerY - barHeight / 2f
-                        ),
-                        size = Size(TagTreeAccentWidth.toPx(), barHeight),
-                        cornerRadius = CornerRadius(TagTreeAccentWidth.toPx() / 2f)
+                        topLeft = Offset(contentStart.toPx(), centerY - barHeight / 2f),
+                        size = Size(TagTreeBarWidth.toPx(), barHeight),
+                        cornerRadius = CornerRadius(TagTreeBarWidth.toPx() / 2f)
                     )
                 }
             }
@@ -612,9 +618,37 @@ private fun TagTreeRow(
                 role = Role.Checkbox,
                 onClick = onToggleSelect
             )
-            .padding(start = labelX, end = 12.dp),
+            .padding(start = contentStart, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Spacer(Modifier.width(TagTreeBarWidth + TagTreeBarGap))
+        Box(
+            modifier = Modifier
+                .width(TagTreeChevronSlot)
+                .fillMaxHeight()
+                .then(
+                    if (node.children.isNotEmpty()) {
+                        Modifier.clickable(role = Role.Button, onClick = onToggleExpand)
+                    } else {
+                        Modifier
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (node.children.isNotEmpty()) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = stringResource(
+                        if (expanded) R.string.tags_collapse else R.string.tags_expand
+                    ),
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(if (expanded) 90f else 0f),
+                    tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Spacer(Modifier.width(TagTreeLabelGap))
         Text(
             text = "#${node.path}",
             style = MaterialTheme.typography.bodyLarge,
@@ -635,27 +669,6 @@ private fun TagTreeRow(
                 },
                 modifier = Modifier.padding(start = 8.dp)
             )
-        }
-        if (node.children.isNotEmpty()) {
-            Spacer(Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .width(TagTreeChevronSlot)
-                    .fillMaxHeight()
-                    .clickable(role = Role.Button, onClick = onToggleExpand),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.tags_collapse else R.string.tags_expand
-                    ),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .rotate(if (expanded) 90f else 0f),
-                    tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
