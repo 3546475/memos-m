@@ -58,4 +58,44 @@ class MemosBenchmarks {
             Thread.sleep(300)
         }
     }
+
+    /**
+     * Starts a pull-to-refresh and scrolls while the network round-trip and the list merge are in
+     * flight, so list updates land on top of scrolling instead of an idle feed.
+     */
+    @Test
+    fun scrollDuringRefresh() = rule.measureRepeated(
+        packageName = "org.example.memosm",
+        metrics = listOf(FrameTimingMetric()),
+        compilationMode = CompilationMode.None(),
+        startupMode = StartupMode.WARM,
+        iterations = 3,
+        setupBlock = {
+            startActivityAndWait()
+            device.waitForIdle()
+            Thread.sleep(3_000)
+        },
+    ) {
+        // Pull down far enough to arm the refresh.
+        device.swipe(
+            device.displayWidth / 2,
+            (device.displayHeight * 0.28f).toInt(),
+            device.displayWidth / 2,
+            (device.displayHeight * 0.80f).toInt(),
+            40
+        )
+        device.waitForIdle()
+        // Scroll while it settles.
+        repeat(2) {
+            device.swipe(
+                device.displayWidth / 2,
+                (device.displayHeight * 0.72f).toInt(),
+                device.displayWidth / 2,
+                (device.displayHeight * 0.28f).toInt(),
+                30
+            )
+            device.waitForIdle()
+            Thread.sleep(200)
+        }
+    }
 }
