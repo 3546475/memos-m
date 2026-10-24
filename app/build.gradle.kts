@@ -105,6 +105,15 @@ android {
             manifestPlaceholders["appLabel"] = "MemosM (Insider)"
             signingConfig = signingConfigs.getByName("release")
         }
+        // Macrobenchmark target: non-debuggable and profileable, signed with the release key so
+        // it replaces the installed app without losing its data.
+        create("benchmark") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
+            matchingFallbacks += listOf("release")
+            manifestPlaceholders["appLabel"] = "MemosM"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
