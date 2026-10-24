@@ -5,7 +5,6 @@ import org.example.memosm.model.NavBarScrollMode
 
 import org.example.memosm.model.AppearancePreferences
 
-import org.example.memosm.ui.theme.appSlideSpec
 
 import org.example.memosm.ui.theme.appFadeSpec
 
@@ -22,7 +21,6 @@ import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.blur
 
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.TransformOrigin
@@ -30,7 +28,6 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -85,10 +82,7 @@ import org.example.memosm.model.MapCapability
 import org.example.memosm.ui.nav.MapScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.vector.ImageVector
-import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppSurface
 import org.example.memosm.ui.theme.capsuleHighlight
 import top.yukonga.miuix.kmp.basic.NavigationBar as MiuixNavigationBar
@@ -117,7 +111,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import kotlinx.coroutines.launch
 import kotlin.math.pow
 import org.example.memosm.R

@@ -51,9 +51,9 @@ private val PullIndicatorTopGap = 8.dp
 private const val PullOvershootFraction = 0.18f
 
 /**
- * Pull-to-refresh container, identical in both design languages.
+ * Pull-to-refresh container for the Miuix-only app.
  *
- * Replaces Material's `PullToRefreshBox` and Miuix's `PullToRefresh`, which animate
+ * Replaces the framework pull-to-refresh implementations, which animate
  * completely differently (an overlay disc with an arrow that crossfades into a ring versus a
  * header that pushes the content down and draws a ring with an orbiting dot). This version
  * keeps the app's own dot-matrix loader as the single indicator in both themes:

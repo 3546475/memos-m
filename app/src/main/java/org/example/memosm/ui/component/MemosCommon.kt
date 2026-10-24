@@ -13,7 +13,6 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 
-import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 
@@ -26,7 +25,6 @@ import DeleteConfirmationDialog
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
