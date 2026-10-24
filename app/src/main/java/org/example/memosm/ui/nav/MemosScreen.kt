@@ -152,6 +152,22 @@ fun MemosScreen(
     // Feed cards read the user map through this derived state, so a ui-state tick that does not
     // change the map leaves them alone.
     val usersState = remember { derivedStateOf { uiState.users } }
+
+    // The first frame that actually shows memo cards is when the app is usable; report it so the
+    // system and Play vitals measure that instead of the first frame.
+    val activity = LocalActivity.current
+    var reportedFullyDrawn by remember { mutableStateOf(false) }
+    val hasFeedContent = uiState.userMemoList.list.items.isNotEmpty()
+    LaunchedEffect(hasFeedContent) {
+        if (!hasFeedContent || reportedFullyDrawn) return@LaunchedEffect
+        // The first frame draws the cards; report at the start of the next one, so the draw that
+        // shows the feed has actually happened.
+        withFrameNanos { }
+        withFrameNanos { }
+        reportedFullyDrawn = true
+        activity?.reportFullyDrawn()
+    }
+
     val memosListState = rememberLazyListState()
     val exploreListState = rememberLazyListState()
     val activeFeed = MemoFeed.entries[pagerState.currentPage]
