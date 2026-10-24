@@ -1,6 +1,7 @@
 package org.example.memosm.benchmark
 
 import androidx.benchmark.macro.CompilationMode
+import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
@@ -26,5 +27,35 @@ class MemosBenchmarks {
     ) {
         startActivityAndWait()
         device.waitForIdle()
+    }
+
+    /**
+     * Scrolls the feed for frame timings. Needs the app signed in: the benchmark variant shares the
+     * release package, so it sees whatever the installed release app last had.
+     */
+    @Test
+    fun feedScroll() = rule.measureRepeated(
+        packageName = "org.example.memosm",
+        metrics = listOf(FrameTimingMetric()),
+        compilationMode = CompilationMode.None(),
+        startupMode = StartupMode.WARM,
+        iterations = 3,
+        setupBlock = {
+            startActivityAndWait()
+            device.waitForIdle()
+            Thread.sleep(3_000)
+        },
+    ) {
+        repeat(3) {
+            device.swipe(
+                device.displayWidth / 2,
+                (device.displayHeight * 0.72f).toInt(),
+                device.displayWidth / 2,
+                (device.displayHeight * 0.28f).toInt(),
+                30
+            )
+            device.waitForIdle()
+            Thread.sleep(300)
+        }
     }
 }
