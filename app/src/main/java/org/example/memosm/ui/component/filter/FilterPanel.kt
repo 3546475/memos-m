@@ -542,18 +542,20 @@ private fun ChoiceRow(
 }
 
 private val TagTreeRowHeight = 44.dp
-private val TagTreeIndent = 18.dp
-private val TagTreeChevronSlot = 22.dp
+private val TagTreeIndent = 20.dp
+private val TagTreeLabelStart = 12.dp
+private val TagTreeGuideGap = 3.dp
+private val TagTreeConnectorGap = 5.dp
 private val TagTreeAccentWidth = 3.dp
-private val TagTreeAccentGap = 7.dp
-private val TagTreeGuideOffset = 6.dp
 private val TagTreeAccentHeight = 18.dp
+private val TagTreeChevronSlot = 28.dp
 
 /**
- * One row of the file-tree-style tag picker: there is no checkbox, the whole row toggles the tag,
- * a 1dp guide connects the levels, and a selected row gets an accent bar plus accent text. A
- * branch whose subtree holds selections gets a dimmed bar, so "parent not selected, child is"
- * stays visible without bringing the checkboxes back.
+ * One row of the file-tree-style tag picker: no checkbox, the whole row toggles the tag, and the
+ * fold arrow lives at the row end so the left gutter only carries the tree itself. The 1dp guides
+ * hang under the parent's `#` (not under its arrow), and a child's horizontal connector stops a
+ * few dp before its own `#`. A selected row gets an accent bar plus accent text, while a branch
+ * whose subtree holds selections gets a dimmed bar so the partial state stays visible.
  */
 @Composable
 private fun TagTreeRow(
@@ -566,7 +568,7 @@ private fun TagTreeRow(
 ) {
     val guideColor = MaterialTheme.colorScheme.outlineVariant
     val accent = MaterialTheme.colorScheme.primary
-    val contentStart = 12.dp + TagTreeIndent * node.depth
+    val labelX = TagTreeLabelStart + TagTreeIndent * node.depth
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -575,22 +577,30 @@ private fun TagTreeRow(
                 val stroke = 1.dp.toPx()
                 val overshoot = 2.dp.toPx()
                 val centerY = size.height / 2f
-                // A depth-D row is inside every ancestor, so one full-height line per level is
-                // enough. The overshoot bridges the list's 2dp item spacing.
+                val labelPx = labelX.toPx()
+                // The guide sits at the parent's '#' edge, so it reads as the tag's own column.
                 for (level in 0 until node.depth) {
-                    val x = (12.dp + TagTreeIndent * level + TagTreeGuideOffset).toPx()
+                    val x = (TagTreeLabelStart + TagTreeIndent * level - TagTreeGuideGap).toPx()
                     drawLine(guideColor, Offset(x, -overshoot), Offset(x, size.height + overshoot), stroke)
                 }
                 if (node.depth > 0) {
                     val parentX =
-                        (12.dp + TagTreeIndent * (node.depth - 1) + TagTreeGuideOffset).toPx()
-                    drawLine(guideColor, Offset(parentX, centerY), Offset(contentStart.toPx(), centerY), stroke)
+                        (TagTreeLabelStart + TagTreeIndent * (node.depth - 1) - TagTreeGuideGap).toPx()
+                    drawLine(
+                        guideColor,
+                        Offset(parentX, centerY),
+                        Offset(labelPx - TagTreeConnectorGap.toPx(), centerY),
+                        stroke
+                    )
                 }
                 if (selected || descendantSelected) {
                     val barHeight = TagTreeAccentHeight.toPx()
                     drawRoundRect(
                         color = if (selected) accent else accent.copy(alpha = 0.35f),
-                        topLeft = Offset(contentStart.toPx(), centerY - barHeight / 2f),
+                        topLeft = Offset(
+                            labelPx - TagTreeConnectorGap.toPx(),
+                            centerY - barHeight / 2f
+                        ),
                         size = Size(TagTreeAccentWidth.toPx(), barHeight),
                         cornerRadius = CornerRadius(TagTreeAccentWidth.toPx() / 2f)
                     )
@@ -602,36 +612,9 @@ private fun TagTreeRow(
                 role = Role.Checkbox,
                 onClick = onToggleSelect
             )
-            .padding(start = contentStart + TagTreeAccentWidth + TagTreeAccentGap, end = 12.dp),
+            .padding(start = labelX, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .width(TagTreeChevronSlot)
-                .fillMaxHeight()
-                .then(
-                    if (node.children.isNotEmpty()) {
-                        Modifier.clickable(role = Role.Button, onClick = onToggleExpand)
-                    } else {
-                        Modifier
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (node.children.isNotEmpty()) {
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.tags_collapse else R.string.tags_expand
-                    ),
-                    modifier = Modifier
-                        .size(16.dp)
-                        .rotate(if (expanded) 90f else 0f),
-                    tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Spacer(Modifier.width(4.dp))
         Text(
             text = "#${node.path}",
             style = MaterialTheme.typography.bodyLarge,
@@ -652,6 +635,27 @@ private fun TagTreeRow(
                 },
                 modifier = Modifier.padding(start = 8.dp)
             )
+        }
+        if (node.children.isNotEmpty()) {
+            Spacer(Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .width(TagTreeChevronSlot)
+                    .fillMaxHeight()
+                    .clickable(role = Role.Button, onClick = onToggleExpand),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = stringResource(
+                        if (expanded) R.string.tags_collapse else R.string.tags_expand
+                    ),
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(if (expanded) 90f else 0f),
+                    tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
