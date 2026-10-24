@@ -17,13 +17,13 @@
 ## 截图
 
 <div align="center">
-  <img src="docs/screenshots/feed.png" height="470" alt="笔记" />
-  <img src="docs/screenshots/filter.png" height="470" alt="结构化筛选" />
-  <img src="docs/screenshots/profile.png" height="470" alt="我的" />
+  <img src=".github/screenshots/feed.png" height="470" alt="笔记" />
+  <img src=".github/screenshots/filter.png" height="470" alt="结构化筛选" />
+  <img src=".github/screenshots/profile.png" height="470" alt="我的" />
   <br />
-  <img src="docs/screenshots/appearance.png" height="470" alt="外观设置" />
-  <img src="docs/screenshots/navigation.png" height="470" alt="导航设置" />
-  <img src="docs/screenshots/composer.png" height="470" alt="新建笔记" />
+  <img src=".github/screenshots/appearance.png" height="470" alt="外观设置" />
+  <img src=".github/screenshots/navigation.png" height="470" alt="导航设置" />
+  <img src=".github/screenshots/composer.png" height="470" alt="新建笔记" />
 </div>
 
 ## 本仓库的改动
@@ -37,7 +37,7 @@
 - **离线与同步加固**：笔记先在本地创建，离线队列在写入、重放、附件与恢复各环节得到加固，后台轮询不再在每次覆盖层出现时做对账。
 - **滚动与手势打磨**：页面只按内容移动（没有越界回弹），下拉刷新需要明确下拉，程序化列表位移不再误触发顶栏/底栏显隐。
 - **发布工程**：按 ABI 拆分 APK、带 keep 规则的 R8（反射驱动的 API 与模型类）、从 `keystore.properties` 或 CI 环境变量读取签名，以及 `benchmark` 构建类型。
-- **测试与文档**：筛选模型、Markdown、导航、外观与账号隔离的单元测试；API 集成测试仍由 Testcontainers 驱动。设计说明集中在 [`docs/`](docs)。
+- **测试**：筛选模型、Markdown、导航、外观与账号隔离的单元测试；API 集成测试仍由 Testcontainers 驱动。
 
 ## 许可证
 

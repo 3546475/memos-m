@@ -40,25 +40,19 @@ google-services.json
 mock-server/
 AGENTS.md
 
-# Tooling that stays on the development machine: index caches, agent skills,
-# maintainer scripts and the migration plan itself.
+# Tooling that stays on the development machine: index caches, agent skills and
+# maintainer scripts.
 .codegraph/
 .agent/
 tools/
-docs/miuix-refactor-plan.md
 
-# Archify diagram artifacts: specs, delivered HTML, delivery receipts, browser evidence.
-# They are generated documentation kept on this machine only.
-docs/archify/
-# The tool's own working directory, created next to the repo root (candidate specs,
-# visual-check screenshots).
+# Design notes, diagrams and the archify receipts are working material: they stay on
+# this machine and never enter the repository.
+/docs/
+
+# The archify tool's own working directory, created next to the repo root (candidate
+# specs, visual-check screenshots).
 .archify/
-docs/memos-m-architecture.html
-docs/memos-m-architecture.delivery.json
-docs/memos-m-architecture.visual-check.*
-docs/memos-m-sync-sequence.html
-docs/memos-m-sync-sequence.delivery.json
-docs/memos-m-sync-sequence.visual-check.*
 
 # Scratch files
 *.tmp

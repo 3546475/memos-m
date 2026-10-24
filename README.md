@@ -19,13 +19,13 @@ below is only what changed here.
 ## Screenshots
 
 <div align="center">
-  <img src="docs/screenshots/feed.png" height="470" alt="Feed" />
-  <img src="docs/screenshots/filter.png" height="470" alt="Structured filter" />
-  <img src="docs/screenshots/profile.png" height="470" alt="Profile" />
+  <img src=".github/screenshots/feed.png" height="470" alt="Feed" />
+  <img src=".github/screenshots/filter.png" height="470" alt="Structured filter" />
+  <img src=".github/screenshots/profile.png" height="470" alt="Profile" />
   <br />
-  <img src="docs/screenshots/appearance.png" height="470" alt="Appearance settings" />
-  <img src="docs/screenshots/navigation.png" height="470" alt="Navigation settings" />
-  <img src="docs/screenshots/composer.png" height="470" alt="Composer" />
+  <img src=".github/screenshots/appearance.png" height="470" alt="Appearance settings" />
+  <img src=".github/screenshots/navigation.png" height="470" alt="Navigation settings" />
+  <img src=".github/screenshots/composer.png" height="470" alt="Composer" />
 </div>
 
 ## What changed here
@@ -54,9 +54,8 @@ below is only what changed here.
   pull-to-refresh needs a deliberate pull, and programmatic list shifts no longer flip the chrome.
 - **Release engineering.** ABI-split APKs, R8 with keep rules for the reflect-driven API and model
   classes, signing from `keystore.properties` or CI environment variables, and a `benchmark` build type.
-- **Tests and notes.** Unit tests for the filter model, markdown, navigation, appearance and account
-  isolation; the API integration suite stays behind Testcontainers. Design notes are collected in
-  [`docs/`](docs).
+- **Tests.** Unit tests for the filter model, markdown, navigation, appearance and account isolation;
+  the API integration suite stays behind Testcontainers.
 
 ## License
 
