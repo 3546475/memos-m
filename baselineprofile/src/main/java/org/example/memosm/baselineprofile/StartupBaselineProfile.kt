@@ -25,10 +25,11 @@ class StartupBaselineProfile {
         pressHome()
         startActivityAndWait()
         device.waitForIdle()
-        // Give the first frame and the theme pass time to run, then scroll once so the
-        // list-scrolling entry points are hot as well.
-        Thread.sleep(1_500)
-        repeat(2) {
+        // A logged-in install lands on the feed: give the first page and its markdown time to
+        // render, then scroll so the list, card and image paths are hot as well.
+        Thread.sleep(3_000)
+        device.waitForIdle()
+        repeat(3) {
             device.swipe(
                 device.displayWidth / 2,
                 device.displayHeight * 2 / 3,
@@ -38,6 +39,12 @@ class StartupBaselineProfile {
             )
             device.waitForIdle()
         }
-        Thread.sleep(1_500)
+        // Open the first card so the detail page's markdown render is recorded too. The app must
+        // stay in the foreground when the rule flushes the profile: HyperOS defers the
+        // SAVE_PROFILE broadcast to a backgrounded package, and the rule then reports a missing
+        // profileinstaller. Never finish the activity here.
+        device.click(device.displayWidth / 2, (device.displayHeight * 0.33f).toInt())
+        device.waitForIdle()
+        Thread.sleep(2_000)
     }
 }
