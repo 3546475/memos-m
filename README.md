@@ -5,6 +5,8 @@
 
 A native Android client for [Memos](https://usememos.com/), built with Jetpack Compose and drawn in the Miuix (HyperOS) design language.
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yamada-sexta/memos-m/canary-build.yml?style=flat-square)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/yamada-sexta/memos-m/nightly-test.yml?style=flat-square&label=nightly%20API%20tests)
 ![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
