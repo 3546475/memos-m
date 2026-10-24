@@ -80,6 +80,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.compositionLocalOf
@@ -93,7 +94,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.example.memosm.R
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoState
@@ -104,6 +107,8 @@ import org.example.memosm.ui.component.composer.ComposerMode
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.component.item.MemoItem
+import org.example.memosm.ui.component.item.MemoSkeletonCard
+import org.example.memosm.ui.component.item.markdown.MarkdownCache
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.viewmodel.MemosViewModel
@@ -139,6 +144,12 @@ val LocalSyncInProgress = compositionLocalOf { false }
 val LocalListBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
 private const val HeaderBlurRadius = 24f
+
+/** How many placeholder cards a loading feed shows before the first real page arrives. */
+private const val FeedSkeletonCount = 5
+
+/** How many cards' markdown is parsed before the placeholders are lifted. */
+private const val MarkdownPrewarmCount = 8
 
 /**
  * Full strength at the very top, zero at the bottom of the header band. A [ProgressiveBlur.curve]
@@ -553,10 +564,45 @@ fun MemosScaffold(
         onHashtagClick: ((String) -> Unit)? = null,
         /** Shown instead of a blank pane when the server returned nothing and no page is pending. */
         emptyState: (@Composable () -> Unit)? = null,
+        /**
+         * True until the first page (or its failure) has been applied. An empty feed then shows
+         * skeleton cards instead of the empty state: the page opens into the shape of the feed
+         * and fills in, rather than flashing "no memos yet" before the request comes back.
+         */
+        showSkeleton: Boolean = false,
         isActive: Boolean = true
     ) {
         val uiState by viewModel.uiState.collectAsState()
         val focusManager = LocalFocusManager.current
+
+        // Skeleton instead of a loader or the empty state until the feed has a first answer,
+        // and then until the first cards' markdown has actually been parsed: swapping on data
+        // arrival alone shows cards with empty bodies whose text pops in a frame later.
+        // Survives a destination switch (the pane is re-created on return) so coming back to
+        // the feed does not flash placeholders over cards whose markdown is already cached.
+        var markdownPrewarmed by rememberSaveable { mutableStateOf(false) }
+        LaunchedEffect(memos) {
+            if (memos.isEmpty()) {
+                markdownPrewarmed = false
+                return@LaunchedEffect
+            }
+            // A restored flag can outlive the parse cache (process death): verify the first card
+            // is still parsed, otherwise hold the placeholders and parse again.
+            if (markdownPrewarmed && MarkdownCache.cached(memos.first().content) != null) {
+                return@LaunchedEffect
+            }
+            markdownPrewarmed = false
+            withContext(Dispatchers.Default) {
+                memos.take(MarkdownPrewarmCount).forEach { memo ->
+                    val content = memo.content
+                    if (content.isNotBlank()) MarkdownCache.parse(content)
+                }
+            }
+            markdownPrewarmed = true
+        }
+        val showPlaceholders =
+            (memos.isEmpty() && (showSkeleton || (isLoading && !isRefreshing))) ||
+                (memos.isNotEmpty() && !markdownPrewarmed)
 
         LaunchedEffect(listState, isLoading, nextPageToken, isActive) {
             if (!isActive) return@LaunchedEffect
@@ -588,14 +634,11 @@ fun MemosScaffold(
             ) {
                 header?.invoke(this)
 
-                if (isLoading && memos.isEmpty() && !isRefreshing) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AppCircularProgressIndicator()
-                        }
+                if (showPlaceholders) {
+                    // Placeholder cards, not a spinner: the feed opens in its final shape and the
+                    // real cards replace these in place, once their markdown is ready.
+                    items(count = FeedSkeletonCount, key = { "feed-skeleton-$it" }) {
+                        MemoSkeletonCard()
                     }
                 } else if (uiState.error != null && memos.isEmpty()) {
                     item {

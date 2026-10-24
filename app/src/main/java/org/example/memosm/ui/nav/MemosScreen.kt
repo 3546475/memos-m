@@ -535,6 +535,7 @@ fun MemosScreen(
                         indicatorTopPadding = indicatorPadding,
                         userProvider = { memo -> uiState.users[memo.creator] },
                         errorTitle = stringResource(R.string.common_error_failed_to_load_explore),
+                        showSkeleton = !uiState.exploreMemoList.list.initialLoadFinished,
                         isActive = activeFeed == feed
                     )
                 }
@@ -882,6 +883,7 @@ private fun MemosListPane(
         errorTitle = stringResource(R.string.common_error_failed_to_load_memos),
         onHashtagClick = onHashtagClick,
         emptyState = emptyState,
+        showSkeleton = !uiState.userMemoList.list.initialLoadFinished,
         isActive = isActive,
         header = {
             // The shortcut chips used to be a list header item here: they scrolled away with

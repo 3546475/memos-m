@@ -70,6 +70,7 @@ fun MemoTypeMemosScreen(
                     onMemoClick = onMemoClick,
                     listState = listState,
                     userProvider = { uiState.session.currUser },
+                    showSkeleton = !uiState.userMemoList.list.initialLoadFinished,
                     contentPadding = PaddingValues(16.dp)
                 )
             })
