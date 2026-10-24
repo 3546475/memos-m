@@ -274,11 +274,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var foregroundPosted = false
+
     override fun onResume() {
         super.onResume()
-        // App is in the foreground again: flush queued offline writes and
-        // top up the local cache.
-        if (org.example.memosm.data.backup.BackupCoordinator.recoveryError.value == null) viewModel.onForeground()
+        if (org.example.memosm.data.backup.BackupCoordinator.recoveryError.value != null) return
+        // Flush queued offline writes and top up the local cache. The first call waits for the
+        // launch placeholder to reach the screen: constructing the view model and its graph used
+        // to sit between the tap and the first frame.
+        if (foregroundPosted) {
+            viewModel.onForeground()
+            return
+        }
+        foregroundPosted = true
+        val decor = window.decorView
+        val observer = decor.viewTreeObserver
+        observer.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (observer.isAlive) observer.removeOnPreDrawListener(this)
+                decor.post { viewModel.onForeground() }
+                return true
+            }
+        })
     }
 
     /**
