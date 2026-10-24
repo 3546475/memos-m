@@ -583,6 +583,8 @@ fun MemosScaffold(
         val focusManager = LocalFocusManager.current
         val context = LocalContext.current
         val density = LocalDensity.current
+        // The feed only moves while it has content to reveal: no stretch at either end.
+        val overscroll = rememberPageOverscroll()
 
         // Items read these through derived states: a sync tick or a refresh no longer recomposes
         // every card, only a session change or a different selected memo does.
@@ -650,6 +652,7 @@ fun MemosScaffold(
         ) {
             LazyColumn(
                 state = listState,
+                overscrollEffect = overscroll,
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { coordinates ->

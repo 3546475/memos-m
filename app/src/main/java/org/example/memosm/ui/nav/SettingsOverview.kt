@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDownload
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import org.example.memosm.R
 import org.example.memosm.ui.component.setting.SettingsGroup
+import org.example.memosm.ui.component.rememberPageOverscroll
 import org.example.memosm.ui.theme.AppListItem
 
 enum class SettingsSection(
@@ -70,7 +72,11 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
         listOf(SettingsSection.OFFLINE, SettingsSection.RECOVERY, SettingsSection.AUDIT),
         listOf(SettingsSection.ABOUT)
     )
+    val listState = rememberLazyListState()
+    val overscroll = rememberPageOverscroll()
     LazyColumn(
+        state = listState,
+        overscrollEffect = overscroll,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
