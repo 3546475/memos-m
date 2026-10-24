@@ -70,6 +70,17 @@ android {
         }
     }
 
+    // Research: split the universal APK by ABI so a sideloaded build does not carry the native
+    // libraries of the ABIs it will never run. Phone distribution only needs arm.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -115,7 +126,8 @@ android {
             manifestPlaceholders["appLabel"] = "MemosM"
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
