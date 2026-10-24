@@ -114,7 +114,7 @@ class LongMemoTest {
             | one | two | three | four |
         """.trimIndent()
         compose.setContent {
-            MemosMTheme(dynamicColor = false) {
+            MemosMTheme() {
                 NativeComposeMarkdown(
                     modifier = Modifier.width(220.dp).testTag("table"),
                     content = content,
@@ -136,7 +136,7 @@ class LongMemoTest {
     @Test
     fun shortTableDoesNotAcquireUnnecessaryScrolling() {
         compose.setContent {
-            MemosMTheme(dynamicColor = false) {
+            MemosMTheme() {
                 NativeComposeMarkdown(
                     modifier = Modifier.width(240.dp),
                     content = "| **Small** | B |\n| --- | --- |\n| one | two |",
@@ -194,7 +194,7 @@ class LongMemoTest {
 
 @Composable
 internal fun MemoTestTimeline(content: String, isDetailView: Boolean = false) {
-    MemosMTheme(dynamicColor = false) {
+    MemosMTheme() {
         LazyColumn(Modifier.width(240.dp).testTag("timeline")) {
             item {
                 MemoItem(

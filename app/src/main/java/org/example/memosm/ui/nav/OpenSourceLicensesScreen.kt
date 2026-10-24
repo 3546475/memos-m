@@ -19,7 +19,7 @@ internal fun OpenSourceLicensesScreen(onBack: () -> Unit) {
     SettingsPageScaffold(
         title = stringResource(R.string.profile_about_licenses),
         onBack = onBack,
-        collapsingHeader = true
+        largeTitle = true
     ) { padding ->
         val loaded = libraries
         if (loaded == null) {

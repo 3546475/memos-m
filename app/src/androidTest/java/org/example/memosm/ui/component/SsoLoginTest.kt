@@ -37,7 +37,7 @@ class SsoLoginTest {
 
     private fun showLogin(permission: LocalNetworkPermissionState = LocalNetworkPermissionState({ true }, {}, { false })) {
         compose.setContent {
-            MemosMTheme(dynamicColor = false) {
+            MemosMTheme() {
                 CompositionLocalProvider(LocalNetworkPermission provides permission) {
                     LoginContent(onLoginSuccess = { host, token -> success.set(host to token) })
                 }

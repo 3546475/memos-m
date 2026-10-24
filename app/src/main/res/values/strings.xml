@@ -493,9 +493,6 @@
     <string name="appearance_font_serif">Serif</string>
     <string name="appearance_font_mono">Monospace</string>
     <string name="appearance_save_error">Could not save appearance. Try again.</string>
-    <string name="settings_theme_style">Theme style</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <!-- Hidden About-screen game. -->
     <string name="memo_catch_title">Memo Catch</string>
     <string name="memo_catch_instruction">Drag the tray to catch the falling memos.</string>
@@ -585,7 +582,6 @@
     <string name="settings_nav_items_edit">Edit</string>
     <string name="settings_nav_items_hint">At least one item stays on. Use the arrows to reorder.</string>
     <string name="settings_blur_needs_android13">Needs Android 13 or newer</string>
-    <string name="settings_blur_needs_miuix">Only available in the Miuix theme</string>
     <string name="settings_edit_gesture">Edit gesture</string>
     <string name="settings_edit_gesture_none">None</string>
     <string name="settings_edit_gesture_single_tap">Single tap</string>

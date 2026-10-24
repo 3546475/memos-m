@@ -4,10 +4,6 @@ import org.example.memosm.ui.theme.appExitSpec
 
 import org.example.memosm.ui.theme.appEnterSpec
 
-import org.example.memosm.ui.theme.isMiuixMotion
-
-import org.example.memosm.ui.theme.LocalThemeStyle
-
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 
 import org.example.memosm.ui.theme.AppSlider
@@ -150,11 +146,10 @@ internal fun VideoPlaybackControls(
                 .zoomable(true, mediaSize, doubleTapZoom = false, handleTapGestures = false)
         ) { videoContent() }
 
-            val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
             AnimatedVisibility(
                 visible,
-                enter = fadeIn(appEnterSpec(miuixMotion)),
-                exit = fadeOut(appExitSpec(miuixMotion))
+                enter = fadeIn(appEnterSpec()),
+                exit = fadeOut(appExitSpec())
             ) {
             // Background taps pass through to the video; only the actual controls consume input.
             Box(

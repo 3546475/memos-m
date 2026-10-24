@@ -36,14 +36,12 @@ import org.example.memosm.data.DataStoreManager
 import org.example.memosm.model.AppearancePreferences
 import org.example.memosm.model.DefaultNavDestinations
 import org.example.memosm.model.NavBarScrollMode
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.model.TopBarScrollMode
 import org.example.memosm.ui.MainDestination
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppListItem
 import org.example.memosm.ui.theme.AppSwitch
 import org.example.memosm.ui.theme.AppTextButton
-import org.example.memosm.ui.theme.LocalThemeStyle
 import org.koin.core.context.GlobalContext
 
 /**
@@ -52,8 +50,8 @@ import org.koin.core.context.GlobalContext
  *
  * Two things are deliberate. The bar shape is a two-segment control instead of a switch, because
  * "floating" is a choice between two shapes rather than an on/off. And the frosting switches are
- * disabled with a reason when the effect cannot run at all (Miuix styling on Android 13+), instead
- * of silently doing nothing.
+ * disabled with a reason when the effect cannot run at all (the blur pipeline needs Android 13+),
+ * instead of silently doing nothing.
  *
  * Destination names are stored as `MainDestination` enum names so the list survives enum additions;
  * an empty list means "everything in the default order".
@@ -78,12 +76,10 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
     var editingItems by rememberSaveable { mutableStateOf(false) }
     var confirmingReset by rememberSaveable { mutableStateOf(false) }
 
-    val blurUnavailable = when {
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ->
-            stringResource(R.string.settings_blur_needs_android13)
-        LocalThemeStyle.current != ThemeStyle.MIUIX ->
-            stringResource(R.string.settings_blur_needs_miuix)
-        else -> null
+    val blurUnavailable = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        stringResource(R.string.settings_blur_needs_android13)
+    } else {
+        null
     }
 
     // settingsItem hosts its content in a Box, so the card stacks its groups in an explicit column

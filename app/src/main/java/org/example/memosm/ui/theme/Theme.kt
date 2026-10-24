@@ -15,7 +15,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.toArgb
@@ -29,8 +28,8 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import org.example.memosm.data.DataStoreManager
 import org.example.memosm.model.AppearancePreferences
 import org.example.memosm.model.ColorTheme
-import org.example.memosm.model.ThemeStyle
 
+/** The device palette, or the neutral Material one below Android 12. Used by the palette previews. */
 @Composable
 fun systemColorScheme(isDark: Boolean, dynamicColor: Boolean = true): ColorScheme {
     val context = LocalContext.current
@@ -72,32 +71,15 @@ fun appearanceColorScheme(
     } ?: systemColors
 }
 
+/** Applies the saved design language: the HyperOS (Miuix) palette, type scale and corners. */
 @Composable
 fun MemosMTheme(
     darkTheme: Boolean? = null,
-    dynamicColor: Boolean = true,
     appearance: AppearancePreferences = AppearancePreferences(),
     content: @Composable () -> Unit
 ) {
     val isDark = darkTheme ?: appearance.themeMode.isDark(isSystemInDarkTheme())
-    if (appearance.themeStyle == ThemeStyle.MIUIX) {
-        MiuixMemosMTheme(appearance = appearance, isDark = isDark, content = content)
-        return
-    }
-    val systemColors = systemColorScheme(isDark, dynamicColor)
-    val colors = remember(appearance.colorTheme, appearance.customHue, systemColors, isDark) {
-        appearanceColorScheme(appearance, systemColors, isDark)
-    }
-    val typography = remember(appearance.font) { typographyFor(appearance.font) }
-    MaterialTheme(
-        colorScheme = colors,
-        typography = typography,
-        shapes = MemosShapes,
-        content = {
-            WindowBackgroundColor()
-            content()
-        }
-    )
+    MiuixMemosMTheme(appearance = appearance, isDark = isDark, content = content)
 }
 
 /**

@@ -284,9 +284,6 @@
     <string name="appearance_preview_memo"># Titel\n\n## Überschrift\n\n### Unterüberschrift\n\nEin kleiner Gedanke kann zu **etwas Großartigem** werden.\n\n- Eine Idee festhalten\n- Später darauf zurückkommen</string>
     <string name="appearance_save_error">Darstellung konnte nicht gespeichert werden. Versuche es erneut.</string>
     <string name="appearance_theme_mode">Darstellungsmodus</string>
-    <string name="settings_theme_style">Themenstil</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">Datei</string>
     <string name="audit_log_account">Konto: %1$s</string>
     <string name="audit_log_empty">Noch keine Protokolleinträge vorhanden.</string>

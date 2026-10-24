@@ -17,10 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,58 +33,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.example.memosm.R
-import org.example.memosm.model.ThemeStyle
-import org.example.memosm.ui.theme.LocalThemeStyle
 
 enum class MemoFeed(val labelRes: Int) {
     MEMOS(R.string.nav_memos),
     EXPLORE(R.string.nav_explore)
 }
 
-@Composable
-internal fun MemoFeedTabs(pagerState: PagerState, modifier: Modifier = Modifier) {
-    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-        MiuixFeedTabs(pagerState, modifier)
-        return
-    }
-    val scope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
-    PrimaryTabRow(
-        selectedTabIndex = pagerState.currentPage,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.primary,
-        divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) }
-    ) {
-        MemoFeed.entries.forEach { feed ->
-            val selected = pagerState.currentPage == feed.ordinal
-            Tab(
-                selected = selected,
-                onClick = {
-                    focusManager.clearFocus()
-                    scope.launch { pagerState.animateScrollToPage(feed.ordinal) }
-                },
-                selectedContentColor = MaterialTheme.colorScheme.onSurface,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = {
-                    Text(
-                        text = stringResource(feed.labelRes),
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            )
-        }
-    }
-}
-
 /**
- * Miuix / HyperOS renders the feed switcher as plain text plus a thin underline
- * instead of a segmented control: the top of the list is content, and a
- * full-width outlined pill up there reads as a separate widget and fights with
- * the cards underneath.
+ * Miuix / HyperOS renders the feed switcher as plain text plus a thin underline instead of a
+ * segmented control: the top of the list is content, and a full-width outlined pill up there
+ * reads as a separate widget and fights with the cards underneath.
  */
 @Composable
-private fun MiuixFeedTabs(pagerState: PagerState, modifier: Modifier = Modifier) {
+internal fun MemoFeedTabs(pagerState: PagerState, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     Row(

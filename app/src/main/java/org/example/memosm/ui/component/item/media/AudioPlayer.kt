@@ -1,9 +1,5 @@
 package org.example.memosm.ui.component.item.media
 
-import org.example.memosm.ui.theme.LocalThemeStyle
-
-import org.example.memosm.ui.theme.isMiuixMotion
-
 import org.example.memosm.ui.theme.appEnterSpec
 
 import org.example.memosm.ui.theme.AppCard
@@ -377,7 +373,7 @@ fun PlayPauseButton(
                 scaleY = scale.value
             }, contentAlignment = Alignment.Center
         ) {
-            val iconSwapSpec = appEnterSpec(isMiuixMotion(LocalThemeStyle.current), durationMillis = 300)
+            val iconSwapSpec = appEnterSpec()
             AnimatedContent(
                 targetState = isPlaying, transitionSpec = {
                     val spec = iconSwapSpec

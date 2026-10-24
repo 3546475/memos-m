@@ -1,9 +1,7 @@
 package org.example.memosm.ui.component
 
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppFilterChip
-import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.window.WindowDialog as MiuixWindowDialog
 
 import android.os.Build
@@ -24,7 +22,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
@@ -34,7 +31,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -46,7 +42,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,7 +61,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -139,62 +133,20 @@ fun LoginDialog(
     onDismiss: () -> Unit,
     editAccount: Account? = null
 ) {
-    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-        // Miuix owns the window dialog here, so the form sits on its surface and corner radius
-        // instead of the Material Surface used by the MD path.
-        MiuixWindowDialog(show = true, onDismissRequest = onDismiss) {
-            Box(Modifier.fillMaxWidth()) {
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
-                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close))
-                }
-                LoginContent(
-                    onLoginSuccess = onLoginSuccess,
-                    modifier = Modifier.padding(top = 8.dp),
-                    editAccount = editAccount
-                )
-            }
-        }
-        return
-    }
-    Dialog(
-        onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            contentAlignment = Alignment.Center
-        ) {
-            Surface(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .widthIn(max = 480.dp)
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
+    // Miuix owns the window dialog here, so the form sits on its surface and corner radius.
+    MiuixWindowDialog(show = true, onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd)
             ) {
-                Box {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                    ) {
-                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close))
-                    }
-
-                    LoginContent(
-                        onLoginSuccess = onLoginSuccess,
-                        modifier = Modifier.padding(24.dp),
-                        editAccount = editAccount
-                    )
-                }
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close))
             }
+            LoginContent(
+                onLoginSuccess = onLoginSuccess,
+                modifier = Modifier.padding(top = 8.dp),
+                editAccount = editAccount
+            )
         }
     }
 }
@@ -410,91 +362,38 @@ fun LoginContent(
             }
         }
 
-        // Miuix has no connected button group: a segmented control built from joined shapes is a
-        // Material idiom. HyperOS expresses a small exclusive choice as separate pills, so the
-        // Miuix theme gets three equal chips and Material keeps its connected toggle group.
-        if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Max)
-                    .selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LoginMode.entries.forEach { mode ->
-                    AppFilterChip(
-                        selected = loginMode == mode,
-                        onClick = {
-                            loginMode = mode
-                            errorMessage = null
+        // HyperOS expresses a small exclusive choice as separate pills instead of Material's
+        // connected button group.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max)
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            LoginMode.entries.forEach { mode ->
+                AppFilterChip(
+                    selected = loginMode == mode,
+                    onClick = {
+                        loginMode = mode
+                        errorMessage = null
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .semantics {
+                            role = Role.RadioButton
+                            selected = loginMode == mode
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .semantics {
-                                role = Role.RadioButton
-                                selected = loginMode == mode
-                            },
-                        enabled = !busy
-                    ) {
-                        Text(
-                            text = stringResource(mode.labelRes),
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // The three segments must read as one control. A label that wraps (the Chinese
-                    // "令牌 (Token)", or any locale at a large font scale) would otherwise make its
-                    // pill taller than its neighbours; the intrinsic max height gives every segment
-                    // the same height as the tallest label.
-                    .height(IntrinsicSize.Max)
-                    .selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ToggleButton(
-                    checked = loginMode == LoginMode.PASSWORD,
-                    onCheckedChange = { loginMode = LoginMode.PASSWORD; errorMessage = null },
-                    modifier = Modifier.weight(1f).fillMaxHeight().semantics {
-                        role = Role.RadioButton
-                        selected = loginMode == LoginMode.PASSWORD
-                    },
-                    enabled = !busy,
-                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    enabled = !busy
                 ) {
-                    Text(stringResource(R.string.login_password))
-                }
-                ToggleButton(
-                    checked = loginMode == LoginMode.TOKEN,
-                    onCheckedChange = { loginMode = LoginMode.TOKEN; errorMessage = null },
-                    modifier = Modifier.weight(1f).fillMaxHeight().semantics {
-                        role = Role.RadioButton
-                        selected = loginMode == LoginMode.TOKEN
-                    },
-                    enabled = !busy,
-                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
-                ) {
-                    Text(stringResource(R.string.login_token))
-                }
-                ToggleButton(
-                    checked = loginMode == LoginMode.SSO,
-                    onCheckedChange = { loginMode = LoginMode.SSO; errorMessage = null },
-                    modifier = Modifier.weight(1f).fillMaxHeight().semantics {
-                        role = Role.RadioButton
-                        selected = loginMode == LoginMode.SSO
-                    },
-                    enabled = !busy,
-                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
-                ) {
-                    Text(stringResource(R.string.login_sso))
+                    Text(
+                        text = stringResource(mode.labelRes),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
                 }
             }
         }

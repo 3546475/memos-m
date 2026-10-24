@@ -16,18 +16,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,7 +48,8 @@ fun SettingsScreen(
     SettingsPageScaffold(
         title = stringResource(section?.titleRes ?: R.string.settings_title),
         onBack = onBack,
-        collapsingHeader = section == SettingsSection.OFFLINE ||
+        // Long-form pages use the taller bar: it separates the title from their dense content.
+        largeTitle = section == SettingsSection.OFFLINE ||
             section == SettingsSection.AUDIT || section == SettingsSection.RECOVERY,
         modifier = modifier
     ) { innerPadding ->
@@ -81,7 +76,6 @@ fun SettingsScreen(
                 when (section) {
                     SettingsSection.GENERAL -> settingsItem {
                         SettingsGroup {
-                            ThemeStyleRow()
                             SettingsCard(
                                 settings = uiState.session.userSettings ?: UserGeneralSetting(),
                                 onUpdate = { locale, visibility ->
@@ -208,36 +202,22 @@ fun SettingsScreen(
     }
 }
 
-/** A collapsing header must own the scroll behavior, otherwise it consumes swipes indefinitely. */
+/** The page title bar shared by every settings page. */
 @Composable
 internal fun SettingsPageScaffold(
     title: String,
     onBack: () -> Unit,
-    collapsingHeader: Boolean,
+    largeTitle: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val scrollBehavior = if (collapsingHeader) {
-        val collapsedOffset = with(LocalDensity.current) {
-            (TopAppBarDefaults.LargeAppBarCollapsedHeight - TopAppBarDefaults.LargeAppBarExpandedHeight).toPx()
-        }
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
-            state = rememberTopAppBarState(
-                initialHeightOffsetLimit = collapsedOffset,
-                initialHeightOffset = collapsedOffset
-            )
-        )
-    } else null
     Scaffold(
-        modifier = modifier.fillMaxSize().then(
-            scrollBehavior?.let { Modifier.nestedScroll(it.nestedScrollConnection) } ?: Modifier
-        ),
+        modifier = modifier.fillMaxSize(),
         topBar = {
             AppTopBar(
                 title = title,
-                large = scrollBehavior != null,
-                navigationIcon = { ProfileBackButton(onClick = onBack) },
-                scrollBehavior = scrollBehavior
+                large = largeTitle,
+                navigationIcon = { ProfileBackButton(onClick = onBack) }
             )
         },
         content = content

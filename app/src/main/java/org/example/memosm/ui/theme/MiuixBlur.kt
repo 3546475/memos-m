@@ -3,7 +3,6 @@ package org.example.memosm.ui.theme
 import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
-import org.example.memosm.model.ThemeStyle
 
 /** Whether the user wants the floating feed header frosted. Defaults to on. */
 val LocalTopBarBlurEnabled = staticCompositionLocalOf { true }
@@ -19,13 +18,10 @@ val LocalBottomBarBlurEnabled = staticCompositionLocalOf { true }
  *
  * miuix-blur's effect pipeline runs on RuntimeShader (API 33+), and the library itself declares
  * minSdk 33 — the app manifest overrides that with `tools:overrideLibrary`, so every call site must
- * be gated instead of relying on the platform. MD never uses the blur, which keeps the Material
- * look byte-for-byte unchanged.
+ * be gated instead of relying on the platform.
  */
 @Composable
-private fun miuixBlurAvailable(): Boolean =
-    LocalThemeStyle.current == ThemeStyle.MIUIX &&
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+private fun miuixBlurAvailable(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
 /** The floating feed header, gated by its own switch. */
 @Composable

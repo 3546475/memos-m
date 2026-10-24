@@ -1,9 +1,6 @@
 package org.example.memosm.ui.component
 
 import androidx.activity.compose.BackHandler
-import org.example.memosm.ui.theme.LocalThemeStyle
-import org.example.memosm.ui.theme.isMiuixMotion
-
 import org.example.memosm.ui.theme.appSlideSpec
 
 import org.example.memosm.ui.theme.appFadeSpec
@@ -134,7 +131,7 @@ val LocalSyncInProgress = compositionLocalOf { false }
 /**
  * The list content, recorded as a backdrop layer, so anything floating above it (the frosted
  * header, the compose button) can sample and blur what is scrolling underneath. Null when the
- * blur is unavailable, which is every MD session and every device below API 33.
+ * blur is unavailable, which is every device below API 33.
  */
 val LocalListBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
@@ -340,8 +337,8 @@ fun MemosScaffold(
                     listPane = {
                         AnimatedPane {
                             Box(modifier = Modifier.fillMaxSize()) {
-                                // MIUIX draws the list into a backdrop layer so the floating header
-                                // can sample and blur it; MD keeps the plain list.
+                                // The list is drawn into a backdrop layer so the floating header
+                                // can sample and blur it.
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -413,28 +410,19 @@ fun MemosScaffold(
                     },
                     detailPane = {
                         AnimatedPane {
-                            val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
                             AnimatedContent(
                                 targetState = navigator.currentDestination?.contentKey, transitionSpec = {
                                     if (isDualPane) {
                                         if (initialState == null) {
                                             (fadeIn(
-                                                animationSpec = appFadeSpec(
-                                                    miuixMotion,
-                                                    durationMillis = 220,
-                                                    delayMillis = 90
-                                                )
+                                                animationSpec = appFadeSpec()
                                             ) + scaleIn(
                                                 initialScale = 0.92f,
-                                                animationSpec = appFadeSpec(
-                                                    miuixMotion,
-                                                    durationMillis = 220,
-                                                    delayMillis = 90
-                                                )
-                                            )).togetherWith(fadeOut(animationSpec = appFadeSpec(miuixMotion, durationMillis = 90)))
+                                                animationSpec = appFadeSpec()
+                                            )).togetherWith(fadeOut(animationSpec = appFadeSpec()))
                                         } else {
-                                            fadeIn(animationSpec = appFadeSpec(miuixMotion, durationMillis = 300)).togetherWith(
-                                                fadeOut(animationSpec = appFadeSpec(miuixMotion, durationMillis = 300))
+                                            fadeIn(animationSpec = appFadeSpec()).togetherWith(
+                                                fadeOut(animationSpec = appFadeSpec())
                                             )
                                         }
                                     } else {
@@ -444,7 +432,7 @@ fun MemosScaffold(
                                         // the top, detail leaves downwards). Both directions used to
                                         // start from the bottom, so entering and leaving did not
                                         // mirror each other.
-                                        val slide = appSlideSpec(miuixMotion, 300)
+                                        val slide = appSlideSpec()
                                         val detailOpening = targetState != null
                                         if (detailOpening) {
                                             (slideInVertically(

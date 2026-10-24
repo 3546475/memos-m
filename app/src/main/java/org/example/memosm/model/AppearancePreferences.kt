@@ -14,9 +14,6 @@ enum class ColorTheme { SYSTEM, MONOCHROME, MEMOS, CUSTOM }
 
 enum class AppFont { SYSTEM, SANS_SERIF, SERIF, MONOSPACE }
 
-/** The design language the app is drawn with: the original Material Design styling or Miuix. */
-enum class ThemeStyle { MD, MIUIX }
-
 /** Whether the bottom navigation bar slides away while the list scrolls. */
 enum class NavBarScrollMode { HIDE_ON_SCROLL, ALWAYS_VISIBLE }
 
@@ -39,7 +36,6 @@ data class AppearancePreferences(
     val colorTheme: ColorTheme = ColorTheme.SYSTEM,
     val customHue: Float? = null,
     val font: AppFont = AppFont.SYSTEM,
-    val themeStyle: ThemeStyle = ThemeStyle.MIUIX,
     val navBarScrollMode: NavBarScrollMode = NavBarScrollMode.ALWAYS_VISIBLE,
     val topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
     /** Frosts the floating feed header (API 33+ only). Off by default: the header is a thin row. */

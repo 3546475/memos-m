@@ -13,8 +13,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -45,7 +42,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Drafts
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,8 +62,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -77,12 +71,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.example.memosm.R
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.component.ActionSheet
 import org.example.memosm.ui.component.ActionSheetItem
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppTextButton
-import org.example.memosm.ui.theme.LocalThemeStyle
 import org.example.memosm.ui.component.filter.FeedFilterBar
 import org.example.memosm.ui.component.filter.FeedFilterBarHeight
 import org.example.memosm.ui.component.filter.FeedFilterButton
@@ -103,7 +95,6 @@ import org.example.memosm.model.Memo
 import org.example.memosm.ui.component.GenericMemosListPane
 import org.example.memosm.ui.component.MemoSearchBar
 import org.example.memosm.ui.component.MemosScaffold
-import org.example.memosm.ui.component.SyncStatusChip
 import org.example.memosm.ui.component.SyncStatus
 import org.example.memosm.ui.component.SyncStatusIconButton
 import org.example.memosm.ui.component.SyncStatusPanel
@@ -119,7 +110,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import org.example.memosm.ui.component.item.DraftsCard
-import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.viewmodel.MemosViewModel
 import org.example.memosm.viewmodel.RefreshSource
 import kotlinx.coroutines.launch
@@ -145,7 +135,6 @@ fun MemosScreen(
     onSearchOpened: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val miuixFeed = LocalThemeStyle.current == ThemeStyle.MIUIX
     val memosListState = rememberLazyListState()
     val exploreListState = rememberLazyListState()
     val activeFeed = MemoFeed.entries[pagerState.currentPage]
@@ -169,8 +158,6 @@ fun MemosScreen(
         uiState.exploreMemoList.list.items
     }
     var isSearchExpanded by remember(activeFeed) { mutableStateOf(false) }
-    val density = LocalDensity.current
-    var feedHeaderHeight by remember { mutableStateOf(64.dp) }
     val context = LocalContext.current
 
     // --- Feed filter: one chrome entry opening the structured panel, plus a pinned summary of
@@ -263,7 +250,6 @@ fun MemosScreen(
         }
     }
     var showDraftPrompt by remember { mutableStateOf(false) }
-    var isFabExpanded by remember { mutableStateOf(true) }
     // The compose button opens the composer on tap; holding it reveals the other entries.
     var showQuickActions by remember { mutableStateOf(false) }
     var fabLongPressConsumed by remember { mutableStateOf(false) }
@@ -282,14 +268,6 @@ fun MemosScreen(
         if (fabLongPressConsumed) fabLongPressConsumed = false else composeAction()
     }
 
-
-    // FAB expansion based on scroll direction
-    val scrollContext = rememberScrollContext(listState = listState)
-
-    // Explicitly handle initial state or non-scroll updates if needed
-    LaunchedEffect(listState, scrollContext.isScrollingDown) {
-        isFabExpanded = !scrollContext.isScrollingDown
-    }
 
     // The bars are edge-to-edge overlays: the system navigation area (including the gesture
     // handle) sits between them and the screen edge, so the content has to clear that inset too.
@@ -376,97 +354,70 @@ fun MemosScreen(
                     )
                 }
             }
-            if (miuixFeed) {
-                // One row of chrome: text tabs on the left, filter and search on the right. The
-                // search field itself only exists while expanded, so the feed starts near the top
-                // of the screen instead of under two stacked capsules.
-                val rowVisible =
-                    (topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar) && !searchExpanded
-                val tabsVisible = topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar
-                // Closing the search panel already fades it out above this row; growing the row
-                // back in at the same time read as a second, shrinking motion. It appears in
-                // place instead when the change was caused by the search panel closing.
-                var wasSearchExpanded by remember { mutableStateOf(searchExpanded) }
-                val returningFromSearch = wasSearchExpanded && !searchExpanded
-                LaunchedEffect(searchExpanded) { wasSearchExpanded = searchExpanded }
-                Column(Modifier.fillMaxWidth()) {
-                    AnimatedVisibility(
-                        visible = rowVisible,
-                        enter = if (returningFromSearch) {
-                            EnterTransition.None
-                        } else {
-                            fadeIn() + expandVertically()
-                        },
-                        // Expanding the search replaces the row outright, so it must not
-                        // animate the pane downwards while the panel animates in.
-                        exit = if (searchExpanded) ExitTransition.None else fadeOut() + shrinkVertically()
+            // One row of chrome: text tabs on the left, filter and search on the right. The
+            // search field itself only exists while expanded, so the feed starts near the top
+            // of the screen instead of under two stacked capsules.
+            val rowVisible =
+                (topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar) && !searchExpanded
+            val tabsVisible = topBarScrollMode == TopBarScrollMode.ALWAYS || showSearchBar
+            // Closing the search panel already fades it out above this row; growing the row
+            // back in at the same time read as a second, shrinking motion. It appears in
+            // place instead when the change was caused by the search panel closing.
+            var wasSearchExpanded by remember { mutableStateOf(searchExpanded) }
+            val returningFromSearch = wasSearchExpanded && !searchExpanded
+            LaunchedEffect(searchExpanded) { wasSearchExpanded = searchExpanded }
+            Column(Modifier.fillMaxWidth()) {
+                AnimatedVisibility(
+                    visible = rowVisible,
+                    enter = if (returningFromSearch) {
+                        EnterTransition.None
+                    } else {
+                        fadeIn() + expandVertically()
+                    },
+                    // Expanding the search replaces the row outright, so it must not
+                    // animate the pane downwards while the panel animates in.
+                    exit = if (searchExpanded) ExitTransition.None else fadeOut() + shrinkVertically()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AnimatedVisibility(visible = tabsVisible) {
-                                MemoFeedTabs(pagerState, Modifier.testTag("memo_feed_tabs"))
-                            }
-                            Spacer(Modifier.weight(1f))
-                            // An idle sync state carries no information, so it stays silent.
-                            // Miuix's feed header is a single fixed-height row, so the status
-                            // text rides inline here instead of floating over the list: it can
-                            // never grow the row and shift the feed.
-                            if (syncStatusOf(uiState) != SyncStatus.IDLE) {
-                                syncStatusChipLabel(uiState)?.let { label ->
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(end = 6.dp)
-                                    )
-                                }
-                                SyncStatusIconButton(
-                                    uiState = uiState,
-                                    onClick = { showSyncPanel = true }
+                        AnimatedVisibility(visible = tabsVisible) {
+                            MemoFeedTabs(pagerState, Modifier.testTag("memo_feed_tabs"))
+                        }
+                        Spacer(Modifier.weight(1f))
+                        // An idle sync state carries no information, so it stays silent.
+                        // The feed header is a single fixed-height row, so the status
+                        // text rides inline here instead of floating over the list: it can
+                        // never grow the row and shift the feed.
+                        if (syncStatusOf(uiState) != SyncStatus.IDLE) {
+                            syncStatusChipLabel(uiState)?.let { label ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(end = 6.dp)
                                 )
                             }
-                            feedFilterButton()
-                            IconButton(onClick = { onSearchExpandedChange(true) }) {
-                                Icon(
-                                    Icons.Outlined.Search,
-                                    contentDescription = stringResource(R.string.memo_search_placeholder)
-                                )
-                            }
+                            SyncStatusIconButton(
+                                uiState = uiState,
+                                onClick = { showSyncPanel = true }
+                            )
+                        }
+                        feedFilterButton()
+                        IconButton(onClick = { onSearchExpandedChange(true) }) {
+                            Icon(
+                                Icons.Outlined.Search,
+                                contentDescription = stringResource(R.string.memo_search_placeholder)
+                            )
                         }
                     }
-                    filterBar()
                 }
-            } else {
-                // ON_SCROLL hides the tabs with the header; ALWAYS keeps them pinned.
-                val tabsVisible = if (topBarScrollMode == TopBarScrollMode.ON_SCROLL) {
-                    showSearchBar && !searchExpanded
-                } else {
-                    !searchExpanded
-                }
-                Column(Modifier.fillMaxWidth()) {
-                    AnimatedVisibility(
-                        visible = tabsVisible,
-                        enter = slideInVertically { -it } + expandVertically() + fadeIn(),
-                        exit = slideOutVertically { -it } + shrinkVertically() + fadeOut()
-                    ) {
-                        MemoFeedTabs(
-                            pagerState,
-                            Modifier
-                                .testTag("memo_feed_tabs")
-                                .onSizeChanged {
-                                    feedHeaderHeight = with(density) { it.height.toDp() }
-                                }
-                                .padding(bottom = 16.dp)
-                        )
-                    }
-                    filterBar()
-                }
+                filterBar()
             }
         },
         listPane = { onMemoClick ->
@@ -483,11 +434,8 @@ fun MemosScreen(
                     targetValue = if (feedFilterAvailable && feedFilterActive) FeedFilterBarHeight else 0.dp,
                     label = "feedFilterBarInset"
                 )
-                val headerTop = if (miuixFeed) {
-                    64.dp + filterBarInset
-                } else {
-                    88.dp + feedHeaderHeight + filterBarInset
-                }
+                // The one header row (tabs, actions) plus the filter summary above the list.
+                val headerTop = 64.dp + filterBarInset
                 val contentPadding = PaddingValues(
                     start = 16.dp,
                     top = headerTop,
@@ -495,13 +443,8 @@ fun MemosScreen(
                     bottom = bottomPadding
                 )
                 // The pull-to-refresh chip floats over the list, so it has to clear the chrome
-                // instead of being clipped by it: Miuix has one header row, MD has the tabs plus
-                // the floating search field.
-                val indicatorPadding = if (miuixFeed) {
-                    64.dp + filterBarInset
-                } else {
-                    feedHeaderHeight + 56.dp + filterBarInset
-                }
+                // instead of being clipped by it.
+                val indicatorPadding = 64.dp + filterBarInset
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(
                         viewModel = viewModel,
@@ -541,7 +484,6 @@ fun MemosScreen(
             }
         },
         overlay = { onMemoClick, showSearchBar, searchExpanded, onSearchExpandedChange, isDualPane, isDetailVisible ->
-            val miuixSearch = miuixFeed
             val searchBar: @Composable () -> Unit = {
                 key(activeFeed) {
                     MemoSearchBar(
@@ -552,9 +494,9 @@ fun MemosScreen(
                             else R.string.memo_search_placeholder
                         ),
                         onMemoClick = onMemoClick,
-                        // Miuix has no collapsed field: the header row's search action
+                        // The field has no collapsed state: the header row's search action
                         // drives the expanded panel, so the state is hoisted there.
-                        expandedOverride = if (miuixSearch) searchExpanded else null,
+                        expandedOverride = searchExpanded,
                         onExpandedChange = {
                             isSearchExpanded = it
                             onSearchExpandedChange(it)
@@ -562,48 +504,9 @@ fun MemosScreen(
                     )
                 }
             }
-            // Sync/cache status floats over the feed instead of living in the
-            // list's header item: a row that appears and disappears inside the
-            // LazyColumn re-measures the header and shifts every memo card.
-            // It is drawn before the search bar so the expanding panel covers
-            // it, and it stays out of the way while search is open.
-            // Offline is left out on purpose - the search bar's red cloud icon
-            // already reports it.
-            if (!miuixSearch && !searchExpanded) {
-                SyncStatusChip(
-                    uiState = uiState,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 60.dp)
-                )
-            }
-
-            if (miuixSearch) {
-                searchBar()
-            } else {
-                AnimatedVisibility(
-                    visible = if (topBarScrollMode == TopBarScrollMode.ALWAYS) {
-                        !searchExpanded || isDualPane || !isDetailVisible
-                    } else {
-                        (showSearchBar || searchExpanded) && (!searchExpanded || isDualPane || !isDetailVisible)
-                    },
-                    enter = slideInVertically { -it } + fadeIn(),
-                    exit = slideOutVertically { -it } + fadeOut(),
-                    modifier = Modifier.align(Alignment.TopCenter)) {
-                    // The MD filter entry rides with the floating search field: both are the
-                    // list's chrome, and they appear and hide together. While the search panel
-                    // is expanded the field needs the full width, so the button steps aside.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(Modifier.weight(1f)) { searchBar() }
-                        if (!searchExpanded) {
-                            feedFilterButton()
-                        }
-                    }
-                }
-            }
+            // The search panel only exists while expanded; the header row above owns the
+            // collapsed state, so this stays a single expanding overlay.
+            searchBar()
 
             // FAB for creating new memo
             if (showComposeFab && uiState.session.currUser != null && !searchExpanded) {
@@ -614,58 +517,34 @@ fun MemosScreen(
                     label = "fabBottomPadding"
                 )
 
-                if (miuixFeed) {
-                    // The compose button is always drawn here, never with Miuix's own FAB (it paints
-                    // an inner squircle that shows up as a white block) and never frosted: the blur
-                    // effect masks itself with the same squircle, which left a visible seam inside
-                    // the circle. A small opaque circle on a shadow is what a FAB is anyway.
-                    Box(
-                        modifier = Modifier
-                            .testTag("memo_feed_compose")
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = fabBottomPadding)
-                            .fabLongPress { showQuickActions = true; fabLongPressConsumed = true }
-                            .size(56.dp)
-                            .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
-                            .clip(CircleShape)
-                            .background(MiuixTheme.colorScheme.primary)
-                            .clickable(onClick = ::onFabTap),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Add,
-                            contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-                            // White on the day theme's dark green. The night primary is a light
-                            // green, where a white plus would all but disappear, so it falls back
-                            // to the palette's own content colour.
-                            tint = if (MiuixTheme.colorScheme.primary.luminance() < 0.5f) {
-                                Color.White
-                            } else {
-                                MiuixTheme.colorScheme.onPrimary
-                            }
-                        )
-                    }
-                } else {
-                    ExtendedFloatingActionButton(
-                    onClick = ::onFabTap,
-                    expanded = isFabExpanded,
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Add,
-                            contentDescription = if (isFabExpanded) null
-                                else stringResource(R.string.memo_composer_fab_new_memo)
-                        )
-                    },
-                    text = {
-                        Text(text = stringResource(R.string.memo_composer_fab_new_memo))
-                    },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                // The compose button is always drawn here, never with Miuix's own FAB (it paints
+                // an inner squircle that shows up as a white block) and never frosted: the blur
+                // effect masks itself with the same squircle, which left a visible seam inside
+                // the circle. A small opaque circle on a shadow is what a FAB is anyway.
+                Box(
                     modifier = Modifier
                         .testTag("memo_feed_compose")
                         .align(Alignment.BottomEnd)
                         .padding(end = 16.dp, bottom = fabBottomPadding)
                         .fabLongPress { showQuickActions = true; fabLongPressConsumed = true }
+                        .size(56.dp)
+                        .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
+                        .clip(CircleShape)
+                        .background(MiuixTheme.colorScheme.primary)
+                        .clickable(onClick = ::onFabTap),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
+                        // White on the day theme's dark green. The night primary is a light
+                        // green, where a white plus would all but disappear, so it falls back
+                        // to the palette's own content colour.
+                        tint = if (MiuixTheme.colorScheme.primary.luminance() < 0.5f) {
+                            Color.White
+                        } else {
+                            MiuixTheme.colorScheme.onPrimary
+                        }
                     )
                 }
             }

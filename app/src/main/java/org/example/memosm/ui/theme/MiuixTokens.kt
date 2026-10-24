@@ -8,8 +8,8 @@ import androidx.compose.ui.unit.dp
  * Visual constants for the Miuix (HyperOS) rendering path.
  *
  * Keep material-specific sizes out of screens: a component should read a token from here so the
- * whole MIUIX theme can be tuned in one place. These values are only used when [LocalThemeStyle]
- * is `ThemeStyle.MIUIX`; the MD path keeps its own Material defaults.
+ * whole theme can be tuned in one place. The Material components that stay in the tree (dialogs,
+ * sliders, text fields) read corners from [Shapes], so they match the Miuix cards around them.
  */
 object MiuixTokens {
     /** Horizontal page padding used by settings, feeds and full-screen pages. */
@@ -51,8 +51,9 @@ object MiuixTokens {
     val ChevronColor = androidx.compose.ui.graphics.Color(0xFFADADAD)
 
     /**
-     * Material [Shapes] used while MIUIX is active. Components that cannot be replaced (Material 3
-     * dialogs, sliders, text fields) still read corners from here, so they match Miuix cards.
+     * Material [Shapes] handed to [androidx.compose.material3.MaterialTheme]. Components that stay
+     * Material (date pickers, sliders, text fields) read corners from here, so they match the
+     * Miuix cards around them.
      */
     val Shapes = Shapes(
         extraSmall = RoundedCornerShape(8.dp),

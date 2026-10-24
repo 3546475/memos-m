@@ -42,7 +42,7 @@ class MemoCatchTest {
     @Test
     fun tenthTapOpensGameAndClosingRequiresTenMoreTaps() {
         compose.setContent {
-            MemosMTheme(dynamicColor = false) {
+            MemosMTheme() {
                 AboutAppCard(onOpenLicenses = {}, onOpenLogs = {}, onShowSetup = {})
             }
         }
@@ -92,7 +92,7 @@ class MemoCatchTest {
         compose.mainClock.autoAdvance = false
         compose.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) {
-                MemosMTheme(darkTheme = dark.value, dynamicColor = false) {
+                MemosMTheme(darkTheme = dark.value) {
                     if (visible.value) MemoCatchDialog(onDismiss = { visible.value = false })
                 }
             }

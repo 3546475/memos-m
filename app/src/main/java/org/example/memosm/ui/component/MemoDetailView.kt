@@ -53,13 +53,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -115,24 +113,6 @@ fun MemoDetailView(
     val detailBackdrop = rememberLayerBackdrop()
 
     val listState = rememberLazyListState()
-    var isFabExpanded by remember { mutableStateOf(true) }
-
-    LaunchedEffect(listState) {
-        var previousIndex = listState.firstVisibleItemIndex
-        var previousScrollOffset = listState.firstVisibleItemScrollOffset
-        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }.collect { (index, offset) ->
-            isFabExpanded = when {
-                index == 0 && offset == 0 -> true
-                index > previousIndex -> false
-                index < previousIndex -> true
-                offset > previousScrollOffset + 10 -> false
-                offset < previousScrollOffset - 10 -> true
-                else -> isFabExpanded
-            }
-            previousIndex = index
-            previousScrollOffset = offset
-        }
-    }
 
     val isOwner = remember(memo.creator, uiState.session.currUser?.name) {
         memo.creator == uiState.session.currUser?.name
@@ -169,9 +149,6 @@ fun MemoDetailView(
                     Box(Modifier.padding(bottom = bottomBarInset)) {
                         AppExtendedFloatingActionButton(
                             onClick = { onCommentMemo(memo) },
-                            expanded = isFabExpanded,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             backdrop = commentBackdrop,
                             icon = {
                                 Icon(

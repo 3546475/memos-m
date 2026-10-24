@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.isSpecified
 import org.example.memosm.model.AppFont
 import org.example.memosm.model.AppearancePreferences
 import org.example.memosm.model.ColorTheme
-import org.example.memosm.model.ThemeStyle
 import top.yukonga.miuix.kmp.basic.Switch as MiuixSwitch
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.Colors as MiuixColors
@@ -32,9 +31,6 @@ import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 import top.yukonga.miuix.kmp.theme.darkColorScheme as miuixDarkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme as miuixLightColorScheme
 import top.yukonga.miuix.kmp.theme.platformDynamicColors
-
-/** The active design language; component code picks Miuix equivalents when it is [ThemeStyle.MIUIX]. */
-val LocalThemeStyle = staticCompositionLocalOf { ThemeStyle.MD }
 
 /**
  * The Miuix palette in effect. Miuix components need their own theme, so nesting one inside a
@@ -62,7 +58,6 @@ fun MiuixMemosMTheme(
             miuixTypography(appearance.font, textStyles)
         }
         CompositionLocalProvider(
-            LocalThemeStyle provides ThemeStyle.MIUIX,
             LocalMiuixColors provides colors
         ) {
             MaterialTheme(
@@ -104,8 +99,8 @@ private fun miuixColorsFor(appearance: AppearancePreferences, isDark: Boolean): 
         } ?: base
     }
     // HyperOS keeps its own flat neutral scale: white cards on a grey page (black / #242424 when
-    // dark). Only the accent family follows the selected color source, so MIUIX never collapses
-    // into a Material You palette.
+    // dark). Only the accent family follows the selected color source, so the theme never
+    // collapses into a Material You palette.
     return base.copy(
         primary = accent.primary,
         onPrimary = accent.onPrimary,

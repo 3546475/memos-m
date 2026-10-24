@@ -390,7 +390,7 @@ fun FilterPanel(
 
         // Material's date pickers are used for the custom range: the panel already runs inside an
         // AppDialog, and a nested dialog is far less code than a hand-rolled calendar. They read
-        // the app's Material colour scheme, so MIUIX stays colour-consistent.
+        // the app's Material colour scheme, which the Miuix palette drives.
         if (showStartPicker) {
             val pickerState = rememberDatePickerState(
                 initialSelectedDateMillis = draft.date?.let { range ->

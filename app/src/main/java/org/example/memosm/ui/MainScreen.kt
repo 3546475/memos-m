@@ -5,8 +5,6 @@ import org.example.memosm.model.NavBarScrollMode
 
 import org.example.memosm.model.AppearancePreferences
 
-import org.example.memosm.ui.theme.isMiuixMotion
-
 import org.example.memosm.ui.theme.appSlideSpec
 
 import org.example.memosm.ui.theme.appFadeSpec
@@ -43,7 +41,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.State
-import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -58,7 +55,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.background
@@ -75,7 +71,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
@@ -90,19 +85,12 @@ import org.example.memosm.model.MapCapability
 import org.example.memosm.ui.nav.MapScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
 import androidx.compose.ui.graphics.vector.ImageVector
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppSurface
 import org.example.memosm.ui.theme.capsuleHighlight
-import org.example.memosm.ui.theme.LocalThemeStyle
 import top.yukonga.miuix.kmp.basic.NavigationBar as MiuixNavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem as MiuixNavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationRail as MiuixNavigationRail
@@ -129,7 +117,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -145,12 +132,10 @@ import org.example.memosm.ui.theme.LocalBottomBarBlurEnabled
 import org.example.memosm.ui.theme.LocalTopBarBlurEnabled
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
-import org.example.memosm.ui.component.item.media.MemoImage
 import org.example.memosm.ui.component.item.markdown.LocalLinkPreviews
 import org.example.memosm.ui.component.item.markdown.LocalMarkdownFormat
 import org.example.memosm.ui.component.item.markdown.MarkdownFormat
 import org.example.memosm.ui.component.item.markdown.LinkPreviewEnvironment
-import org.example.memosm.ui.component.resolveResourceUrl
 import org.example.memosm.ui.nav.AttachmentsScreen
 import org.example.memosm.ui.nav.MemoFeed
 import org.example.memosm.ui.nav.MemosScreen
@@ -405,8 +390,6 @@ private fun MainScreenContent(
     val configuration = LocalConfiguration.current
     val isMobile = configuration.screenWidthDp < 600
 
-    val miuixMotion = isMiuixMotion(LocalThemeStyle.current)
-
     // The bottom bar blurs a snapshot of the content layer, and neither that snapshot nor the bar
     // is invalidated by the destination cross-fade on its own. This transition ticks on every frame
     // of that fade; both the content layer and the bar read it, so the backdrop is re-recorded and
@@ -443,59 +426,6 @@ private fun MainScreenContent(
         }, onDismiss = { isAddingAccount = false })
     }
 
-
-    @Composable
-    fun NavigationIcon(
-        destination: MainDestination, isSelected: Boolean, modifier: Modifier = Modifier.size(24.dp)
-    ) {
-        when (destination) {
-            MainDestination.MAP -> Icon(
-                if (isSelected) Icons.Filled.Map else Icons.Outlined.Map,
-                contentDescription = null,
-                modifier = modifier
-            )
-            MainDestination.MEMOS -> Icon(
-                if (isSelected) Icons.AutoMirrored.Filled.LibraryBooks else Icons.AutoMirrored.Outlined.LibraryBooks,
-                contentDescription = null,
-                modifier = modifier
-            )
-
-            MainDestination.ATTACHMENTS -> Icon(
-                if (isSelected) Icons.Default.Attachment else Icons.Outlined.Attachment,
-                contentDescription = null,
-                modifier = modifier
-            )
-
-            MainDestination.PROFILE -> {
-                val user = uiState.session.currUser
-                val account = uiState.accounts.find { it.isActive }
-                val rawAvatarUrl = user?.avatarUrl ?: account?.avatarUrl
-                val hostUrl = uiState.session.hostUrl
-
-                val avatarUri = remember(rawAvatarUrl, hostUrl) {
-                    if (rawAvatarUrl.isNullOrBlank()) Uri.EMPTY
-                    else (resolveResourceUrl(hostUrl, rawAvatarUrl) ?: "").toUri()
-                }
-
-                MemoImage(
-                    attachment = null,
-                    token = uiState.session.token,
-                    hostUrl = hostUrl,
-                    uri = avatarUri,
-                    contentDescription = null,
-                    isRound = true,
-                    placeholderIcon = if (isSelected) Icons.Default.Person else Icons.Outlined.Person,
-                    modifier = modifier
-                        .then(
-                            if (isSelected) Modifier.border(
-                                2.dp, MaterialTheme.colorScheme.primary, CircleShape
-                            ) else Modifier
-                        )
-                        .padding(if (isSelected) 1.dp else 0.dp)
-                )
-            }
-        }
-    }
 
     fun handleDestinationClick(destination: MainDestination) {
         focusManager.clearFocus()
@@ -550,42 +480,18 @@ private fun MainScreenContent(
             Row(Modifier.fillMaxSize()) {
                 // Navigation Rail for tablets/desktops
                 if (!isMobile) {
-                    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-                        MiuixNavigationRail {
-                            Spacer(Modifier.height(12.dp))
-                            visibleDestinations.forEach { destination ->
-                                if (destination == MainDestination.PROFILE) {
-                                    Spacer(Modifier.weight(1f))
-                                }
-                                MiuixNavigationRailItem(
-                                    selected = currentDestination == destination,
-                                    onClick = { handleDestinationClick(destination) },
-                                    icon = destination.navIcon(currentDestination == destination),
-                                    label = stringResource(destination.labelRes)
-                                )
+                    MiuixNavigationRail {
+                        Spacer(Modifier.height(12.dp))
+                        visibleDestinations.forEach { destination ->
+                            if (destination == MainDestination.PROFILE) {
+                                Spacer(Modifier.weight(1f))
                             }
-                        }
-                    } else {
-                        NavigationRail(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            contentColor = contentColorFor(MaterialTheme.colorScheme.surfaceContainer)
-                        ) {
-                            Spacer(Modifier.height(12.dp))
-                            // Items
-                            visibleDestinations.forEach { destination ->
-                                if (destination == MainDestination.PROFILE) {
-                                    Spacer(Modifier.weight(1f))
-                                }
-                                NavigationRailItem(
-                                    selected = currentDestination == destination,
-                                    onClick = { handleDestinationClick(destination) },
-                                    icon = {
-                                        NavigationIcon(
-                                            destination, currentDestination == destination
-                                        )
-                                    },
-                                    label = { Text(stringResource(destination.labelRes)) })
-                            }
+                            MiuixNavigationRailItem(
+                                selected = currentDestination == destination,
+                                onClick = { handleDestinationClick(destination) },
+                                icon = destination.navIcon(currentDestination == destination),
+                                label = stringResource(destination.labelRes)
+                            )
                         }
                     }
                 }
@@ -599,14 +505,14 @@ private fun MainScreenContent(
                     AnimatedContent(
                         targetState = currentDestination,
                         transitionSpec = {
-                            val spec = appFadeSpec(miuixMotion)
+                            val spec = appFadeSpec()
                             // Same-level bottom destinations have no spatial order, so they get a
                             // fade-through with a subtle zoom instead of a horizontal slide (which
                             // would falsely imply a stack push). The outgoing page still leaves
                             // quickly so it cannot linger in the translucent bar's backdrop.
                             (fadeIn(animationSpec = spec) + scaleIn(
                                 animationSpec = spec,
-                                initialScale = if (miuixMotion) 0.96f else 0.92f,
+                                initialScale = 0.96f,
                                 transformOrigin = TransformOrigin.Center
                             )) togetherWith fadeOut(animationSpec = tween(90))
                         },
@@ -643,10 +549,7 @@ private fun MainScreenContent(
                                     navBarAlwaysVisible = navBarAlwaysVisible,
                                     memoEditGesture = appearance.editGesture,
                                     // The floating bar carries the compose action already.
-                                    showComposeFab = !(
-                                        LocalThemeStyle.current == ThemeStyle.MIUIX &&
-                                            appearance.floatingNavBar
-                                        ),
+                                    showComposeFab = !appearance.floatingNavBar,
                                     openComposer = shouldOpenComposer,
                                     onComposerOpened = onComposerOpened,
                                     openSearch = openSearchRequest,
@@ -679,8 +582,7 @@ private fun MainScreenContent(
 
             // Bottom Navigation Bar for mobile
             if (isMobile) {
-                val floatingBar =
-                    LocalThemeStyle.current == ThemeStyle.MIUIX && appearance.floatingNavBar
+                val floatingBar = appearance.floatingNavBar
                 if (floatingBar) {
                     FloatingBottomBar(
                         visible = isNavBarVisible && bottomBarReady,
@@ -713,57 +615,38 @@ private fun MainScreenContent(
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(animationSpec = tween(140)),
                         exit = slideOutVertically(targetOffsetY = { it })
                     ) {
-                        if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-                            MiuixNavigationBar(
-                                // A translucent bar lets the list frost through; without blur it
-                                // stays the plain opaque surface.
-                                color = if (navBlurEnabled) {
-                                    MiuixTheme.colorScheme.surface.copy(alpha = CapsuleSurfaceAlpha)
-                                } else {
-                                    MiuixTheme.colorScheme.surface
-                                },
-                                modifier = if (navBlurEnabled) {
-                                    Modifier
-                                        .drawWithContent {
-                                            if (barBlurRefresh.value < 0f) {
-                                                return@drawWithContent
-                                            }
-                                            drawContent()
+                        MiuixNavigationBar(
+                            // A translucent bar lets the list frost through; without blur it
+                            // stays the plain opaque surface.
+                            color = if (navBlurEnabled) {
+                                MiuixTheme.colorScheme.surface.copy(alpha = CapsuleSurfaceAlpha)
+                            } else {
+                                MiuixTheme.colorScheme.surface
+                            },
+                            modifier = if (navBlurEnabled) {
+                                Modifier
+                                    .drawWithContent {
+                                        if (barBlurRefresh.value < 0f) {
+                                            return@drawWithContent
                                         }
-                                        .drawBackdrop(
-                                            backdrop = activeNavBackdrop,
-                                            shape = { RectangleShape },
-                                            effects = { blur(NavBlurRadius, NavBlurRadius) }
-                                        )
-                                } else {
-                                    Modifier
-                                }
-                            ) {
-                                visibleDestinations.forEach { destination ->
-                                    MiuixNavigationBarItem(
-                                        selected = currentDestination == destination,
-                                        onClick = { handleDestinationClick(destination) },
-                                        icon = destination.navIcon(currentDestination == destination),
-                                        label = stringResource(destination.labelRes)
+                                        drawContent()
+                                    }
+                                    .drawBackdrop(
+                                        backdrop = activeNavBackdrop,
+                                        shape = { RectangleShape },
+                                        effects = { blur(NavBlurRadius, NavBlurRadius) }
                                     )
-                                }
+                            } else {
+                                Modifier
                             }
-                        } else {
-                            NavigationBar(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                contentColor = contentColorFor(MaterialTheme.colorScheme.surfaceContainer)
-                            ) {
-                                visibleDestinations.forEach { destination ->
-                                    NavigationBarItem(
-                                        selected = currentDestination == destination,
-                                        onClick = { handleDestinationClick(destination) },
-                                        icon = {
-                                            NavigationIcon(
-                                                destination, currentDestination == destination
-                                            )
-                                        },
-                                        label = { Text(stringResource(destination.labelRes)) })
-                                }
+                        ) {
+                            visibleDestinations.forEach { destination ->
+                                MiuixNavigationBarItem(
+                                    selected = currentDestination == destination,
+                                    onClick = { handleDestinationClick(destination) },
+                                    icon = destination.navIcon(currentDestination == destination),
+                                    label = stringResource(destination.labelRes)
+                                )
                             }
                         }
                     }

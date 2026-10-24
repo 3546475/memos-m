@@ -35,7 +35,7 @@ While other clients like [MoeMemos](https://github.com/mudkipme/MoeMemosAndroid)
 - **Offline-first by default:** a local-first cache, queued offline writes, conflict handling, and optional text/attachment pre-download keep the app usable without a connection.
 - **Filtering that fits:** saved views, a collapsible tag tree, date windows, content types and ordering — compiled to the server's CEL filter and mirrored locally for offline use.
 - **Modern Feature Set:** By focusing on recent Memos versions, we avoid the limitations of backward compatibility and can implement modern features like advanced Markdown, Reactions and SSO.
-- **Two design languages:** Material 3 and Miuix (HyperOS), with Material You, custom and monochrome palettes.
+- **One design language:** Miuix (HyperOS), with Material You, custom and monochrome palettes.
 
 ## SSO login
 
@@ -120,7 +120,7 @@ On Android 17 and later, connecting to a local Memos server may require the **Ne
   - Optional pre-download of text and attachments (Wi-Fi only), cache size limits
   - Sync status panel, audit log, failed-upload retry/discard
 - **Appearance**
-  - Material 3 and Miuix (HyperOS) styles; light, dark or follow-system
+  - Miuix (HyperOS) styling; light, dark or follow-system
   - Material You, custom and monochrome palettes; font and heading-size options
   - Navigation layout for phones and tablets (bottom bar or rail), edit gestures, pull-to-refresh
 - **Widgets & shortcuts**
@@ -195,7 +195,7 @@ runs it explicitly against the canary image and every supported release image.
 | `app/src/main/java/org/example/memosm/api` | Retrofit interfaces and the versioned server adapters (v0.26 to current, plus the unversioned fallback) |
 | `app/src/main/java/org/example/memosm/data` | Caches, offline outbox, sync, backup, media and DataStore persistence |
 | `app/src/main/java/org/example/memosm/viewmodel` | View model, list managers and the feature delegates |
-| `app/src/main/java/org/example/memosm/ui` | Compose screens, components and the Material 3 / Miuix theme layer |
+| `app/src/main/java/org/example/memosm/ui` | Compose screens, components and the Miuix theme layer |
 | `app/src/main/java/org/example/memosm/model` | API models and the structured filter model |
 | `app/src/main/java/org/example/memosm/network` | Local-network permission handling |
 | `app/src/main/java/org/example/memosm/widget` | Glance home-screen widgets |

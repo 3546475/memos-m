@@ -559,9 +559,6 @@ fun MemoComposerBottomBar(
         if (showPublishLabel) {
             AppExtendedFloatingActionButton(
                 onClick = onPublishClick,
-                expanded = true,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 // The editor text scrolls under this bar, so the action wears the same frosted
                 // material as the bar itself.
                 backdrop = backdrop,
@@ -585,7 +582,6 @@ fun MemoComposerBottomBar(
         } else {
             AppFloatingActionButton(
                 onClick = onPublishClick,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
                 backdrop = backdrop,
                 modifier = Modifier
             ) {

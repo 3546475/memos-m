@@ -22,7 +22,6 @@ import org.example.memosm.model.EditGesture
 import org.example.memosm.model.ThemeMode
 import org.example.memosm.model.ColorTheme
 import org.example.memosm.model.AppFont
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.model.Account
 import org.example.memosm.model.User
 import org.example.memosm.model.toUserSnapshot
@@ -49,11 +48,17 @@ class DataStoreManager(
         val APPEARANCE_COLOR_THEME = stringPreferencesKey("appearance_color_theme")
         val APPEARANCE_CUSTOM_HUE = androidx.datastore.preferences.core.floatPreferencesKey("appearance_custom_hue")
         val APPEARANCE_FONT = stringPreferencesKey("appearance_font")
-        val APPEARANCE_THEME_STYLE = stringPreferencesKey("appearance_theme_style")
     val APPEARANCE_NAV_SCROLL_MODE = stringPreferencesKey("appearance_nav_scroll_mode")
     val APPEARANCE_TOP_SCROLL_MODE = stringPreferencesKey("appearance_top_scroll_mode")
     val APPEARANCE_NAV_DESTINATIONS = stringPreferencesKey("appearance_nav_destinations")
     val APPEARANCE_EDIT_GESTURE = stringPreferencesKey("appearance_edit_gesture")
+
+        /**
+         * Written by builds that still offered the Material Design style switch. A backup made by
+         * such a build must restore without failing, so the key is recognised and dropped rather
+         * than treated as an unknown setting.
+         */
+        internal const val LEGACY_APPEARANCE_THEME_STYLE = "appearance_theme_style"
         /**
          * The single switch the two per-bar switches replaced. Kept readable so preferences and
          * backups written by an older build still carry their choice over to both bars.
@@ -285,8 +290,6 @@ class DataStoreManager(
             colorTheme = if (colorTheme == ColorTheme.CUSTOM && hue == null) ColorTheme.SYSTEM else colorTheme,
             customHue = hue?.rem(360f),
             font = AppFont.entries.firstOrNull { it.name == preferences[APPEARANCE_FONT] } ?: AppFont.SYSTEM,
-            themeStyle = ThemeStyle.entries.firstOrNull { it.name == preferences[APPEARANCE_THEME_STYLE] }
-                ?: ThemeStyle.MIUIX,
             navBarScrollMode = NavBarScrollMode.entries.firstOrNull {
                 it.name == preferences[APPEARANCE_NAV_SCROLL_MODE]
             } ?: NavBarScrollMode.ALWAYS_VISIBLE,
@@ -358,10 +361,6 @@ class DataStoreManager(
                 preferences[APPEARANCE_NAV_DESTINATIONS] = destinations.joinToString(",")
             }
         }
-    }
-
-    suspend fun saveThemeStyle(style: ThemeStyle) {
-        dataStore.edit { it[APPEARANCE_THEME_STYLE] = style.name }
     }
 
     val pageSize: Flow<Int> = dataStore.data.map { preferences ->
@@ -600,7 +599,7 @@ class DataStoreManager(
 
     private val portableKeys: List<Preferences.Key<*>> get() = listOf(
         APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_CUSTOM_HUE, APPEARANCE_FONT,
-        APPEARANCE_THEME_STYLE, APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE,
+        APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE,
         APPEARANCE_NAV_DESTINATIONS, APPEARANCE_BLUR_ENABLED, APPEARANCE_FLOATING_NAV_BAR,
         APPEARANCE_TOP_BAR_BLUR, APPEARANCE_BOTTOM_BAR_BLUR,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
@@ -619,14 +618,19 @@ class DataStoreManager(
         snapshotJson(domain, accountId).first()?.let { com.google.gson.JsonParser.parseString(it).asJsonObject }
 
     fun validateBackupSettings(settings: com.google.gson.JsonObject) {
-        require(settings.keySet().all { name -> portableKeys.any { it.name == name } }) { "Unknown backup setting" }
+        require(
+            settings.keySet().all { name ->
+                name == LEGACY_APPEARANCE_THEME_STYLE || portableKeys.any { it.name == name }
+            }
+        ) { "Unknown backup setting" }
         settings.entrySet().forEach { (name, value) ->
+            // Retired keys restore as a no-op: their choice is not brought back.
+            if (name == LEGACY_APPEARANCE_THEME_STYLE) return@forEach
             require(value.isJsonPrimitive) { "Invalid backup setting" }
             when (name) {
                 APPEARANCE_THEME_MODE.name -> org.example.memosm.model.ThemeMode.valueOf(value.asString)
                 APPEARANCE_COLOR_THEME.name -> org.example.memosm.model.ColorTheme.valueOf(value.asString)
                 APPEARANCE_FONT.name -> org.example.memosm.model.AppFont.valueOf(value.asString)
-                APPEARANCE_THEME_STYLE.name -> ThemeStyle.valueOf(value.asString)
                 APPEARANCE_NAV_SCROLL_MODE.name -> NavBarScrollMode.valueOf(value.asString)
                 APPEARANCE_TOP_SCROLL_MODE.name -> require(topBarScrollModeOf(value.asString) != null) {
                     "Unknown top bar scroll mode"
@@ -652,7 +656,7 @@ class DataStoreManager(
                     prefs.remove(key)
                     val value = values.get(key.name) ?: return@forEach
                     when (key) {
-                        APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_FONT, APPEARANCE_THEME_STYLE,
+                        APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_FONT,
             APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE, APPEARANCE_NAV_DESTINATIONS ->
                 prefs[stringPreferencesKey(key.name)] = value.asString
                         APPEARANCE_CUSTOM_HUE, HEADER_SCALE -> prefs[androidx.datastore.preferences.core.floatPreferencesKey(key.name)] = value.asFloat
@@ -660,6 +664,8 @@ class DataStoreManager(
                         else -> prefs[androidx.datastore.preferences.core.booleanPreferencesKey(key.name)] = value.asBoolean
                     }
                 }
+                // The style switch of older builds is retired; drop the leftover value too.
+                prefs.remove(stringPreferencesKey(LEGACY_APPEARANCE_THEME_STYLE))
             }
             manifest.accounts.forEach { data ->
                 val id = data.identity.id

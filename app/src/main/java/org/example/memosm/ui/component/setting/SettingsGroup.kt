@@ -5,7 +5,6 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,12 +13,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.ui.theme.AppSurface
 import org.example.memosm.ui.theme.LocalGroupedRow
-import org.example.memosm.ui.theme.LocalThemeStyle
 import org.example.memosm.ui.theme.MiuixTokens
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -28,28 +24,19 @@ import androidx.compose.ui.unit.dp
  * A grouped list of rows.
  *
  * Miuix shows a group as one solid card: the rows carry no surface, no corners and no separators,
- * and the card's rounded background is the only shape the user sees. Material keeps the familiar
- * stacked blocks with a small gap between them.
+ * and the card's rounded background is the only shape the user sees.
  */
 @Composable
 fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
-    if (LocalThemeStyle.current == ThemeStyle.MIUIX) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(MiuixTokens.CardCornerRadius))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-        ) {
-            CompositionLocalProvider(LocalGroupedRow provides true) {
-                Column(content = content)
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(MiuixTokens.CardCornerRadius))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        CompositionLocalProvider(LocalGroupedRow provides true) {
+            Column(content = content)
         }
-    } else {
-        Column(
-            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            content = content
-        )
     }
 }
 

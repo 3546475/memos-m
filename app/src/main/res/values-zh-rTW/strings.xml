@@ -390,9 +390,6 @@
     <string name="appearance_preview_memo"># 標題\n\n## 小標題\n\n### 次標題\n\n一個小想法也能變成**精彩的創意**。\n\n- 記下想法\n- 留待日後回顧</string>
     <string name="appearance_save_error">無法儲存外觀設定，請再試一次。</string>
     <string name="appearance_theme_mode">主題模式</string>
-    <string name="settings_theme_style">主題風格</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">檔案</string>
     <string name="audit_log_account">帳戶：%1$s</string>
     <string name="audit_log_empty">目前沒有記錄。</string>

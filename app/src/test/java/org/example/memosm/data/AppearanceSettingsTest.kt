@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.example.memosm.data.backup.BackupCategory
 import org.example.memosm.data.backup.BackupManifest
+import org.example.memosm.model.AppFont
 import org.example.memosm.model.DefaultNavDestinations
 import org.example.memosm.model.NavBarScrollMode
-import org.example.memosm.model.ThemeStyle
 import org.example.memosm.model.TopBarScrollMode
 import org.example.memosm.ui.component.setting.enabledDestinations
 import org.junit.Assert.assertEquals
@@ -22,33 +22,25 @@ import org.junit.Test
 
 class AppearanceSettingsTest {
     @Test
-    fun `theme style defaults to Miuix and survives backup restore`() = withSettings { settings ->
-        assertEquals(ThemeStyle.MIUIX, settings.appearance.first().themeStyle)
-
-        settings.saveThemeStyle(ThemeStyle.MD)
-        assertEquals(ThemeStyle.MD, settings.appearance.first().themeStyle)
-
-        val backup = settings.backupSettings()
-        assertEquals(ThemeStyle.MD.name, backup.get(DataStoreManager.APPEARANCE_THEME_STYLE.name).asString)
-
-        settings.saveThemeStyle(ThemeStyle.MIUIX)
+    fun `a backup from the Material Design build restores its appearance settings`() = withSettings { settings ->
+        // The style switch is gone, but an older backup still carries its key: restoring must not
+        // fail on it, and the rest of the appearance settings must land unchanged.
+        val settingsJson = JsonObject().apply {
+            addProperty(DataStoreManager.LEGACY_APPEARANCE_THEME_STYLE, "MIUIX")
+            addProperty(DataStoreManager.APPEARANCE_FONT.name, AppFont.SERIF.name)
+            addProperty(DataStoreManager.APPEARANCE_TOP_SCROLL_MODE.name, TopBarScrollMode.ALWAYS.name)
+        }
         settings.applyBackup(
             BackupManifest(
                 createdAt = 0L,
                 categories = setOf(BackupCategory.SETTINGS),
                 accounts = emptyList(),
-                settings = backup
+                settings = settingsJson
             )
         )
-        assertEquals(ThemeStyle.MD, settings.appearance.first().themeStyle)
-    }
-
-    @Test
-    fun `restoring an unknown theme style is rejected`() = withSettings { settings ->
-        val settingsJson = JsonObject().apply {
-            addProperty(DataStoreManager.APPEARANCE_THEME_STYLE.name, "MIUI_X")
-        }
-        assertThrows(IllegalArgumentException::class.java) { settings.validateBackupSettings(settingsJson) }
+        val appearance = settings.appearance.first()
+        assertEquals(AppFont.SERIF, appearance.font)
+        assertEquals(TopBarScrollMode.ALWAYS, appearance.topBarScrollMode)
     }
 
     @Test

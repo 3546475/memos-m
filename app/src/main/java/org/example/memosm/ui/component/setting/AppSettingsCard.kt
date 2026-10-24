@@ -157,7 +157,6 @@ fun AppSettingsCard(
             label = stringResource(R.string.profile_app_settings_page_size_hint),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
-            isError = isError,
             modifier = Modifier.fillMaxWidth()
         )
     }
