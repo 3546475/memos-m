@@ -575,6 +575,14 @@ fun MemosScaffold(
         val uiState by viewModel.uiState.collectAsState()
         val focusManager = LocalFocusManager.current
 
+        // Items read these through derived states: a sync tick or a refresh no longer recomposes
+        // every card, only a session change or a different selected memo does.
+        val sessionState = remember { derivedStateOf { uiState.session } }
+        val selectedNameState = remember { derivedStateOf { uiState.detailPane.selectedMemo?.name } }
+        val headerScale = uiState.appSettings.headerScale
+        val reactionOptions = uiState.session.instanceSettings?.memoRelatedSetting?.reactions
+            ?: emptyList()
+
         // Skeleton instead of a loader or the empty state until the feed has a first answer,
         // and then until the first cards' markdown has actually been parsed: swapping on data
         // arrival alone shows cards with empty bodies whose text pops in a frame later.
@@ -666,6 +674,7 @@ fun MemosScaffold(
                         if (!it.name.isNullOrBlank()) it.name
                         else "${it.content.hashCode()}_${it.createTime}_$index"
                     }) { index, memo ->
+                        val session = sessionState.value
                         Box(
                             modifier = Modifier.fillMaxWidth().animateItem(),
                             contentAlignment = Alignment.Center
@@ -673,6 +682,13 @@ fun MemosScaffold(
                             MemoPreviewItem(
                                 viewModel = viewModel,
                                 memo = memo,
+                                currentUser = session.currUser,
+                                token = session.token,
+                                hostUrl = session.hostUrl,
+                                selected = memo.name != null &&
+                                    memo.name == selectedNameState.value,
+                                headerScale = headerScale,
+                                reactionOptions = reactionOptions,
                                 user = userProvider(memo),
                                 onClick = { onMemoClick(memo) },
                                 onHashtagClick = onHashtagClick
@@ -717,23 +733,29 @@ fun MemosScaffold(
 fun MemoPreviewItem(
     viewModel: MemosViewModel,
     memo: Memo,
+    /** Hoisted so a card does not subscribe to the whole ui state just to read the session. */
+    currentUser: User?,
+    token: String,
+    hostUrl: String,
+    selected: Boolean,
+    headerScale: Float,
+    reactionOptions: List<String>,
     user: User? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onHashtagClick: ((String) -> Unit)? = null
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
     val onEditMemo = LocalMemoEditor.current
     var showDelete by remember(memo.name) { mutableStateOf(false) }
-    val isOwner = memo.creator == uiState.session.currUser?.name
+    val isOwner = memo.creator == currentUser?.name
     MemoItem(
         memo = memo,
         user = user,
-        currentUser = uiState.session.currUser,
-        token = uiState.session.token,
-        hostUrl = uiState.session.hostUrl,
-        colors = if (memo.name != null && memo.name == uiState.detailPane.selectedMemo?.name) {
+        currentUser = currentUser,
+        token = token,
+        hostUrl = hostUrl,
+        colors = if (selected) {
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         } else {
             CardDefaults.cardColors()
@@ -793,9 +815,8 @@ fun MemoPreviewItem(
         maxHeight = 400.dp,
         modifier = modifier.widthIn(max = 800.dp),
         onHashtagClick = onHashtagClick,
-        headerScale = uiState.appSettings.headerScale,
-        reactionOptions = uiState.session.instanceSettings?.memoRelatedSetting?.reactions
-            ?: emptyList())
+        headerScale = headerScale,
+        reactionOptions = reactionOptions)
     if (showDelete) {
         DeleteConfirmationDialog(memo = memo, onDismiss = { showDelete = false }, onConfirm = {
             viewModel.memoActionDelegate.deleteMemo(memo)

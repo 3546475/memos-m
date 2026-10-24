@@ -54,10 +54,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -115,6 +117,7 @@ import org.example.memosm.ui.profile.DraftsActivity
 import org.example.memosm.ui.profile.SettingsActivity
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -146,6 +149,9 @@ fun MemosScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val miuixFeed = LocalThemeStyle.current == ThemeStyle.MIUIX
+    // Feed cards read the user map through this derived state, so a ui-state tick that does not
+    // change the map leaves them alone.
+    val usersState = remember { derivedStateOf { uiState.users } }
     val memosListState = rememberLazyListState()
     val exploreListState = rememberLazyListState()
     val activeFeed = MemoFeed.entries[pagerState.currentPage]

@@ -220,6 +220,13 @@ fun MapScreen(
                                         }
                                         items(selected, key = { it.name!! }) { memo ->
                                             MemoPreviewItem(viewModel = viewModel, memo = memo,
+                                                currentUser = ui.session.currUser,
+                                                token = ui.session.token,
+                                                hostUrl = ui.session.hostUrl,
+                                                selected = memo.name != null && memo.name == ui.detailPane.selectedMemo?.name,
+                                                headerScale = ui.appSettings.headerScale,
+                                                reactionOptions = ui.session.instanceSettings?.memoRelatedSetting?.reactions
+                                                    ?: emptyList(),
                                                 user = if (map.scope == MapScope.MEMOS) null else ui.users[memo.creator],
                                                 onClick = { onMemoClick(memo) }, onHashtagClick = { requestedTag = it })
                                         }
