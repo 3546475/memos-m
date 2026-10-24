@@ -1,0 +1,90 @@
+name: Release Build CI
+
+on:
+  push:
+    tags:
+      # Version tags: v1.2.3. The insider channel uses v1.2.3.i and keeps its own workflow.
+      - "v*"
+      - "!v*.i"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-37.1
+
+      - name: Cache Android SDK
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.android
+            $ANDROID_HOME
+          key: android-sdk-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_KEY }}
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > app/release.keystore
+
+      # The tag itself drives the version name, so it does not depend on which tag `git describe`
+      # happens to pick (the canary workflow moves a `latest` tag around).
+      - name: Build Release APKs
+        run: ./gradlew assembleRelease -PversionName="${GITHUB_REF_NAME#v}"
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/app/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      - name: Collect APKs
+        run: |
+          set -euo pipefail
+          OUT=app/build/outputs/apk/release
+          TAG="${GITHUB_REF_NAME}"
+          mkdir -p release-apks
+          cp "$OUT/app-arm64-v8a-release.apk"   "release-apks/memos-${TAG}-arm64-v8a.apk"
+          cp "$OUT/app-armeabi-v7a-release.apk" "release-apks/memos-${TAG}-armeabi-v7a.apk"
+          cp "$OUT/app-universal-release.apk"   "release-apks/memos-${TAG}-universal.apk"
+          ls -lh release-apks
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "MemosM ${{ github.ref_name }}"
+          body: |
+            **MemosM ${{ github.ref_name }}**
+
+            Commit: ${{ github.sha }}
+
+            | APK | Devices |
+            | --- | --- |
+            | `arm64-v8a` | 64-bit ARM phones and tablets (recommended) |
+            | `armeabi-v7a` | 32-bit ARM devices |
+            | `universal` | any device; both ABIs in one APK, larger download |
+          files: release-apks/*.apk
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
