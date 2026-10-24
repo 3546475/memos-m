@@ -40,6 +40,7 @@ class MemosApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        org.example.memosm.data.StartupMirror.load(this)
         org.example.memosm.data.backup.BackupCoordinator.beginStartupRecovery()
 
         startKoin {
