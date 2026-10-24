@@ -121,6 +121,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -301,14 +302,25 @@ private fun MainScreenContent(
 
     val navBarAlwaysVisible = appearance.navBarScrollMode == NavBarScrollMode.ALWAYS_VISIBLE
     var isNavBarVisible by remember { mutableStateOf(true) }
-    // Let the content draw once so its backdrop layer and the bar's blur exist before the bar is
-    // shown. On a cold start the bar otherwise painted its plain surface for a frame and then
-    // switched to the configured frosted material.
+    // The bar waits for the notes feed's first settled content instead of appearing over the
+    // skeleton: the feed reports when its placeholders are gone, then the bar draws two frames
+    // later (its blur needs a drawn backdrop). Every other destination, and a feed that never
+    // settles, reveals it as before.
+    var feedSettled by remember { mutableStateOf(false) }
     var bottomBarReady by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        withFrameNanos { }
-        bottomBarReady = true
+    LaunchedEffect(currentDestination, feedSettled) {
+        if (currentDestination != MainDestination.MEMOS || feedSettled) {
+            withFrameNanos { }
+            withFrameNanos { }
+            bottomBarReady = true
+        }
+    }
+    LaunchedEffect(currentDestination) {
+        if (currentDestination == MainDestination.MEMOS && !bottomBarReady) {
+            // Fail-safe: an offline start that never finishes a first page must not hide the bar.
+            delay(3_000)
+            bottomBarReady = true
+        }
     }
 
     LaunchedEffect(navBarAlwaysVisible) { if (navBarAlwaysVisible) isNavBarVisible = true }
@@ -597,7 +609,8 @@ private fun MainScreenContent(
                                     openComposer = shouldOpenComposer,
                                     onComposerOpened = onComposerOpened,
                                     openSearch = openSearchRequest,
-                                    onSearchOpened = onOpenSearchRequestConsumed
+                                    onSearchOpened = onOpenSearchRequestConsumed,
+                                    onFeedSettled = { feedSettled = true }
                                 )
 
                                 MainDestination.ATTACHMENTS -> AttachmentsScreen(

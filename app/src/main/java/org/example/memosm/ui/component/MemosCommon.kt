@@ -570,6 +570,8 @@ fun MemosScaffold(
          * and fills in, rather than flashing "no memos yet" before the request comes back.
          */
         showSkeleton: Boolean = false,
+        /** Called once the placeholders are gone and the pane shows settled content. */
+        onPlaceholdersLifted: (() -> Unit)? = null,
         isActive: Boolean = true
     ) {
         val uiState by viewModel.uiState.collectAsState()
@@ -611,6 +613,12 @@ fun MemosScaffold(
         val showPlaceholders =
             (memos.isEmpty() && (showSkeleton || (isLoading && !isRefreshing))) ||
                 (memos.isNotEmpty() && !markdownPrewarmed)
+
+        // Tell the host chrome when the pane is no longer showing placeholders: the bottom bar
+        // waits for this instead of appearing over the skeleton.
+        LaunchedEffect(showPlaceholders) {
+            if (!showPlaceholders) onPlaceholdersLifted?.invoke()
+        }
 
         LaunchedEffect(listState, isLoading, nextPageToken, isActive) {
             if (!isActive) return@LaunchedEffect

@@ -45,7 +45,6 @@ fun StartupPlaceholder(showHomeShell: Boolean, modifier: Modifier = Modifier) {
 
 @Composable
 private fun StartupSkeletonShell(modifier: Modifier) {
-    val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val chrome = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
     // The feed's first card starts here; the placeholders use the same offset, so the reveal does
     // not move them. The value was mirrored by the real feed on the previous run.
@@ -84,15 +83,6 @@ private fun StartupSkeletonShell(modifier: Modifier) {
             ) {
                 repeat(5) { MemoSkeletonCard() }
             }
-            // The bottom bar: a floating capsule above the navigation inset.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(navBar + 72.dp)
-                    .padding(start = 40.dp, end = 40.dp, top = 8.dp, bottom = navBar + 8.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            )
         }
     }
 }

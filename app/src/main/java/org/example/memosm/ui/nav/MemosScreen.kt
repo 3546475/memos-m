@@ -145,7 +145,9 @@ fun MemosScreen(
     showComposeFab: Boolean = true,
     /** Shortcut request: expand the search field once, then report back. */
     openSearch: Boolean = false,
-    onSearchOpened: () -> Unit = {}
+    onSearchOpened: () -> Unit = {},
+    /** Called when the notes feed first stops showing placeholders (cards, empty or error). */
+    onFeedSettled: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val miuixFeed = LocalThemeStyle.current == ThemeStyle.MIUIX
@@ -545,6 +547,7 @@ fun MemosScreen(
                                 onChangeFilter = { showFilterPanel = true }
                             )
                         },
+                        onFeedSettled = onFeedSettled,
                         isActive = activeFeed == feed
                     )
                     MemoFeed.EXPLORE -> GenericMemosListPane(
@@ -888,6 +891,7 @@ private fun MemosListPane(
     onDraftsCardClick: () -> Unit,
     onHashtagClick: (String) -> Unit,
     emptyState: @Composable () -> Unit,
+    onFeedSettled: () -> Unit,
     isActive: Boolean
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -911,6 +915,7 @@ private fun MemosListPane(
         onHashtagClick = onHashtagClick,
         emptyState = emptyState,
         showSkeleton = !uiState.userMemoList.list.initialLoadFinished,
+        onPlaceholdersLifted = onFeedSettled,
         isActive = isActive,
         header = {
             // The shortcut chips used to be a list header item here: they scrolled away with
