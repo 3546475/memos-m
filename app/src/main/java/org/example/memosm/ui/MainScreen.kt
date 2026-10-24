@@ -33,6 +33,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -45,6 +46,8 @@ import androidx.compose.runtime.State
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
@@ -842,6 +845,39 @@ private val CapsuleButtonSlotWidth = 68.dp
  */
 private val CapsuleBarWidth = 272.dp
 
+/** The shared enter/exit for the capsule and its shadow, so both settle on the same frame. */
+private val capsuleEnter: EnterTransition =
+    fadeIn(animationSpec = tween(180)) + scaleIn(
+        animationSpec = tween(220),
+        initialScale = 0.92f,
+        transformOrigin = TransformOrigin(0.5f, 1f)
+    )
+
+private val capsuleExit: ExitTransition =
+    fadeOut(animationSpec = tween(160)) + scaleOut(
+        animationSpec = tween(180),
+        targetScale = 0.92f,
+        transformOrigin = TransformOrigin(0.5f, 1f)
+    )
+
+/**
+ * The shadow arrives on a shorter fade than the bar: 5% black only becomes visible late in a
+ * 180ms fade, so matching the bar's curve made the halo read as a separate, later event.
+ */
+private val capsuleShadowEnter: EnterTransition =
+    fadeIn(animationSpec = tween(120)) + scaleIn(
+        animationSpec = tween(220),
+        initialScale = 0.92f,
+        transformOrigin = TransformOrigin(0.5f, 1f)
+    )
+
+private val capsuleShadowExit: ExitTransition =
+    fadeOut(animationSpec = tween(120)) + scaleOut(
+        animationSpec = tween(180),
+        targetScale = 0.92f,
+        transformOrigin = TransformOrigin(0.5f, 1f)
+    )
+
 /**
  * The floating bottom bar: a capsule that hovers over the content with the compose button in the
  * middle, so the primary action lives in the navigation instead of a separate floating button.
@@ -871,16 +907,6 @@ private fun FloatingBottomBar(
     )
     // The bevel and its glow live in ui/theme/CapsuleMaterial so the composer, the detail page and
     // the docked FAB can wear the same glass without copying the gradients.
-    // Day keeps a soft ambient shadow: stronger than the version that vanished, still well below
-    // the one that read as a second capsule. Night gets none: the reference bar is separated from
-    // black by its rim, and a dark halo over gray cards was exactly the effect to avoid.
-    val shadowMaxAlpha = if (lightSurface) 0.05f else 0f
-    // Each of the stacked capsules is faint; together they reach `shadowMaxAlpha` at the bar and
-    // fade to nothing at the edge of the spread.
-    val shadowLayerAlpha = 1f - (1f - shadowMaxAlpha).pow(1f / CapsuleShadowLayers)
-    // The shadow is drawn inside the capsule's own enter/exit content, so it rises and fades with
-    // the bar instead of trailing it on a second clock. The fixed capsule height above (and the
-    // size guard below) keeps a pre-layout frame from painting a square.
     Box(
         modifier = modifier
             .padding(horizontal = 20.dp)
@@ -889,59 +915,30 @@ private fun FloatingBottomBar(
             .navigationBarsPadding()
             .padding(top = CapsuleNavigationGap, bottom = CapsuleNavigationGap)
     ) {
+        // The shadow gets its own enter/exit layer instead of sitting under the bar's fade: at 5%
+        // black it crosses the visibility threshold only late in a 0-1 fade, which read as the
+        // halo arriving a beat after the capsule. As a sibling on the same timeline the halo is
+        // at full strength halfway through the fade instead of a quarter of it.
+        CapsuleShadowLayer(visible = visible, lightSurface = lightSurface)
         AnimatedVisibility(
             visible = visible,
-            // Scale and fade instead of a full-height slide: the capsule stays inside the screen
-            // for the whole animation, so its drop shadow is never cut off at the edge and cannot
-            // pop in a beat after the bar itself (which read as a stutter).
-            enter = fadeIn(animationSpec = tween(180)) + scaleIn(
-                animationSpec = tween(220),
-                initialScale = 0.92f,
-                transformOrigin = TransformOrigin(0.5f, 1f)
-            ),
-            exit = fadeOut(animationSpec = tween(160)) + scaleOut(
-                animationSpec = tween(180),
-                targetScale = 0.92f,
-                transformOrigin = TransformOrigin(0.5f, 1f)
-            )
+            enter = capsuleEnter,
+            exit = capsuleExit
         ) {
-            Row(
-                modifier = Modifier
-                    // A fixed length keeps the capsule the same width whatever destination count is
-                    // enabled; the two halves split it around the centred compose button.
-                    .width(CapsuleBarWidth)
-                    // The shadow is a stack of faint capsules rather than Modifier.shadow, so it
-                    // belongs to the same draw pass as the bar: the enter/exit scale and fade carry
-                    // it along instead of letting it pop in a beat late (the old stutter).
-                    .drawWithContent {
-                        // Resample the backdrop while the destination cross-fade runs. Without
-                        // this read the bar is not invalidated by content changes, so its blur
-                        // would keep showing the page that was just switched away from.
-                        if (refreshTick < 0f || blurRefresh.value < 0f) {
-                            return@drawWithContent
-                        }
-                        if (shadowMaxAlpha > 0f && size.height > 0f) {
-                            val spread = CapsuleShadowSpread.toPx()
-                            val offsetY = CapsuleShadowOffsetY.toPx()
-                            // Fixed bar height, not the measured one: a first draw before layout
-                            // would otherwise produce a square-cornered block instead of a capsule.
-                            val radius = CapsuleBarHeight.toPx() / 2f
-                            val step = spread / CapsuleShadowLayers
-                            // Let the shadow fade naturally through the gesture inset. Cutting
-                            // it off at the inset line left the row below visibly brighter than
-                            // the shadowed content just above it.
-                            for (i in CapsuleShadowLayers downTo 1) {
-                                val grow = step * i
-                                drawRoundRect(
-                                    color = Color.Black.copy(alpha = shadowLayerAlpha),
-                                    topLeft = Offset(-grow, -grow + offsetY),
-                                    size = Size(size.width + grow * 2f, size.height + grow * 2f),
-                                    cornerRadius = CornerRadius(radius + grow)
-                                )
-                            }
-                        }
-                        drawContent()
+        Row(
+            modifier = Modifier
+                // A fixed length keeps the capsule the same width whatever destination count is
+                // enabled; the two halves split it around the centred compose button.
+                .width(CapsuleBarWidth)
+                .drawWithContent {
+                    // Resample the backdrop while the destination cross-fade runs. Without this
+                    // read the bar is not invalidated by content changes, so its blur would keep
+                    // showing the page that was just switched away from.
+                    if (refreshTick < 0f || blurRefresh.value < 0f) {
+                        return@drawWithContent
                     }
+                    drawContent()
+                }
                     .clip(CapsuleShape)
                     .then(
                         if (blurEnabled) {
@@ -1006,6 +1003,53 @@ private fun FloatingBottomBar(
                 }
             }
         }
+    }
+}
+
+/**
+ * The capsule's ambient shadow: a stack of faint rounded layers on the bar's enter/exit timeline,
+ * but in a layer of its own so the bar's 0-1 fade does not dim the 5% black behind it.
+ */
+@Composable
+private fun CapsuleShadowLayer(
+    visible: Boolean,
+    lightSurface: Boolean
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = capsuleShadowEnter,
+        exit = capsuleShadowExit
+    ) {
+        Box(
+            modifier = Modifier
+                .width(CapsuleBarWidth)
+                .height(CapsuleBarHeight)
+                .drawBehind {
+                    // Day keeps a soft ambient shadow; night gets none, because the reference bar
+                    // is separated from black by its rim and a dark halo over gray cards was the
+                    // effect to avoid.
+                    val shadowMaxAlpha = if (lightSurface) 0.05f else 0f
+                    if (shadowMaxAlpha <= 0f || size.height <= 0f) return@drawBehind
+                    // Each stacked capsule is faint; together they reach `shadowMaxAlpha` at the
+                    // bar and fade to nothing at the edge of the spread.
+                    val layerAlpha = 1f - (1f - shadowMaxAlpha).pow(1f / CapsuleShadowLayers)
+                    val spread = CapsuleShadowSpread.toPx()
+                    val offsetY = CapsuleShadowOffsetY.toPx()
+                    // Fixed bar height: a first draw before layout would otherwise produce a
+                    // square-cornered block instead of a capsule.
+                    val radius = CapsuleBarHeight.toPx() / 2f
+                    val step = spread / CapsuleShadowLayers
+                    for (i in CapsuleShadowLayers downTo 1) {
+                        val grow = step * i
+                        drawRoundRect(
+                            color = Color.Black.copy(alpha = layerAlpha),
+                            topLeft = Offset(-grow, -grow + offsetY),
+                            size = Size(size.width + grow * 2f, size.height + grow * 2f),
+                            cornerRadius = CornerRadius(radius + grow)
+                        )
+                    }
+                }
+        )
     }
 }
 
