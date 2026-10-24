@@ -7,8 +7,8 @@ assignees: ''
 
 ---
 
-**Version of MemosM**
-Which version of the MemosM you are on?
+**Version of Moxia**
+Which version of the Moxia you are on?
 
 **Describe the bug**
 A clear and concise description of what the bug is.

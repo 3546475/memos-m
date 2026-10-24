@@ -101,7 +101,7 @@
     <string name="profile_instance_url">Adres URL</string>
     <string name="profile_logout">Wyloguj się</string>
 
-    <string name="profile_about">Informacje o MemosM</string>
+    <string name="profile_about">Informacje o Moxia</string>
     <string name="profile_about_version">Wersja aplikacji</string>
     <string name="profile_about_git_hash">Hash Git</string>
     <string name="profile_about_version_copied">Skopiowano wersję do schowka</string>
@@ -280,6 +280,9 @@
     <string name="appearance_preview_memo"># Tytuł\n\n## Nagłówek\n\n### Podnagłówek\n\nMała myśl może stać się **czymś wspaniałym**.\n\n- Zapisz pomysł\n- Wróć do niego później</string>
     <string name="appearance_save_error">Nie udało się zapisać ustawień wyglądu. Spróbuj ponownie.</string>
     <string name="appearance_theme_mode">Tryb motywu</string>
+    <string name="settings_theme_style">Styl motywu</string>
+    <string name="settings_theme_style_md">MD · Material Design</string>
+    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_offline_empty">Brak połączenia — nie ma jeszcze załączników w pamięci podręcznej. Pojawią się po synchronizacji.</string>
     <string name="audit_log_account">Konto: %1$s</string>
     <string name="audit_log_empty">Nie zarejestrowano jeszcze żadnych wpisów.</string>

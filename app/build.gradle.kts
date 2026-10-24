@@ -85,7 +85,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug-${gitShortHash.get()}"
-            manifestPlaceholders["appLabel"] = "MemosM (Debug)"
+            manifestPlaceholders["appLabel"] = "Moxia (Debug)"
         }
         create("canary") {
             isMinifyEnabled = false
@@ -98,7 +98,7 @@ android {
             val timestamp = SimpleDateFormat("yyyyMMddHHmm").format(Date())
             versionNameSuffix = "-canary-$timestamp-${gitShortHash.get()}"
 
-            manifestPlaceholders["appLabel"] = "MemosM"
+            manifestPlaceholders["appLabel"] = "Moxia"
             signingConfig = signingConfigs.getByName("release")
         }
         create("insider") {
@@ -113,7 +113,7 @@ android {
             // versionName assignment moved to applicationVariants.all block below
             versionNameSuffix = "-insider"
 
-            manifestPlaceholders["appLabel"] = "MemosM (Insider)"
+            manifestPlaceholders["appLabel"] = "Moxia (Insider)"
             signingConfig = signingConfigs.getByName("release")
         }
         // Macrobenchmark target: non-debuggable and profileable, signed with the release key so
@@ -123,7 +123,7 @@ android {
             isDebuggable = false
             signingConfig = signingConfigs.getByName("release")
             matchingFallbacks += listOf("release")
-            manifestPlaceholders["appLabel"] = "MemosM"
+            manifestPlaceholders["appLabel"] = "Moxia"
         }
         release {
             isMinifyEnabled = true
@@ -132,7 +132,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
-            manifestPlaceholders["appLabel"] = "MemosM"
+            manifestPlaceholders["appLabel"] = "Moxia"
         }
     }
     compileOptions {

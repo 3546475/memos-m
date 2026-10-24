@@ -49,7 +49,7 @@
     <string name="profile_instance_url">URL</string>
     <string name="profile_logout">로그아웃</string>
 
-    <string name="profile_about">MemosM 정보</string>
+    <string name="profile_about">Moxia 정보</string>
     <string name="profile_about_version">앱 버전</string>
     <string name="profile_about_git_hash">Git 해시</string>
     <string name="profile_about_repo">소스 코드</string>
@@ -284,6 +284,9 @@
     <string name="appearance_preview_memo"># 제목\n\n## 소제목\n\n### 하위 제목\n\n작은 생각이 **멋진 아이디어**로 자랄 수 있습니다.\n\n- 아이디어 기록하기\n- 나중에 다시 살펴보기</string>
     <string name="appearance_save_error">화면 설정을 저장할 수 없습니다. 다시 시도하세요.</string>
     <string name="appearance_theme_mode">테마 모드</string>
+    <string name="settings_theme_style">테마 스타일</string>
+    <string name="settings_theme_style_md">MD · Material Design</string>
+    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">파일</string>
     <string name="audit_log_account">계정: %1$s</string>
     <string name="audit_log_empty">아직 기록된 로그가 없습니다.</string>

@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="128" alt="MemosM app icon" />
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="128" alt="Moxia app icon" />
 
-# MemosM
+# Moxia
 
-A development line of [yamada-sexta/memos-m](https://github.com/yamada-sexta/memos-m), rebuilt around the Miuix (HyperOS) design language.
+An Android client for [Memos](https://usememos.com/), built on [yamada-sexta/memos-m](https://github.com/yamada-sexta/memos-m) and rebuilt around the Miuix (HyperOS) design language — Miuix is the only one on this branch.
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
