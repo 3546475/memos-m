@@ -19,3 +19,15 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# --- R8 rules for the shrunk release build (test branch) ---
+
+# Gson reads model fields through @SerializedName; keep the annotation and annotated members.
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-keep,allowobfuscation @interface com.google.gson.annotations.SerializedName
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# MapLibre's Java layer is called from its native library by name.
+-keep class org.maplibre.android.** { *; }
+-dontwarn org.maplibre.**
