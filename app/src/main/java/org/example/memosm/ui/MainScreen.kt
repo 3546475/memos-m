@@ -46,7 +46,6 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
@@ -879,14 +878,9 @@ private fun FloatingBottomBar(
     // Each of the stacked capsules is faint; together they reach `shadowMaxAlpha` at the bar and
     // fade to nothing at the edge of the spread.
     val shadowLayerAlpha = 1f - (1f - shadowMaxAlpha).pow(1f / CapsuleShadowLayers)
-    // The shadow fades in with the bar. It is drawn from a fixed capsule height below, so a frame
-    // where the row has not been measured yet can no longer paint a full-strength rectangle; and
-    // ramping it in means even a partial one is invisible.
-    val shadowAppear by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(220),
-        label = "capsuleShadowAppear"
-    )
+    // The shadow is drawn inside the capsule's own enter/exit content, so it rises and fades with
+    // the bar instead of trailing it on a second clock. The fixed capsule height above (and the
+    // size guard below) keeps a pre-layout frame from painting a square.
     Box(
         modifier = modifier
             .padding(horizontal = 20.dp)
@@ -926,7 +920,7 @@ private fun FloatingBottomBar(
                         if (refreshTick < 0f || blurRefresh.value < 0f) {
                             return@drawWithContent
                         }
-                        if (shadowMaxAlpha > 0f && shadowAppear > 0f && size.height > 0f) {
+                        if (shadowMaxAlpha > 0f && size.height > 0f) {
                             val spread = CapsuleShadowSpread.toPx()
                             val offsetY = CapsuleShadowOffsetY.toPx()
                             // Fixed bar height, not the measured one: a first draw before layout
@@ -939,7 +933,7 @@ private fun FloatingBottomBar(
                             for (i in CapsuleShadowLayers downTo 1) {
                                 val grow = step * i
                                 drawRoundRect(
-                                    color = Color.Black.copy(alpha = shadowLayerAlpha * shadowAppear),
+                                    color = Color.Black.copy(alpha = shadowLayerAlpha),
                                     topLeft = Offset(-grow, -grow + offsetY),
                                     size = Size(size.width + grow * 2f, size.height + grow * 2f),
                                     cornerRadius = CornerRadius(radius + grow)
