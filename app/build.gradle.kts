@@ -160,6 +160,13 @@ androidComponents {
 
 
 
+// Compose compiler reports, only when asked for with -PcomposeReports.
+composeCompiler {
+    if (providers.gradleProperty("composeReports").isPresent) {
+        reportsDestination = layout.buildDirectory.dir("compose_reports")
+    }
+}
+
 dependencies {
     baselineProfile(project(":baselineprofile"))
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
