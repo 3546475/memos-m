@@ -70,14 +70,14 @@ android {
         }
     }
 
-    // Research: split the universal APK by ABI so a sideloaded build does not carry the native
-    // libraries of the ABIs it will never run. Phone distribution only needs arm.
+    // Split the APK by ABI so a sideloaded build does not carry the native libraries of the ABIs
+    // it will never run, and also emit a universal APK for installs that cannot pick one.
     splits {
         abi {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = false
+            isUniversalApk = true
         }
     }
 
@@ -175,6 +175,16 @@ androidComponents {
     onVariants(selector().withBuildType("insider")) { variant ->
         variant.outputs.forEach { output ->
             output.versionName.set(gitTag.map { it.removePrefix("v") })
+        }
+    }
+    // A release built from a tag carries that tag as its version: the release workflow passes the
+    // pushed tag in with -PversionName=..., which also avoids `git describe` picking the moving
+    // `latest` tag. A plain local assembleRelease keeps the default version.
+    providers.gradleProperty("versionName").orNull?.let { taggedVersion ->
+        onVariants(selector().withBuildType("release")) { variant ->
+            variant.outputs.forEach { output ->
+                output.versionName.set(taggedVersion)
+            }
         }
     }
 }
