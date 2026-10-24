@@ -1,0 +1,39 @@
+package org.example.moxia.data.media
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+
+@Dao
+interface CachedAttachmentMetaDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(items: List<CachedAttachmentMeta>)
+
+    @Query("SELECT * FROM cached_attachment_meta WHERE accountId = :accountId ORDER BY createTime DESC")
+    suspend fun getAll(accountId: String): List<CachedAttachmentMeta>
+
+    @Query("SELECT * FROM cached_attachment_meta WHERE accountId = :accountId ORDER BY createTime DESC LIMIT :limit")
+    suspend fun getAll(accountId: String, limit: Int): List<CachedAttachmentMeta>
+
+    @Query("DELETE FROM cached_attachment_meta WHERE accountId = :accountId")
+    suspend fun clear(accountId: String)
+
+    /**
+     * Rows newer than [minCreateTime] that the server did not return in the last page: those were
+     * deleted remotely. Rows older than the page are kept so offline browsing still has history.
+     */
+    @Query(
+        "DELETE FROM cached_attachment_meta WHERE accountId = :accountId " +
+            "AND createTime >= :minCreateTime AND attachmentName NOT IN (:keep)"
+    )
+    suspend fun deleteMissingSince(accountId: String, minCreateTime: Long, keep: List<String>)
+
+    /** Drop one attachment's metadata (it no longer exists on the server). */
+    @Query("DELETE FROM cached_attachment_meta WHERE accountId = :accountId AND attachmentName = :attachmentName")
+    suspend fun deleteOne(accountId: String, attachmentName: String)
+
+    @Query("SELECT COUNT(*) FROM cached_attachment_meta WHERE accountId = :accountId")
+    suspend fun count(accountId: String): Int
+}

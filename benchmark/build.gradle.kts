@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "org.example.memosm.benchmark"
+    namespace = "org.example.moxia.benchmark"
     compileSdk = 37
 
     defaultConfig {

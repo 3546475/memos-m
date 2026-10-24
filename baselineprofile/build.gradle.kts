@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "org.example.memosm.baselineprofile"
+    namespace = "org.example.moxia.baselineprofile"
     compileSdk = 37
 
     defaultConfig {
