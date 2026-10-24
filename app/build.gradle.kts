@@ -17,6 +17,7 @@ plugins {
     id("androidx.room") version libs.versions.roomRuntime.get()
 
     alias(libs.plugins.aboutlibraries)
+    id("androidx.baselineprofile")
 }
 
 android {
@@ -160,6 +161,8 @@ androidComponents {
 
 
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
     implementation(libs.msgpack.core)
     coreLibraryDesugaring(libs.android.desugarJdkLibs)
 

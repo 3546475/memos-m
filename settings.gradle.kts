@@ -28,3 +28,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "MemosM"
 include(":app")
+include(":baselineprofile")
