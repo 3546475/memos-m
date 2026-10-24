@@ -21,12 +21,12 @@ plugins {
 }
 
 android {
-    namespace = "org.example.memosm"
+    namespace = "org.example.moxia"
     compileSdk = 37
     compileSdkMinor = 1
     
     defaultConfig {
-        applicationId = "org.example.memosm"
+        applicationId = "org.example.moxia"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

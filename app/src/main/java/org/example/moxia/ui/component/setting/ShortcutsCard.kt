@@ -1,0 +1,241 @@
+package org.example.moxia.ui.component.setting
+
+import android.content.Intent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import org.example.moxia.R
+import org.example.moxia.ui.theme.AppDialog
+import org.example.moxia.ui.theme.AppListItem
+import org.example.moxia.ui.theme.AppLinearProgressIndicator
+import org.example.moxia.ui.theme.AppTextButton
+import org.example.moxia.ui.theme.AppTextField
+import org.example.moxia.model.Shortcut
+
+@Composable
+fun ShortcutsCard(
+    shortcuts: List<Shortcut>,
+    onCreate: (String, String, onSuccess: () -> Unit, onError: (Int) -> Unit) -> Unit,
+    onUpdate: (Shortcut, String, String, onSuccess: () -> Unit, onError: (Int) -> Unit) -> Unit,
+    onDelete: (Shortcut) -> Unit
+) {
+    var showEditDialog by remember { mutableStateOf<Shortcut?>(null) }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf<Shortcut?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroup {
+            SettingsNavigationRow(
+                title = stringResource(R.string.profile_shortcuts_add),
+                icon = Icons.Outlined.Add,
+                showChevron = false,
+                onClick = { showCreateDialog = true }
+            )
+        }
+        if (shortcuts.isEmpty()) {
+            Text(
+                text = stringResource(R.string.profile_shortcuts_none),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        } else {
+            SettingsGroup {
+                shortcuts.forEach { shortcut ->
+                    AppListItem(
+                        title = shortcut.title ?: "",
+                        summary = shortcut.filter ?: "",
+                        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                        trailing = {
+                            IconButton(onClick = { showDeleteConfirm = shortcut }) {
+                                Icon(
+                                    Icons.Outlined.Delete,
+                                    contentDescription = stringResource(R.string.memo_action_delete),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        onClick = { showEditDialog = shortcut }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showCreateDialog) {
+        ShortcutEditDialog(
+            title = stringResource(R.string.profile_shortcuts_add),
+            onDismiss = { showCreateDialog = false },
+            onConfirm = { title, filter, onSuccess, onError ->
+                onCreate(title, filter, onSuccess, onError)
+            }
+        )
+    }
+
+    showEditDialog?.let { shortcut ->
+        ShortcutEditDialog(
+            title = stringResource(R.string.profile_shortcuts_edit),
+            initialTitle = shortcut.title ?: "",
+            initialFilter = shortcut.filter ?: "",
+            onDismiss = { showEditDialog = null },
+            onConfirm = { title, filter, onSuccess, onError ->
+                onUpdate(shortcut, title, filter, onSuccess, onError)
+            }
+        )
+    }
+
+    showDeleteConfirm?.let { shortcut ->
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.profile_shortcuts_delete_title),
+            summary = stringResource(R.string.profile_shortcuts_delete_confirm),
+            onDismissRequest = { showDeleteConfirm = null },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showDeleteConfirm = null }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.common_delete),
+                    modifier = Modifier.weight(1f),
+                    destructive = true,
+                    onClick = {
+                        onDelete(shortcut)
+                        showDeleteConfirm = null
+                    }
+                )
+            }
+        )
+    }
+}
+
+@Composable
+fun ShortcutEditDialog(
+    title: String,
+    initialTitle: String = "",
+    initialFilter: String = "",
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, onSuccess: () -> Unit, onError: (Int) -> Unit) -> Unit
+) {
+    var titleText by remember { mutableStateOf(initialTitle) }
+    var filterText by remember { mutableStateOf(initialFilter) }
+    var isSaving by remember { mutableStateOf(false) }
+    var errorMessageRes by remember { mutableStateOf<Int?>(null) }
+
+    val context = LocalContext.current
+    val helpUrl = stringResource(R.string.profile_shortcuts_help_url)
+
+    AppDialog(
+        show = true,
+        title = title,
+        onDismissRequest = if (isSaving) ({}) else onDismiss,
+        buttons = {
+            AppTextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                enabled = !isSaving,
+                onClick = onDismiss
+            )
+            AppTextButton(
+                text = stringResource(R.string.common_save),
+                modifier = Modifier.weight(1f),
+                enabled = titleText.isNotBlank() && filterText.isNotBlank() && !isSaving,
+                onClick = {
+                    isSaving = true
+                    errorMessageRes = null
+                    onConfirm(
+                        titleText,
+                        filterText,
+                        {
+                            isSaving = false
+                            onDismiss()
+                        },
+                        { errorRes ->
+                            isSaving = false
+                            errorMessageRes = errorRes
+                        }
+                    )
+                }
+            )
+        }
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (errorMessageRes != null) {
+                Text(
+                    text = stringResource(errorMessageRes ?: R.string.profile_shortcuts_error_save),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+            AppTextField(
+                value = titleText,
+                onValueChange = {
+                    titleText = it
+                    errorMessageRes = null
+                },
+                label = stringResource(R.string.profile_shortcuts_title),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSaving
+            )
+            AppTextField(
+                value = filterText,
+                onValueChange = {
+                    filterText = it
+                    errorMessageRes = null
+                },
+                label = stringResource(R.string.profile_shortcuts_filter),
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = "\"work\" in tags && has_task_list",
+                enabled = !isSaving,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, helpUrl.toUri())
+                        context.startActivity(intent)
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.HelpOutline,
+                            contentDescription = stringResource(R.string.profile_shortcuts_help)
+                        )
+                    }
+                }
+            )
+
+            if (isSaving) {
+                AppLinearProgressIndicator(progress = null, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}

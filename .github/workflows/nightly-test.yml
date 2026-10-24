@@ -47,4 +47,4 @@ jobs:
           docker image ls neosmemo/memos
 
       - name: Run Integration Tests
-        run: ./gradlew :app:testDebugUnitTest --tests org.example.memosm.api.MemosApiIntegrationTest
+        run: ./gradlew :app:testDebugUnitTest --tests org.example.moxia.api.MemosApiIntegrationTest

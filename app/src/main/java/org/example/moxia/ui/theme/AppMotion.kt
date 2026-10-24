@@ -1,0 +1,31 @@
+package org.example.moxia.ui.theme
+
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.unit.IntOffset
+
+/**
+ * Motion tokens for the app's own transitions (tab switches, list/detail, search bar collapse).
+ *
+ * HyperOS moves with short, slightly-overshooting springs — Miuix's components use
+ * `spring(dampingRatio = 0.9f, stiffness ≈ 700–1755f)` — and the app's own transitions follow the
+ * same curve, so a screen change never lands on a slower Material tween than the component
+ * animation around it.
+ *
+ * These are deliberately not @Composable: `transitionSpec` lambdas are not composable, so the
+ * spec has to be a plain value.
+ */
+fun appFadeSpec(): FiniteAnimationSpec<Float> =
+    spring(dampingRatio = 0.9f, stiffness = 700f, visibilityThreshold = 0.001f)
+
+/** Slide/shape spec for the same transitions. */
+fun appSlideSpec(): FiniteAnimationSpec<IntOffset> =
+    spring(dampingRatio = 0.9f, stiffness = 550f)
+
+/** Enter spec for overlay-style transitions (full-screen viewers, sheets). */
+fun appEnterSpec(): FiniteAnimationSpec<Float> =
+    spring(dampingRatio = 0.9f, stiffness = 700f, visibilityThreshold = 0.001f)
+
+/** Exit spec; slightly firmer so dismissals feel settled rather than bouncy. */
+fun appExitSpec(): FiniteAnimationSpec<Float> =
+    spring(dampingRatio = 0.95f, stiffness = 550f, visibilityThreshold = 0.001f)

@@ -26,7 +26,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MemosM"
+rootProject.name = "Moxia"
 include(":app")
 include(":baselineprofile")
 include(":benchmark")

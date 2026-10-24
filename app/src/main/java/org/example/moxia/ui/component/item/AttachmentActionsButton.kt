@@ -1,0 +1,233 @@
+package org.example.moxia.ui.component.item
+
+import android.app.DownloadManager
+import android.content.Context
+import android.content.Intent
+import android.os.Environment
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import org.example.moxia.R
+import org.example.moxia.ui.theme.AppDialog
+import org.example.moxia.ui.theme.AppTextButton
+import org.example.moxia.model.Attachment
+import org.example.moxia.ui.component.ActionSheet
+import org.example.moxia.ui.component.ActionSheetItem
+import org.example.moxia.ui.component.item.media.LocalViewerGesturesBlocked
+import org.example.moxia.viewmodel.manager.AttachmentManager
+
+/** The card and full-screen viewer share actions, availability, and download confirmation. */
+@Composable
+internal fun AttachmentActionsButton(
+    attachment: Attachment?,
+    token: String?,
+    hostUrl: String,
+    filename: String,
+    onShowInfo: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    showButton: Boolean = true,
+    expanded: Boolean = false,
+    onDismiss: () -> Unit = {},
+    /** When set, the sheet offers deleting the attachment from the server. */
+    onDelete: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    var showMenu by remember(attachment, filename) { mutableStateOf(false) }
+    var showDownloadDialog by remember(attachment, filename) { mutableStateOf(false) }
+    val openWebUrl = remember(attachment, hostUrl) {
+        AttachmentManager.getAttachmentUrl(hostUrl, attachment)
+    }
+    val errorOpenLinkString = stringResource(R.string.attachments_error_open_link)
+    val dismissMenu = {
+        showMenu = false
+        onDismiss()
+    }
+    if (showButton) Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.size(48.dp)
+    ) {
+        IconButton(onClick = { showMenu = true }, enabled = enabled && !LocalViewerGesturesBlocked.current) {
+            Icon(Icons.Outlined.MoreVert, stringResource(R.string.memo_action_more), Modifier.size(24.dp))
+        }
+    }
+
+    if (showMenu || expanded) {
+        ActionSheet(onDismissRequest = dismissMenu) {
+            ActionSheetItem(
+                text = { Text(stringResource(R.string.attachments_info_title)) },
+                onClick = { dismissMenu(); onShowInfo() },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Info, contentDescription = null
+                    )
+                })
+            ActionSheetItem(
+                text = { Text(stringResource(R.string.attachments_download_button)) },
+                onClick = {
+                    dismissMenu(); showDownloadDialog = true
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Download,
+                        contentDescription = null
+                    )
+                })
+            if (openWebUrl != null) {
+                ActionSheetItem(
+                    text = { Text(stringResource(R.string.memo_action_open_web)) },
+                    onClick = {
+                        dismissMenu()
+                        try {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW, openWebUrl.toUri()
+                            )
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Log.e(
+                                "AttachmentCard",
+                                "Failed to open link",
+                                e
+                            )
+                            Toast.makeText(
+                                context,
+                                errorOpenLinkString,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Language,
+                            contentDescription = null
+                        )
+                    })
+
+                ActionSheetItem(
+                    text = { Text(stringResource(R.string.common_share)) },
+                    onClick = {
+                        dismissMenu()
+                        try {
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, openWebUrl)
+                                type = "text/plain"
+                            }
+                            val shareIntent =
+                                Intent.createChooser(sendIntent, null)
+                            context.startActivity(shareIntent)
+                        } catch (e: Exception) {
+                            Log.e(
+                                "AttachmentCard",
+                                "Failed to share link",
+                                e
+                            )
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Share,
+                            contentDescription = null
+                        )
+                    })
+            }
+            if (onDelete != null) {
+                ActionSheetItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.attachments_action_delete),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        dismissMenu()
+                        onDelete.invoke()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    })
+            }
+        }
+    }
+
+    if (showDownloadDialog) {
+        AppDialog(
+            show = true,
+            title = stringResource(R.string.attachments_download_dialog_title),
+            summary = stringResource(R.string.attachments_download_dialog_confirm, filename),
+            onDismissRequest = { showDownloadDialog = false },
+            buttons = {
+                AppTextButton(
+                    text = stringResource(R.string.common_cancel),
+                    modifier = Modifier.weight(1f),
+                    onClick = { showDownloadDialog = false }
+                )
+                AppTextButton(
+                    text = stringResource(R.string.attachments_download_button),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (attachment != null) downloadAttachmentFile(
+                            context, attachment, token, hostUrl
+                        )
+                        showDownloadDialog = false
+                    }
+                )
+            }
+        )
+    }
+
+}
+
+private fun downloadAttachmentFile(
+    context: Context, attachment: Attachment, token: String?, hostUrl: String
+) {
+    val url = AttachmentManager.getAttachmentUrl(hostUrl, attachment) ?: return
+    try {
+        var request = DownloadManager.Request(url.toUri()).setTitle(attachment.filename)
+            .setDescription(context.getString(R.string.attachments_download_started))
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, attachment.filename)
+//            .addRequestHeader("Authorization", "Bearer $token")
+        if (token != null) request = request.addRequestHeader("Authorization", "Bearer $token")
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        manager.enqueue(request)
+        Toast.makeText(
+            context, context.getString(R.string.attachments_download_started), Toast.LENGTH_SHORT
+        ).show()
+    } catch (e: Exception) {
+        Log.e("AttachmentCard", "Download failed", e)
+        val message = context.getString(R.string.attachments_error_download_failed)
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
+}

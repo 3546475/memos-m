@@ -35,9 +35,9 @@
 # The app serialises its own models with Gson by declared field name (accounts, cache
 # snapshots, sync ops, editor sessions, backups). Keep every field name so the stored JSON
 # stays readable in both directions; classes and methods can still be shrunk and renamed.
--keepclassmembers class org.example.memosm.** { <fields>; }
+-keepclassmembers class org.example.moxia.** { <fields>; }
 
 # Reflect-driven API layer: Gson parses these DTOs by field name and Retrofit resolves the
 # service interfaces at runtime. Keep them whole so R8 does not merge or reshape them.
--keep class org.example.memosm.api.** { *; }
--keep class org.example.memosm.model.** { *; }
+-keep class org.example.moxia.api.** { *; }
+-keep class org.example.moxia.model.** { *; }
