@@ -90,7 +90,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -106,6 +110,7 @@ import org.example.memosm.ui.MemoKey
 import org.example.memosm.ui.component.composer.ComposerMode
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
+import org.example.memosm.data.StartupMirror
 import org.example.memosm.ui.component.item.MemoItem
 import org.example.memosm.ui.component.item.MemoSkeletonCard
 import org.example.memosm.ui.component.item.markdown.MarkdownCache
@@ -576,6 +581,8 @@ fun MemosScaffold(
     ) {
         val uiState by viewModel.uiState.collectAsState()
         val focusManager = LocalFocusManager.current
+        val context = LocalContext.current
+        val density = LocalDensity.current
 
         // Items read these through derived states: a sync tick or a refresh no longer recomposes
         // every card, only a session change or a different selected memo does.
@@ -643,7 +650,14 @@ fun MemosScaffold(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coordinates ->
+                        // Where the list starts in the window: the top bar above it is not part of
+                        // the feed's content padding, and the launch shell needs both.
+                        val top = with(density) { coordinates.positionInWindow().y.toDp() }
+                        StartupMirror.updateFeedPaneTop(context, top.value)
+                    },
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

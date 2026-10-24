@@ -521,7 +521,12 @@ fun MemosScreen(
                 // Remember where the first card lands so the launch shell can place its
                 // placeholders at the same spot on the next cold start.
                 LaunchedEffect(headerTop) {
-                    org.example.memosm.data.StartupMirror.updateFeedTopInset(context, headerTop.value)
+                    // The base offset only: a filter bar pushes the list down while it is shown,
+                    // and the launch shell always starts without one.
+                    org.example.memosm.data.StartupMirror.updateFeedTopInset(
+                        context,
+                        (headerTop - filterBarInset).value
+                    )
                 }
                 // The pull-to-refresh chip floats over the list, so it has to clear the chrome
                 // instead of being clipped by it: Miuix has one header row, MD has the tabs plus

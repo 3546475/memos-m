@@ -15,6 +15,7 @@ object StartupMirror {
     private const val PREFS_NAME = "startup_mirror"
     private const val KEY_ONBOARDED = "onboarded"
     private const val KEY_FEED_TOP_INSET = "feed_top_inset_dp"
+    private const val KEY_FEED_PANE_TOP = "feed_pane_top_dp"
 
     @Volatile
     private var onboardedWithAccount = false
@@ -22,11 +23,15 @@ object StartupMirror {
     @Volatile
     private var feedTopInset = 64f
 
+    @Volatile
+    private var feedPaneTop = 0f
+
     /** Reads the mirror synchronously: one small prefs file, no coroutine, no DataStore. */
     fun load(context: Context) {
         val prefs = prefs(context)
         onboardedWithAccount = prefs.getBoolean(KEY_ONBOARDED, false)
         feedTopInset = prefs.getFloat(KEY_FEED_TOP_INSET, 64f)
+        feedPaneTop = prefs.getFloat(KEY_FEED_PANE_TOP, 0f)
     }
 
     /**
@@ -36,6 +41,20 @@ object StartupMirror {
      */
     val feedTopInsetDp: Float
         get() = feedTopInset
+
+    /**
+     * Where the list pane itself starts, in dp: the top bar and its insets sit above the feed, so
+     * the first card is this plus [feedTopInsetDp]. Mirrored by the real pane on layout.
+     */
+    val feedPaneTopDp: Float
+        get() = feedPaneTop
+
+    /** Mirrors the list pane's top offset. A no-op when nothing changed. */
+    fun updateFeedPaneTop(context: Context, dp: Float) {
+        if (feedPaneTop == dp) return
+        feedPaneTop = dp
+        prefs(context).edit().putFloat(KEY_FEED_PANE_TOP, dp).apply()
+    }
 
     /** Mirrors the feed's first-card offset. A no-op when nothing changed. */
     fun updateFeedTopInset(context: Context, dp: Float) {
