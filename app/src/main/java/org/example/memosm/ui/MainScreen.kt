@@ -107,19 +107,18 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import androidx.core.net.toUri
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.pow
 import org.example.memosm.R
 import org.example.memosm.model.Attachment
@@ -211,36 +210,6 @@ fun MainScreen(
     }
 }
 
-/**
- * Whether the cold-start cover has already played in this process. The cover is a one-shot
- * transition: rotation, returning from another activity or switching destinations must never
- * re-cover a page whose content is already there.
- */
-private var homeCoverRevealed = false
-
-/**
- * Opaque loading page drawn over the home content until the feed has its first list state.
- * It hides the moment of page assembly (cached cards arriving, the bottom bar sliding in) behind
- * the same dot loader the cold-start gates use, then fades away.
- */
-@Composable
-private fun StartupCover(visible: Boolean) {
-    AnimatedVisibility(
-        visible = visible,
-        modifier = Modifier.fillMaxSize(),
-        exit = fadeOut(animationSpec = tween(220))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            contentAlignment = Alignment.Center
-        ) {
-            AppCircularProgressIndicator()
-        }
-    }
-}
-
 @Composable
 private fun MainScreenContent(
     viewModel: MemosViewModel,
@@ -320,35 +289,27 @@ private fun MainScreenContent(
 
     val navBarAlwaysVisible = appearance.navBarScrollMode == NavBarScrollMode.ALWAYS_VISIBLE
     var isNavBarVisible by remember { mutableStateOf(true) }
-    // Let the content draw once so its backdrop layer and the bar's blur exist before the bar is
-    // shown. On a cold start the bar otherwise painted its plain surface for a frame and then
-    // switched to the configured frosted material.
+    // The bar waits for the notes feed's first settled content instead of appearing over the
+    // skeleton: the feed reports when its placeholders are gone, then the bar draws two frames
+    // later (its blur needs a drawn backdrop). Every other destination, and a feed that never
+    // settles, reveals it as before.
+    var feedSettled by remember { mutableStateOf(false) }
     var bottomBarReady by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        withFrameNanos { }
-        bottomBarReady = true
+    LaunchedEffect(currentDestination, feedSettled) {
+        if (currentDestination != MainDestination.MEMOS || feedSettled) {
+            withFrameNanos { }
+            withFrameNanos { }
+            bottomBarReady = true
+        }
+    }
+    LaunchedEffect(currentDestination) {
+        if (currentDestination == MainDestination.MEMOS && !bottomBarReady) {
+            // Fail-safe: an offline start that never finishes a first page must not hide the bar.
+            delay(3_000)
+            bottomBarReady = true
+        }
     }
 
-    // Cold start: hold the dot loader over the page until the feed has its first content, so the
-    // home page (and the bottom bar sliding in) is never assembled in front of the user. Only the
-    // first composition of the process plays it — rotation, returning from another activity or a
-    // destination switch must not re-cover a page whose content is already there. The hard cap
-    // keeps a session that cannot report readiness from stranding the user on the cover.
-    val homeReady by viewModel.homeReady.collectAsState()
-    val firstHomeComposition = remember { !homeCoverRevealed }
-    var coverVisible by remember { mutableStateOf(firstHomeComposition) }
-    val homeReadyNow = rememberUpdatedState(homeReady)
-    LaunchedEffect(firstHomeComposition) {
-        if (!firstHomeComposition) return@LaunchedEffect
-        // Visible long enough to read as a transition instead of a flicker.
-        delay(280)
-        withTimeoutOrNull(1_720) {
-            while (!homeReadyNow.value) delay(16)
-        }
-        coverVisible = false
-        homeCoverRevealed = true
-    }
     LaunchedEffect(navBarAlwaysVisible) { if (navBarAlwaysVisible) isNavBarVisible = true }
     var isAddingAccount by remember { mutableStateOf(false) }
 
@@ -553,7 +514,8 @@ private fun MainScreenContent(
                                     openComposer = shouldOpenComposer,
                                     onComposerOpened = onComposerOpened,
                                     openSearch = openSearchRequest,
-                                    onSearchOpened = onOpenSearchRequestConsumed
+                                    onSearchOpened = onOpenSearchRequestConsumed,
+                                    onFeedSettled = { feedSettled = true }
                                 )
 
                                 MainDestination.ATTACHMENTS -> AttachmentsScreen(
@@ -653,7 +615,6 @@ private fun MainScreenContent(
                 }
                 }
             }
-            StartupCover(visible = coverVisible)
         }
         }
     }

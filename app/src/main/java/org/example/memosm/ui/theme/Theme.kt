@@ -42,6 +42,18 @@ fun systemColorScheme(isDark: Boolean, dynamicColor: Boolean = true): ColorSchem
     }
 }
 
+/**
+ * MaterialKolor derives a full tonal palette for a seed, which costs real main-thread time, and
+ * the theme is composed again for every activity. The last few results are pure functions of
+ * (theme, hue, dark), so keep them for the life of the process.
+ */
+private val schemeCache = object : LinkedHashMap<String, ColorScheme>(8, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ColorScheme>?) = size > 8
+}
+
+private fun cachedScheme(key: String, compute: () -> ColorScheme): ColorScheme =
+    synchronized(schemeCache) { schemeCache.getOrPut(key, compute) }
+
 /** Device colors, neutral Material palettes, source-backed Memos colors, or a user-selected hue. */
 fun appearanceColorScheme(
     appearance: AppearancePreferences,
@@ -49,25 +61,29 @@ fun appearanceColorScheme(
     isDark: Boolean
 ): ColorScheme = when (appearance.colorTheme) {
     ColorTheme.SYSTEM -> systemColors
-    ColorTheme.MONOCHROME -> dynamicColorScheme(
-        seedColor = Color.hsv(0f, saturation = 0f, value = 0.5f),
-        isDark = isDark,
-        style = PaletteStyle.Monochrome,
-        specVersion = ColorSpec.SpecVersion.SPEC_2025
-    ).let { colors ->
-        colors.copy(
-            error = colors.primary, onError = colors.onPrimary,
-            errorContainer = colors.primaryContainer, onErrorContainer = colors.onPrimaryContainer
-        )
+    ColorTheme.MONOCHROME -> cachedScheme("mono-$isDark") {
+        dynamicColorScheme(
+            seedColor = Color.hsv(0f, saturation = 0f, value = 0.5f),
+            isDark = isDark,
+            style = PaletteStyle.Monochrome,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025
+        ).let { colors ->
+            colors.copy(
+                error = colors.primary, onError = colors.onPrimary,
+                errorContainer = colors.primaryContainer, onErrorContainer = colors.onPrimaryContainer
+            )
+        }
     }
     ColorTheme.MEMOS -> memosColorScheme(isDark)
     ColorTheme.CUSTOM -> appearance.customHue?.let { hue ->
-        dynamicColorScheme(
-            seedColor = Color.hsv(hue % 360f, saturation = 0.65f, value = 0.75f),
-            isDark = isDark,
-            style = PaletteStyle.TonalSpot,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025
-        )
+        cachedScheme("custom-$hue-$isDark") {
+            dynamicColorScheme(
+                seedColor = Color.hsv(hue % 360f, saturation = 0.65f, value = 0.75f),
+                isDark = isDark,
+                style = PaletteStyle.TonalSpot,
+                specVersion = ColorSpec.SpecVersion.SPEC_2025
+            )
+        }
     } ?: systemColors
 }
 

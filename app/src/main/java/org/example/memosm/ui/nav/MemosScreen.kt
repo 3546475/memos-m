@@ -50,10 +50,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -106,6 +108,7 @@ import org.example.memosm.ui.profile.DraftsActivity
 import org.example.memosm.ui.profile.SettingsActivity
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -132,9 +135,29 @@ fun MemosScreen(
     showComposeFab: Boolean = true,
     /** Shortcut request: expand the search field once, then report back. */
     openSearch: Boolean = false,
-    onSearchOpened: () -> Unit = {}
+    onSearchOpened: () -> Unit = {},
+    /** Called when the notes feed first stops showing placeholders (cards, empty or error). */
+    onFeedSettled: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // Feed cards read the user map through this derived state, so a ui-state tick that does not
+    // change the map leaves them alone.
+    val usersState = remember { derivedStateOf { uiState.users } }
+
+    // The first frame that actually shows memo cards is when the app is usable; report it so the
+    // system and Play vitals measure that instead of the first frame.
+    val activity = LocalActivity.current
+    var reportedFullyDrawn by remember { mutableStateOf(false) }
+    val hasFeedContent = uiState.userMemoList.list.items.isNotEmpty()
+    LaunchedEffect(hasFeedContent) {
+        if (!hasFeedContent || reportedFullyDrawn) return@LaunchedEffect
+        // The first frame draws the cards; report at the start of the next one, so the draw that
+        // shows the feed has actually happened.
+        withFrameNanos { }
+        withFrameNanos { }
+        reportedFullyDrawn = true
+        activity?.reportFullyDrawn()
+    }
     val memosListState = rememberLazyListState()
     val exploreListState = rememberLazyListState()
     val activeFeed = MemoFeed.entries[pagerState.currentPage]
@@ -442,6 +465,16 @@ fun MemosScreen(
                     end = 16.dp,
                     bottom = bottomPadding
                 )
+                // Remember where the first card lands so the launch shell can place its
+                // placeholders at the same spot on the next cold start.
+                LaunchedEffect(headerTop) {
+                    // The base offset only: a filter bar pushes the list down while it is shown,
+                    // and the launch shell always starts without one.
+                    org.example.memosm.data.StartupMirror.updateFeedTopInset(
+                        context,
+                        (headerTop - filterBarInset).value
+                    )
+                }
                 // The pull-to-refresh chip floats over the list, so it has to clear the chrome
                 // instead of being clipped by it.
                 val indicatorPadding = 64.dp + filterBarInset
@@ -461,6 +494,7 @@ fun MemosScreen(
                                 onChangeFilter = { showFilterPanel = true }
                             )
                         },
+                        onFeedSettled = onFeedSettled,
                         isActive = activeFeed == feed
                     )
                     MemoFeed.EXPLORE -> GenericMemosListPane(
@@ -478,6 +512,7 @@ fun MemosScreen(
                         indicatorTopPadding = indicatorPadding,
                         userProvider = { memo -> uiState.users[memo.creator] },
                         errorTitle = stringResource(R.string.common_error_failed_to_load_explore),
+                        showSkeleton = !uiState.exploreMemoList.list.initialLoadFinished,
                         isActive = activeFeed == feed
                     )
                 }
@@ -739,6 +774,7 @@ private fun MemosListPane(
     onDraftsCardClick: () -> Unit,
     onHashtagClick: (String) -> Unit,
     emptyState: @Composable () -> Unit,
+    onFeedSettled: () -> Unit,
     isActive: Boolean
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -761,6 +797,8 @@ private fun MemosListPane(
         errorTitle = stringResource(R.string.common_error_failed_to_load_memos),
         onHashtagClick = onHashtagClick,
         emptyState = emptyState,
+        showSkeleton = !uiState.userMemoList.list.initialLoadFinished,
+        onPlaceholdersLifted = onFeedSettled,
         isActive = isActive,
         header = {
             // The shortcut chips used to be a list header item here: they scrolled away with

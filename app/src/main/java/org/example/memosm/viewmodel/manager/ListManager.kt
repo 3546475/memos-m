@@ -211,9 +211,6 @@ abstract class BaseListManager<T>(
      */
     open fun loadFromCache() {
         if (cacheCallbacks == null) {
-            // Nothing to read: the list still counts as settled so a startup gate waiting on it
-            // does not sit on the cover forever.
-            _listState.update { it.copy(cacheLoaded = true) }
             return
         }
         launchRequest { checkCurrent ->
@@ -230,11 +227,8 @@ abstract class BaseListManager<T>(
                         isLoading = false,
                         nextPageToken = null,
                         isOffline = true,
-                        showingCached = true,
-                        cacheLoaded = true
+                        showingCached = true
                     ) }
-                } else {
-                    _listState.update { it.copy(cacheLoaded = true) }
                 }
             } catch (e: CancellationException) {
                 throw e

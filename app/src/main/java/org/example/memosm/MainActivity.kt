@@ -29,15 +29,16 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.example.memosm.data.DataStoreManager
+import org.example.memosm.data.StartupMirror
 import org.example.memosm.model.ShareIntentData
 import org.example.memosm.ui.MainScreen
+import org.example.memosm.ui.StartupPlaceholder
 import org.example.memosm.ui.MainDestination
 import org.example.memosm.ui.profile.DraftsActivity
 import org.example.memosm.ui.profile.NotificationsActivity
 import org.example.memosm.ui.component.LoginScreen
 import org.example.memosm.ui.component.LocalNetworkPermission
 import org.example.memosm.ui.component.rememberLocalNetworkPermission
-import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.SavedMemosMTheme
 import org.example.memosm.ui.setup.SetupActivity
 import org.example.memosm.viewmodel.MemosViewModel
@@ -81,13 +82,19 @@ class MainActivity : ComponentActivity() {
                 val networkPermission = rememberLocalNetworkPermission()
                 CompositionLocalProvider(LocalNetworkPermission provides networkPermission) {
                     val scope = rememberCoroutineScope()
+                    val restoring by org.example.memosm.data.backup.BackupCoordinator.restoring.collectAsState()
+                    // Only what the launch gates paint: the mirror says "this last run reached the
+                    // feed", so the first frame can be the home shell. Routing still waits for
+                    // DataStore, and a real restore takes the shell away again.
+                    val showHomeShell = remember { StartupMirror.showsHomeShell } && !restoring
 
                     val recoveryError by org.example.memosm.data.backup.BackupCoordinator.recoveryError.collectAsState()
                     val startupReady by org.example.memosm.data.backup.BackupCoordinator.startupReady.collectAsState()
                     if (!startupReady) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            AppCircularProgressIndicator()
-                        }
+                        StartupPlaceholder(
+                            showHomeShell = showHomeShell,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     } else if (recoveryError != null) {
                         androidx.compose.foundation.layout.Column(
                             Modifier.fillMaxSize().padding(24.dp),
@@ -141,6 +148,11 @@ class MainActivity : ComponentActivity() {
                         if (accounts != null && setupCompleted != null) {
                             // Once we have a non-null list (even if empty), we've finished the initial load
                             isCheckingSession = false
+                            // Keep the launch mirror in step with the routing decision above.
+                            StartupMirror.update(
+                                this@MainActivity,
+                                onboarded = setupCompleted == true && accounts!!.any { it.isActive }
+                            )
                             if (setupCompleted == false) {
                                 if (accounts!!.isNotEmpty()) {
                                     // Existing installations stay onboarded even after logout.
@@ -154,9 +166,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (isCheckingSession || setupCompleted != true || appearance == null) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            AppCircularProgressIndicator()
-                        }
+                        StartupPlaceholder(
+                            showHomeShell = showHomeShell,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     } else {
                         val activeAccount = accounts?.find { it.isActive }
                         var checkedAccount by remember { mutableStateOf<String?>(null) }
@@ -169,9 +182,10 @@ class MainActivity : ComponentActivity() {
 
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                             if (activeAccount != null && checkedAccount != activeAccount.id) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    AppCircularProgressIndicator()
-                                }
+                                StartupPlaceholder(
+                                    showHomeShell = showHomeShell,
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             } else if (activeAccount != null) {
                                 // Launcher shortcuts land on the page they name; child pages that
                                 // own their own window are opened once the session is bound.
@@ -260,11 +274,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var foregroundPosted = false
+
     override fun onResume() {
         super.onResume()
-        // App is in the foreground again: flush queued offline writes and
-        // top up the local cache.
-        if (org.example.memosm.data.backup.BackupCoordinator.recoveryError.value == null) viewModel.onForeground()
+        if (org.example.memosm.data.backup.BackupCoordinator.recoveryError.value != null) return
+        // Flush queued offline writes and top up the local cache. The first call waits for the
+        // launch placeholder to reach the screen: constructing the view model and its graph used
+        // to sit between the tap and the first frame.
+        if (foregroundPosted) {
+            viewModel.onForeground()
+            return
+        }
+        foregroundPosted = true
+        val decor = window.decorView
+        val observer = decor.viewTreeObserver
+        observer.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (observer.isAlive) observer.removeOnPreDrawListener(this)
+                decor.post { viewModel.onForeground() }
+                return true
+            }
+        })
     }
 
     /**

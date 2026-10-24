@@ -17,6 +17,7 @@ plugins {
     id("androidx.room") version libs.versions.roomRuntime.get()
 
     alias(libs.plugins.aboutlibraries)
+    id("androidx.baselineprofile")
 }
 
 android {
@@ -104,6 +105,15 @@ android {
             manifestPlaceholders["appLabel"] = "MemosM (Insider)"
             signingConfig = signingConfigs.getByName("release")
         }
+        // Macrobenchmark target: non-debuggable and profileable, signed with the release key so
+        // it replaces the installed app without losing its data.
+        create("benchmark") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
+            matchingFallbacks += listOf("release")
+            manifestPlaceholders["appLabel"] = "MemosM"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -159,7 +169,16 @@ androidComponents {
 
 
 
+// Compose compiler reports, only when asked for with -PcomposeReports.
+composeCompiler {
+    if (providers.gradleProperty("composeReports").isPresent) {
+        reportsDestination = layout.buildDirectory.dir("compose_reports")
+    }
+}
+
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
     implementation(libs.msgpack.core)
     coreLibraryDesugaring(libs.android.desugarJdkLibs)
 

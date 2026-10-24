@@ -77,6 +77,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.compositionLocalOf
@@ -86,11 +87,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.example.memosm.R
 import org.example.memosm.model.Memo
 import org.example.memosm.model.MemoState
@@ -100,7 +107,10 @@ import org.example.memosm.ui.MemoKey
 import org.example.memosm.ui.component.composer.ComposerMode
 import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
+import org.example.memosm.data.StartupMirror
 import org.example.memosm.ui.component.item.MemoItem
+import org.example.memosm.ui.component.item.MemoSkeletonCard
+import org.example.memosm.ui.component.item.markdown.MarkdownCache
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.viewmodel.MemosViewModel
@@ -136,6 +146,12 @@ val LocalSyncInProgress = compositionLocalOf { false }
 val LocalListBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
 private const val HeaderBlurRadius = 24f
+
+/** How many placeholder cards a loading feed shows before the first real page arrives. */
+private const val FeedSkeletonCount = 5
+
+/** How many cards' markdown is parsed before the placeholders are lifted. */
+private const val MarkdownPrewarmCount = 8
 
 /**
  * Full strength at the very top, zero at the bottom of the header band. A [ProgressiveBlur.curve]
@@ -541,10 +557,63 @@ fun MemosScaffold(
         onHashtagClick: ((String) -> Unit)? = null,
         /** Shown instead of a blank pane when the server returned nothing and no page is pending. */
         emptyState: (@Composable () -> Unit)? = null,
+        /**
+         * True until the first page (or its failure) has been applied. An empty feed then shows
+         * skeleton cards instead of the empty state: the page opens into the shape of the feed
+         * and fills in, rather than flashing "no memos yet" before the request comes back.
+         */
+        showSkeleton: Boolean = false,
+        /** Called once the placeholders are gone and the pane shows settled content. */
+        onPlaceholdersLifted: (() -> Unit)? = null,
         isActive: Boolean = true
     ) {
         val uiState by viewModel.uiState.collectAsState()
         val focusManager = LocalFocusManager.current
+        val context = LocalContext.current
+        val density = LocalDensity.current
+
+        // Items read these through derived states: a sync tick or a refresh no longer recomposes
+        // every card, only a session change or a different selected memo does.
+        val sessionState = remember { derivedStateOf { uiState.session } }
+        val selectedNameState = remember { derivedStateOf { uiState.detailPane.selectedMemo?.name } }
+        val headerScale = uiState.appSettings.headerScale
+        val reactionOptions = uiState.session.instanceSettings?.memoRelatedSetting?.reactions
+            ?: emptyList()
+
+        // Skeleton instead of a loader or the empty state until the feed has a first answer,
+        // and then until the first cards' markdown has actually been parsed: swapping on data
+        // arrival alone shows cards with empty bodies whose text pops in a frame later.
+        // Survives a destination switch (the pane is re-created on return) so coming back to
+        // the feed does not flash placeholders over cards whose markdown is already cached.
+        var markdownPrewarmed by rememberSaveable { mutableStateOf(false) }
+        LaunchedEffect(memos) {
+            if (memos.isEmpty()) {
+                markdownPrewarmed = false
+                return@LaunchedEffect
+            }
+            // A restored flag can outlive the parse cache (process death): verify the first card
+            // is still parsed, otherwise hold the placeholders and parse again.
+            if (markdownPrewarmed && MarkdownCache.cached(memos.first().content) != null) {
+                return@LaunchedEffect
+            }
+            markdownPrewarmed = false
+            withContext(Dispatchers.Default) {
+                memos.take(MarkdownPrewarmCount).forEach { memo ->
+                    val content = memo.content
+                    if (content.isNotBlank()) MarkdownCache.parse(content)
+                }
+            }
+            markdownPrewarmed = true
+        }
+        val showPlaceholders =
+            (memos.isEmpty() && (showSkeleton || (isLoading && !isRefreshing))) ||
+                (memos.isNotEmpty() && !markdownPrewarmed)
+
+        // Tell the host chrome when the pane is no longer showing placeholders: the bottom bar
+        // waits for this instead of appearing over the skeleton.
+        LaunchedEffect(showPlaceholders) {
+            if (!showPlaceholders) onPlaceholdersLifted?.invoke()
+        }
 
         LaunchedEffect(listState, isLoading, nextPageToken, isActive) {
             if (!isActive) return@LaunchedEffect
@@ -569,21 +638,25 @@ fun MemosScaffold(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coordinates ->
+                        // Where the list starts in the window: the top bar above it is not part of
+                        // the feed's content padding, and the launch shell needs both.
+                        val top = with(density) { coordinates.positionInWindow().y.toDp() }
+                        StartupMirror.updateFeedPaneTop(context, top.value)
+                    },
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 header?.invoke(this)
 
-                if (isLoading && memos.isEmpty() && !isRefreshing) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AppCircularProgressIndicator()
-                        }
+                if (showPlaceholders) {
+                    // Placeholder cards, not a spinner: the feed opens in its final shape and the
+                    // real cards replace these in place, once their markdown is ready.
+                    items(count = FeedSkeletonCount, key = { "feed-skeleton-$it" }) {
+                        MemoSkeletonCard(Modifier.animateItem())
                     }
                 } else if (uiState.error != null && memos.isEmpty()) {
                     item {
@@ -611,12 +684,21 @@ fun MemosScaffold(
                         if (!it.name.isNullOrBlank()) it.name
                         else "${it.content.hashCode()}_${it.createTime}_$index"
                     }) { index, memo ->
+                        val session = sessionState.value
                         Box(
-                            modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+                            modifier = Modifier.fillMaxWidth().animateItem(),
+                            contentAlignment = Alignment.Center
                         ) {
                             MemoPreviewItem(
                                 viewModel = viewModel,
                                 memo = memo,
+                                currentUser = session.currUser,
+                                token = session.token,
+                                hostUrl = session.hostUrl,
+                                selected = memo.name != null &&
+                                    memo.name == selectedNameState.value,
+                                headerScale = headerScale,
+                                reactionOptions = reactionOptions,
                                 user = userProvider(memo),
                                 onClick = { onMemoClick(memo) },
                                 onHashtagClick = onHashtagClick
@@ -661,23 +743,29 @@ fun MemosScaffold(
 fun MemoPreviewItem(
     viewModel: MemosViewModel,
     memo: Memo,
+    /** Hoisted so a card does not subscribe to the whole ui state just to read the session. */
+    currentUser: User?,
+    token: String,
+    hostUrl: String,
+    selected: Boolean,
+    headerScale: Float,
+    reactionOptions: List<String>,
     user: User? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onHashtagClick: ((String) -> Unit)? = null
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
     val onEditMemo = LocalMemoEditor.current
     var showDelete by remember(memo.name) { mutableStateOf(false) }
-    val isOwner = memo.creator == uiState.session.currUser?.name
+    val isOwner = memo.creator == currentUser?.name
     MemoItem(
         memo = memo,
         user = user,
-        currentUser = uiState.session.currUser,
-        token = uiState.session.token,
-        hostUrl = uiState.session.hostUrl,
-        colors = if (memo.name != null && memo.name == uiState.detailPane.selectedMemo?.name) {
+        currentUser = currentUser,
+        token = token,
+        hostUrl = hostUrl,
+        colors = if (selected) {
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         } else {
             CardDefaults.cardColors()
@@ -737,9 +825,8 @@ fun MemoPreviewItem(
         maxHeight = 400.dp,
         modifier = modifier.widthIn(max = 800.dp),
         onHashtagClick = onHashtagClick,
-        headerScale = uiState.appSettings.headerScale,
-        reactionOptions = uiState.session.instanceSettings?.memoRelatedSetting?.reactions
-            ?: emptyList())
+        headerScale = headerScale,
+        reactionOptions = reactionOptions)
     if (showDelete) {
         DeleteConfirmationDialog(memo = memo, onDismiss = { showDelete = false }, onConfirm = {
             viewModel.memoActionDelegate.deleteMemo(memo)

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MemosM" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- The platform window background is what the system splash and the starting window paint
+         before the first Compose frame exists. Matching it to the page colour keeps a cold start
+         from flashing white; the night variant carries the dark colour. -->
+    <style name="Theme.MemosM" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

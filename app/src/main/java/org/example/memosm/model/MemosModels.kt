@@ -1,5 +1,6 @@
 package org.example.memosm.model
 
+import androidx.compose.runtime.Immutable
 import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -40,6 +41,7 @@ enum class MemoState {
     STATE_UNSPECIFIED
 }
 
+@Immutable
 data class Memo(
     val name: String? = null,
     val state: MemoState? = null,
@@ -60,6 +62,7 @@ data class Memo(
     val location: Location? = null
 )
 
+@Immutable
 data class Attachment(
     val name: String? = null,
     @SerializedName("createTime", alternate = ["create_time"]) val createTime: Instant? = null,
@@ -116,6 +119,7 @@ data class MemoSnippet(
     val name: String, val snippet: String? = null
 )
 
+@Immutable
 data class Reaction(
     val name: String? = null,
     val creator: String? = null,
@@ -141,6 +145,7 @@ data class ListActivitiesResponse(
     val activities: List<Activity>?, val nextPageToken: String?
 )
 
+@Immutable
 data class Activity(
     val name: String? = null,
     val creator: String? = null,
@@ -176,6 +181,7 @@ data class ListMemoReactionsResponse(
     val reactions: List<Reaction>?, val nextPageToken: String?, val totalSize: Int?
 )
 
+@Immutable
 data class UpsertMemoReactionRequest(
     val name: String, val reaction: Reaction
 )

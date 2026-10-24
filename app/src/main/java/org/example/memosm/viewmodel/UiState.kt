@@ -28,13 +28,8 @@ data class PaginatedListState<T>(
     val isOffline: Boolean = false,  // True when displaying cached data due to network failure
     val errorMessage: String? = null, // Error message from last failed fetch (shown with cached data)
     val showingCached: Boolean = false, // True while the list may contain local-cache items that have not been fully confirmed by the network yet (local-first prefill)
-    // True once the local cache has been read for the current account (even when it turned out
-    // to be empty). The cold-start cover waits for it so the first visible frame already has the
-    // cached feed instead of a page that assembles in front of the user.
-    val cacheLoaded: Boolean = false,
-    // True once the first network page has been applied (or failed). With an empty cache this is
-    // what makes the feed "ready": otherwise the cover would lift onto an empty list that fills
-    // in a moment later.
+    // True once the first network page has been applied (or failed). An empty feed shows skeleton
+    // cards until then, instead of flashing the empty state before the request comes back.
     val initialLoadFinished: Boolean = false
 )
 

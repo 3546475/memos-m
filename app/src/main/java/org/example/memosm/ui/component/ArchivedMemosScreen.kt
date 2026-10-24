@@ -60,6 +60,7 @@ fun ArchivedMemosScreen(
                     onMemoClick = onMemoClick,
                     listState = listState,
                     userProvider = { uiState.session.currUser },
+                    showSkeleton = !uiState.archivedMemoList.list.initialLoadFinished,
                     contentPadding = PaddingValues(16.dp)
                 )
             })

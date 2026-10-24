@@ -14,8 +14,6 @@ import kotlinx.coroutines.launch
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import org.example.memosm.data.DataStoreManager
-import org.example.memosm.data.cache.MemoCacheDatabase
-import org.example.memosm.data.cache.MemoCacheRepository
 import org.example.memosm.data.sync.SyncWorkScheduler
 import org.example.memosm.di.appModule
 import org.example.memosm.di.networkModule
@@ -25,9 +23,6 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 
 class MemosApplication : Application(), SingletonImageLoader.Factory {
-
-    lateinit var memoCacheRepository: MemoCacheRepository
-        private set
 
     /**
      * Offline attachment cache manager, resolved lazily from Koin
@@ -40,10 +35,11 @@ class MemosApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        org.example.memosm.data.StartupMirror.load(this)
         org.example.memosm.data.backup.BackupCoordinator.beginStartupRecovery()
 
         startKoin {
-            androidLogger()
+            androidLogger(org.koin.core.logger.Level.ERROR)
             androidContext(this@MemosApplication)
             modules(appModule, networkModule, viewModelModule)
         }
@@ -62,12 +58,7 @@ class MemosApplication : Application(), SingletonImageLoader.Factory {
             override fun onActivityDestroyed(activity: android.app.Activity) = Unit
         })
 
-        // Initialize Room database and cache repository
-        val database = MemoCacheDatabase.getInstance(this)
-        memoCacheRepository = MemoCacheRepository(org.example.memosm.data.backup.GuardedMemoDao(database.memoDao()))
-
         // Complete incoming or interrupted restores before creating sessions or scheduling work.
-        val backup = org.koin.core.context.GlobalContext.get().get<org.example.memosm.data.backup.BackupService>()
         val startupScope = kotlinx.coroutines.CoroutineScope(
             kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
         )
@@ -76,6 +67,9 @@ class MemosApplication : Application(), SingletonImageLoader.Factory {
         startupScope.launch { AppShortcuts.publish(this@MemosApplication) }
 
         startupScope.launch {
+            // Resolved on the IO thread: building the service and its graph used to sit between
+            // the tap and the first frame.
+            val backup = org.koin.core.context.GlobalContext.get().get<org.example.memosm.data.backup.BackupService>()
             try {
                 backup.recoverInterruptedRestore().onFailure {
                     org.example.memosm.data.backup.BackupCoordinator.recoveryError.value = "Restore was interrupted. Retry to finish restoring your data."
