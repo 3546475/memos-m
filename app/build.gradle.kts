@@ -298,19 +298,15 @@ dependencies {
     implementation(libs.androidx.room.ktx)
 
     // optional - RxJava2 support for Room
-    implementation(libs.androidx.room.rxjava2)
 
     // optional - RxJava3 support for Room
-    implementation(libs.androidx.room.rxjava3)
 
     // optional - Guava support for Room, including Optional and ListenableFuture
-    implementation(libs.androidx.room.guava)
 
     // optional - Test helpers
     testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.room.testing)
 
     // optional - Paging 3 Integration
-    implementation(libs.androidx.room.paging)
 
 }
