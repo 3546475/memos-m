@@ -55,6 +55,7 @@ import org.example.memosm.ui.component.item.media.LocalAccountMediaIdentity
 import org.example.memosm.ui.component.item.media.attachmentOrigin
 import org.example.memosm.ui.component.item.media.FullScreenAttachmentViewer
 import org.example.memosm.ui.component.rememberScrollContext
+import org.example.memosm.ui.component.rememberPageOverscroll
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 import org.example.memosm.ui.theme.AppPullToRefresh
 import org.example.memosm.viewmodel.MemosViewModel
@@ -161,6 +162,7 @@ fun AttachmentsScreen(
         targetValue = (if (isNavBarVisible) 80.dp else 16.dp) + navigationBarInset,
         label = "BottomPadding"
     )
+    val overscroll = rememberPageOverscroll()
 
     LaunchedEffect(Unit) {
         viewModel.fetchAttachments(refresh = false)
@@ -288,6 +290,7 @@ fun AttachmentsScreen(
                 }
                 LazyColumn(
                     state = listState,
+                    overscrollEffect = overscroll,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(top = 12.dp, bottom = bottomPadding),
                     verticalArrangement = Arrangement.spacedBy(2.dp)

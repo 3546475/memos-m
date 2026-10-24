@@ -63,6 +63,7 @@ fun NotificationsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val generation = uiState.accountGeneration
     val listState = rememberLazyListState()
+    val overscroll = rememberPageOverscroll()
     val scope = rememberCoroutineScope()
 
     var notifications by remember(generation) { mutableStateOf<List<UserNotification>>(emptyList()) }
@@ -162,6 +163,7 @@ fun NotificationsScreen(
                 else -> {
                     LazyColumn(
                         state = listState,
+                        overscrollEffect = overscroll,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             start = 16.dp,

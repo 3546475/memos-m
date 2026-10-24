@@ -19,12 +19,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -78,6 +76,7 @@ import org.example.memosm.ui.component.TagTreeDialog
 import org.example.memosm.ui.component.rememberLocalMemoCatalog
 import org.example.memosm.model.matchesContentType
 import org.example.memosm.ui.component.StatsActivityCard
+import org.example.memosm.ui.component.rememberPageOverscroll
 import org.example.memosm.ui.component.rememberScrollContext
 import org.example.memosm.ui.component.setting.SettingsGroup
 import org.example.memosm.ui.component.setting.SettingsNavigationRow
@@ -156,6 +155,8 @@ private fun ProfileListPane(
     val networkPermission = LocalNetworkPermission.current
     val scope = rememberCoroutineScope()
     val catalog = rememberLocalMemoCatalog(viewModel)
+    // This page usually fits on one screen and must never rubber-band; see rememberPageOverscroll.
+    val overscroll = rememberPageOverscroll()
 
     // Scroll direction tracking for nav bar visibility
     rememberScrollContext(
@@ -239,11 +240,15 @@ private fun ProfileListPane(
     ) {
         LazyColumn(
             state = listState,
+            overscrollEffect = overscroll,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 top = 16.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
                 end = 16.dp,
+                // Reserves the floating bar's height (and the navigation area under it). There is
+                // deliberately no spacer item after the last row: that only added scroll range
+                // through empty space once the page was already fully shown.
                 bottom = bottomPadding + WindowInsets.navigationBars.asPaddingValues()
                     .calculateBottomPadding()
             ),
@@ -364,10 +369,6 @@ private fun ProfileListPane(
                                 onRetry = { viewModel.fetchUserMemos(refresh = true) })
                         }
                     }
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(64.dp))
                 }
             } else if (!uiState.userMemoList.list.isLoading) {
                 item {

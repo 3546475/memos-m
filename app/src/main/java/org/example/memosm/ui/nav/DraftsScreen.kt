@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +36,7 @@ import org.example.memosm.ui.component.composer.EditorRequest
 import org.example.memosm.ui.component.composer.rememberMemoEditorLauncher
 import org.example.memosm.ui.component.ProfileBackButton
 import org.example.memosm.ui.component.item.MemoItem
+import org.example.memosm.ui.component.rememberPageOverscroll
 import org.example.memosm.viewmodel.MemosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,6 +54,8 @@ fun DraftsScreen(
         }
     }
     var draftToDelete by remember { mutableStateOf<Draft?>(null) }
+    val listState = rememberLazyListState()
+    val overscroll = rememberPageOverscroll()
 
     Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
         AppTopBar(title = stringResource(R.string.drafts_title), navigationIcon = {
@@ -73,6 +77,8 @@ fun DraftsScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
+                overscrollEffect = overscroll,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),

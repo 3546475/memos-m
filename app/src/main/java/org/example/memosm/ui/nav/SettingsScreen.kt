@@ -29,6 +29,7 @@ import org.example.memosm.R
 import org.example.memosm.model.InstanceProfile
 import org.example.memosm.model.UserGeneralSetting
 import org.example.memosm.ui.component.ProfileBackButton
+import org.example.memosm.ui.component.rememberPageOverscroll
 import org.example.memosm.ui.component.setting.*
 import org.example.memosm.ui.theme.AppTopBar
 import org.example.memosm.viewmodel.MemosViewModel
@@ -45,6 +46,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val overscroll = rememberPageOverscroll()
     SettingsPageScaffold(
         title = stringResource(section?.titleRes ?: R.string.settings_title),
         onBack = onBack,
@@ -68,6 +70,7 @@ fun SettingsScreen(
         } else {
             LazyColumn(
                 state = listState,
+                overscrollEffect = overscroll,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

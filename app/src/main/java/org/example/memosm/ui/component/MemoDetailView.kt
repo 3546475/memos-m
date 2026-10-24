@@ -117,6 +117,8 @@ fun MemoDetailView(
     val isOwner = remember(memo.creator, uiState.session.currUser?.name) {
         memo.creator == uiState.session.currUser?.name
     }
+    // The detail only moves while it has something to reveal: no rubber band at either end.
+    val overscroll = rememberPageOverscroll()
 
     AppSurface(
         modifier = modifier.fillMaxSize().clip(
@@ -174,6 +176,7 @@ fun MemoDetailView(
             ) {
                 LazyColumn(
                     state = listState,
+                    overscrollEffect = overscroll,
                     modifier = Modifier
                         .fillMaxSize() // Use fillMaxSize instead of fillMaxHeight
                         .widthIn(max = 800.dp)
