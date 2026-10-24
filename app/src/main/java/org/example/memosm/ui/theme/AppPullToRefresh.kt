@@ -1,5 +1,6 @@
 package org.example.memosm.ui.theme
 
+import android.os.SystemClock
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
@@ -17,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -39,7 +41,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** Raw drag distance that arms the refresh. */
-private val PullTriggerDistance = 64.dp
+private val PullTriggerDistance = 96.dp
+
+/**
+ * Raw drag distance swallowed before the pull reacts at all. Without it a two-pixel drift, the
+ * tail of a tap or a scroll that overshoots the top all made the chip pop out.
+ */
+private val PullStartDistance = 24.dp
+
+/**
+ * A pull that begins right after the list was still scrolling is that scroll spilling over the top
+ * edge, not a deliberate pull: a hard flick back to the top must not turn into a refresh. The drag
+ * is ignored for this long, then the pull starts counting from zero.
+ */
+private const val PullSpillOverCooldownMs = 200L
 
 /** Diameter of the circular chip that carries the pull-to-refresh dot matrix. */
 private val PullIndicatorSize = 40.dp
@@ -58,8 +73,12 @@ private const val PullOvershootFraction = 0.18f
  * header that pushes the content down and draws a ring with an orbiting dot). This version
  * keeps the app's own dot-matrix loader as the single indicator in both themes:
  *
- * - while pulling, the wave is scrubbed by the pull progress instead of looping;
- * - past the threshold every cell stays lit (and a haptic fires), the "release" cue;
+ * - the first [PullStartDistance] of a pull does nothing at all, so small drags never show the chip;
+ * - past that the wave is scrubbed by the pull progress instead of looping, and a light tick marks
+ *   the moment the pull starts;
+ * - [PullTriggerDistance] arms the refresh: every cell stays lit (and a haptic fires), the
+ *   "release" cue;
+ * - a pull that starts as scroll spills over the top is ignored for [PullSpillOverCooldownMs];
  * - while refreshing it free-runs exactly like every other loading indicator;
  * - the dots float over the content, so nothing ever re-measures and no card shifts.
  *
@@ -77,6 +96,10 @@ fun AppPullToRefresh(
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
     val triggerPx = with(density) { PullTriggerDistance.toPx() }
+    val startPx = with(density) { PullStartDistance.toPx() }
+    // Pull progress is measured past the dead zone, so the chip appears at startPx and is fully
+    // out at triggerPx.
+    val rampPx = (triggerPx - startPx).coerceAtLeast(1f)
 
     // Drag bookkeeping, all in pixels.
     val pullPx = remember { mutableFloatStateOf(0f) }
@@ -87,14 +110,23 @@ fun AppPullToRefresh(
     // Set between an armed release and the hoisted isRefreshing actually turning true.
     val waiting = remember { mutableStateOf(false) }
     val settling = remember { mutableStateOf(false) }
+    // Uptime of the last drag the list itself consumed, for the spill-over window above.
+    val lastListScrollAt = remember { mutableLongStateOf(0L) }
 
     val refreshingState = rememberUpdatedState(isRefreshing)
     val onRefreshState = rememberUpdatedState(onRefresh)
 
     fun applyPull(delta: Float) {
         if (delta == 0f) return
+        val wasPulling = pullPx.floatValue > startPx
         pullPx.floatValue = (pullPx.floatValue + delta).coerceAtLeast(0f)
-        val raw = pullPx.floatValue / triggerPx
+        val pulling = pullPx.floatValue > startPx
+        if (pulling && !wasPulling) {
+            // Tell the finger the pull has actually started; before this nothing reacted at all.
+            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        }
+        dragging.value = dragging.value || pulling
+        val raw = ((pullPx.floatValue - startPx) / rampPx).coerceAtLeast(0f)
         reveal.floatValue = if (raw <= 1f) {
             raw
         } else {
@@ -105,7 +137,6 @@ fun AppPullToRefresh(
             haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
         }
         armed.value = nowArmed
-        dragging.value = true
     }
 
     suspend fun settleTo(target: Float) {
@@ -143,7 +174,16 @@ fun AppPullToRefresh(
             ): Offset {
                 if (source != NestedScrollSource.UserInput) return Offset.Zero
                 if (refreshingState.value || waiting.value || settling.value) return Offset.Zero
+                // The list moved, so whatever is left over is not a deliberate pull yet.
+                if (consumed.y != 0f) lastListScrollAt.longValue = SystemClock.uptimeMillis()
                 if (available.y <= 0f) return Offset.Zero
+                // A pull that only started because the list ran out of content under the finger
+                // (the tail of a flick back to the top) waits out the spill-over window first.
+                if (pullPx.floatValue == 0f &&
+                    SystemClock.uptimeMillis() - lastListScrollAt.longValue < PullSpillOverCooldownMs
+                ) {
+                    return Offset.Zero
+                }
                 applyPull(available.y)
                 return Offset(0f, available.y)
             }
