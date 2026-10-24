@@ -21,7 +21,11 @@ class StartupBaselineProfile {
     val rule = BaselineProfileRule()
 
     @Test
-    fun startup() = rule.collect(packageName = "org.example.memosm") {
+    fun startup() = rule.collect(
+        packageName = "org.example.memosm",
+        // Also emit startup rules: ART then compiles the cold-start methods ahead of the rest.
+        includeInStartupProfile = true,
+    ) {
         pressHome()
         startActivityAndWait()
         device.waitForIdle()
