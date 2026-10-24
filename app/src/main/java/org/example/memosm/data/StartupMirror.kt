@@ -14,13 +14,34 @@ import android.content.SharedPreferences
 object StartupMirror {
     private const val PREFS_NAME = "startup_mirror"
     private const val KEY_ONBOARDED = "onboarded"
+    private const val KEY_FEED_TOP_INSET = "feed_top_inset_dp"
 
     @Volatile
     private var onboardedWithAccount = false
 
+    @Volatile
+    private var feedTopInset = 64f
+
     /** Reads the mirror synchronously: one small prefs file, no coroutine, no DataStore. */
     fun load(context: Context) {
-        onboardedWithAccount = prefs(context).getBoolean(KEY_ONBOARDED, false)
+        val prefs = prefs(context)
+        onboardedWithAccount = prefs.getBoolean(KEY_ONBOARDED, false)
+        feedTopInset = prefs.getFloat(KEY_FEED_TOP_INSET, 64f)
+    }
+
+    /**
+     * Where the feed puts its first card, in dp, as the real feed measured it on the last run.
+     * The launch shell places its placeholder cards at the same offset, so revealing the feed
+     * does not shift them.
+     */
+    val feedTopInsetDp: Float
+        get() = feedTopInset
+
+    /** Mirrors the feed's first-card offset. A no-op when nothing changed. */
+    fun updateFeedTopInset(context: Context, dp: Float) {
+        if (feedTopInset == dp) return
+        feedTopInset = dp
+        prefs(context).edit().putFloat(KEY_FEED_TOP_INSET, dp).apply()
     }
 
     /**

@@ -638,7 +638,7 @@ fun MemosScaffold(
                     // Placeholder cards, not a spinner: the feed opens in its final shape and the
                     // real cards replace these in place, once their markdown is ready.
                     items(count = FeedSkeletonCount, key = { "feed-skeleton-$it" }) {
-                        MemoSkeletonCard()
+                        MemoSkeletonCard(Modifier.animateItem())
                     }
                 } else if (uiState.error != null && memos.isEmpty()) {
                     item {
@@ -667,7 +667,8 @@ fun MemosScaffold(
                         else "${it.content.hashCode()}_${it.createTime}_$index"
                     }) { index, memo ->
                         Box(
-                            modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
+                            modifier = Modifier.fillMaxWidth().animateItem(),
+                            contentAlignment = Alignment.Center
                         ) {
                             MemoPreviewItem(
                                 viewModel = viewModel,

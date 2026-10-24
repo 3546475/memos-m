@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -21,17 +19,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.dp
+import org.example.memosm.data.StartupMirror
 import org.example.memosm.ui.component.item.MemoSkeletonCard
 import org.example.memosm.ui.theme.AppCircularProgressIndicator
 
 /**
  * Launch placeholder for the gates that run before the home page can compose.
  *
- * With a known onboarded account ([showHomeShell]) it draws the home shell's silhouette — top bar,
- * the skeleton feed, the floating bottom bar — so a cold start goes from the system splash to the
- * shape of the page instead of a spinner. Without that hint it keeps the plain spinner: the app
- * cannot yet tell whether it is heading for the feed or for setup/login, and a wrong shell would
- * flash before the real screen.
+ * With a known onboarded account ([showHomeShell]) it draws the home shell's silhouette — the
+ * chrome band, the skeleton feed, the floating bottom bar — so a cold start goes from the system
+ * splash to the shape of the page instead of a spinner. Without that hint it keeps the plain
+ * spinner: the app cannot yet tell whether it is heading for the feed or for setup/login, and a
+ * wrong shell would flash before the real screen.
  */
 @Composable
 fun StartupPlaceholder(showHomeShell: Boolean, modifier: Modifier = Modifier) {
@@ -46,9 +45,11 @@ fun StartupPlaceholder(showHomeShell: Boolean, modifier: Modifier = Modifier) {
 
 @Composable
 private fun StartupSkeletonShell(modifier: Modifier) {
-    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val chrome = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    // The feed's first card starts here; the placeholders use the same offset, so the reveal does
+    // not move them. The value was mirrored by the real feed on the previous run.
+    val feedTop = StartupMirror.feedTopInsetDp.dp
 
     Box(
         modifier = modifier
@@ -57,18 +58,19 @@ private fun StartupSkeletonShell(modifier: Modifier) {
             .clipToBounds()
     ) {
         Column(Modifier.fillMaxSize()) {
-            // The real top bar is a single 56dp row under the status bar.
+            // Chrome band: as tall as the feed reserves for its header, with a search-bar hint.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(statusBar + 56.dp)
-                    .padding(start = 20.dp, end = 20.dp, top = statusBar),
-                contentAlignment = Alignment.CenterStart
+                    .height(feedTop),
+                contentAlignment = Alignment.BottomStart
             ) {
                 Box(
                     modifier = Modifier
-                        .size(width = 84.dp, height = 16.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
                         .background(chrome)
                 )
             }
