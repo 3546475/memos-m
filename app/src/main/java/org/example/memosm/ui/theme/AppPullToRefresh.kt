@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
@@ -37,8 +41,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** Raw drag distance that arms the refresh. */
 private val PullTriggerDistance = 64.dp
 
-/** Diameter of the dot matrix that acts as the pull indicator. */
-private val PullIndicatorSize = 32.dp
+/** Diameter of the circular chip that carries the pull-to-refresh dot matrix. */
+private val PullIndicatorSize = 40.dp
 
 /** Gap between [AppPullToRefresh.indicatorTopPadding] and the resting dot matrix. */
 private val PullIndicatorTopGap = 8.dp
@@ -217,8 +221,8 @@ fun AppPullToRefresh(
 }
 
 /**
- * The dot matrix alone, no container: it slides down from behind the floating chrome, at
- * reveal 0 sitting one indicator-height above its resting spot and invisible.
+ * Floating circular chip with the dot matrix inside. It slides down from behind the floating
+ * chrome: at reveal 0 it sits one chip above its resting spot and invisible.
  */
 @Composable
 private fun BoxScope.PullIndicator(
@@ -233,13 +237,26 @@ private fun BoxScope.PullIndicator(
     // Nothing to show and nothing running: skip the drawing entirely.
     if (alpha <= 0f && !refreshing) return
 
-    AppDotLoader(
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = if (alpha > 0.05f) 3.dp else 0.dp,
         modifier = Modifier
             .align(Alignment.TopCenter)
             .offset(y = offsetY)
             .size(PullIndicatorSize)
-            .graphicsLayer { this.alpha = alpha },
-        progress = if (refreshing) null else revealValue.coerceIn(0f, 1f),
-        armed = armed.value && !refreshing
-    )
+            .graphicsLayer { this.alpha = alpha }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            AppDotLoader(
+                modifier = Modifier.fillMaxSize(),
+                progress = if (refreshing) null else revealValue.coerceIn(0f, 1f),
+                armed = armed.value && !refreshing
+            )
+        }
+    }
 }
