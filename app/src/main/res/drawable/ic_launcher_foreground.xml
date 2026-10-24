@@ -1,15 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Ink brush" mark: one brush stroke that reads as a bird, a pointed beak, and a drop of
+     ink falling from the tail. The group keeps the whole mark inside the 66dp safe zone.
+
+     The paper is painted here rather than left to the background layer: ROMs that redraw
+     third-party icons (HyperOS does) replace that layer with a colour of their own, and the
+     icon then loses the palette it was designed with. A full-bleed foreground keeps it. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <path
+        android:fillColor="#E9E6DC"
+        android:pathData="M0,0h108v108h-108z" />
+
     <group
-        android:scaleX="0.05"
-        android:scaleY="0.05"
-        android:translateX="30"
-        android:translateY="78">
+        android:pivotX="57"
+        android:pivotY="54"
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:translateX="-2">
+
+        <!-- Body: head, chest and the tail that sweeps out like the end of a brush stroke. -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="m334-80-74-30 58-141q-106-28-172-114T80-560v-160q0-66 47-113t113-47q22 0 42 7.5t40 15.5l238 97-160 60v60l440 280 40 200h-80l-40-80H560v160h-80v-160h-80L334-80Zm66-240h353l-63-40H400q-66 0-113-47t-47-113h80q0 33 23.5 56.5T400-440h165L320-596v-124q0-33-23.5-56.5T240-800q-33 0-56.5 23.5T160-720v160q0 100 70 170t170 70ZM240-680q-17 0-28.5-11.5T200-720q0-17 11.5-28.5T240-760q17 0 28.5 11.5T280-720q0 17-11.5 28.5T240-680Zm160 320Z" />
+            android:fillColor="#22405F"
+            android:pathData="M74,36 c6,3 9,9 7,15 -2,7 -8,10 -14,9 -8,-1 -14,-6 -22,-6 -8,0 -16,4 -24,9 6,-11 14,-19 24,-23 9,-3 16,-2 21,1 3,-3 5,-5 8,-5 z" />
+
+        <!-- Beak. -->
+        <path
+            android:fillColor="#22405F"
+            android:pathData="M78,36.8 L91,41 L78,45.2 Z" />
+
+        <!-- Eye, in the paper colour of the background layer. -->
+        <path
+            android:fillColor="#E9E6DC"
+            android:pathData="M73,41.2 a2.2,2.2 0 1 1 4.4,0 a2.2,2.2 0 1 1 -4.4,0 z" />
+
+        <!-- The drop of ink. -->
+        <path
+            android:fillColor="#305880"
+            android:pathData="M29.8,73 a3.2,3.2 0 1 1 6.4,0 a3.2,3.2 0 1 1 -6.4,0 z" />
     </group>
 </vector>

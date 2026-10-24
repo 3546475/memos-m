@@ -101,7 +101,7 @@
     <string name="profile_instance_url">Adres URL</string>
     <string name="profile_logout">Wyloguj się</string>
 
-    <string name="profile_about">Informacje o MemosM</string>
+    <string name="profile_about">Informacje o Moxia</string>
     <string name="profile_about_version">Wersja aplikacji</string>
     <string name="profile_about_git_hash">Hash Git</string>
     <string name="profile_about_version_copied">Skopiowano wersję do schowka</string>

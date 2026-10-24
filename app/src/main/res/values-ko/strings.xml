@@ -49,7 +49,7 @@
     <string name="profile_instance_url">URL</string>
     <string name="profile_logout">로그아웃</string>
 
-    <string name="profile_about">MemosM 정보</string>
+    <string name="profile_about">Moxia 정보</string>
     <string name="profile_about_version">앱 버전</string>
     <string name="profile_about_git_hash">Git 해시</string>
     <string name="profile_about_repo">소스 코드</string>

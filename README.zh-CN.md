@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="128" alt="MemosM 应用图标" />
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="128" alt="Moxia 应用图标" />
 
-# MemosM
+# Moxia
 
-[yamada-sexta/memos-m](https://github.com/yamada-sexta/memos-m) 的开发分支，整体换成 Miuix（HyperOS）设计语言，并保留 Material 3 作为可选项。
+面向 [Memos](https://usememos.com/) 的 Android 客户端，基于 [yamada-sexta/memos-m](https://github.com/yamada-sexta/memos-m) 开发，整体换成 Miuix（HyperOS）设计语言，并保留 Material 3 作为可选项。
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
