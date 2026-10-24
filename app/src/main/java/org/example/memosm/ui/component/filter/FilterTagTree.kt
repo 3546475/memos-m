@@ -22,3 +22,10 @@ internal fun filterTagTree(nodes: List<TagNode>, query: String): List<TagNode> {
 
     return nodes.mapNotNull(::prune)
 }
+
+/**
+ * True when [tags] contains a path below [path]. The tree uses it to mark a branch that is not
+ * itself selected but whose subtree has selections, without bringing checkboxes back.
+ */
+internal fun hasSelectedDescendant(tags: Set<String>, path: String): Boolean =
+    tags.any { it.startsWith("$path/") }

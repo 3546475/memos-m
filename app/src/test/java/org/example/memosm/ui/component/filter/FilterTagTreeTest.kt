@@ -76,4 +76,13 @@ class FilterTagTreeTest {
     fun `an empty query returns the same tree`() {
         assertSame(tree, filterTagTree(tree, "  "))
     }
+
+    @Test
+    fun `a branch knows when one of its descendants is selected`() {
+        assertTrue(hasSelectedDescendant(setOf("type/book"), "type"))
+        assertTrue(hasSelectedDescendant(setOf("type/book/fiction"), "type"))
+        assertFalse(hasSelectedDescendant(setOf("type"), "type"))
+        // A sibling whose name merely starts with the path is not a descendant.
+        assertFalse(hasSelectedDescendant(setOf("typebook"), "type"))
+    }
 }

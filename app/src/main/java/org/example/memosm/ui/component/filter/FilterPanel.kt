@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -39,8 +42,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
@@ -60,7 +69,6 @@ import org.example.memosm.ui.component.TagNode
 import org.example.memosm.ui.component.buildTagTree
 import org.example.memosm.ui.component.collapsibleTagPaths
 import org.example.memosm.ui.component.flattenTagTree
-import org.example.memosm.ui.theme.AppCheckbox
 import org.example.memosm.ui.theme.AppDialog
 import org.example.memosm.ui.theme.AppDivider
 import org.example.memosm.ui.theme.AppFilterChip
@@ -151,7 +159,6 @@ fun FilterPanel(
                     ChoiceRow(
                         selected = !draft.hasLegacyClause,
                         label = stringResource(R.string.memo_filter_all),
-                        multi = false,
                         onClick = { draft = draft.copy(viewName = null, legacyCel = emptyList()) }
                     )
                     shortcuts.forEach { shortcut ->
@@ -159,7 +166,6 @@ fun FilterPanel(
                         ChoiceRow(
                             selected = draft.viewName != null && draft.viewName == shortcut.name,
                             label = shortcut.title.orEmpty(),
-                            multi = false,
                             onClick = {
                                 // A view is a preset: picking it replaces the base clause and any
                                 // facets added on top of it. The sort is a preference, not part of
@@ -269,6 +275,7 @@ fun FilterPanel(
                     TagTreeRow(
                         node = node,
                         selected = node.path in draft.tags,
+                        descendantSelected = hasSelectedDescendant(draft.tags, node.path),
                         expanded = node.path !in collapsedTags,
                         onToggleSelect = {
                             draft = draft.copy(
@@ -509,7 +516,6 @@ private fun ChipRow(content: @Composable RowScope.() -> Unit) {
 private fun ChoiceRow(
     selected: Boolean,
     label: String,
-    multi: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null
@@ -522,11 +528,7 @@ private fun ChoiceRow(
             .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (multi) {
-            AppCheckbox(checked = selected, onCheckedChange = { onClick() })
-        } else {
-            AppRadioButton(selected = selected, onClick = onClick)
-        }
+        AppRadioButton(selected = selected, onClick = onClick)
         Spacer(Modifier.width(12.dp))
         Text(
             text = label,
@@ -539,47 +541,102 @@ private fun ChoiceRow(
     }
 }
 
+private val TagTreeRowHeight = 44.dp
+private val TagTreeIndent = 18.dp
+private val TagTreeChevronSlot = 22.dp
+private val TagTreeAccentWidth = 3.dp
+private val TagTreeAccentGap = 7.dp
+private val TagTreeGuideOffset = 6.dp
+private val TagTreeAccentHeight = 18.dp
+
 /**
- * One row of the collapsible tag tree: indentation carries the hierarchy, the chevron folds a
- * branch, and the checkbox selects the whole branch (a path covers its subtree when filtering).
+ * One row of the file-tree-style tag picker: there is no checkbox, the whole row toggles the tag,
+ * a 1dp guide connects the levels, and a selected row gets an accent bar plus accent text. A
+ * branch whose subtree holds selections gets a dimmed bar, so "parent not selected, child is"
+ * stays visible without bringing the checkboxes back.
  */
 @Composable
 private fun TagTreeRow(
     node: TagNode,
     selected: Boolean,
+    descendantSelected: Boolean,
     expanded: Boolean,
     onToggleSelect: () -> Unit,
     onToggleExpand: () -> Unit
 ) {
+    val guideColor = MaterialTheme.colorScheme.outlineVariant
+    val accent = MaterialTheme.colorScheme.primary
+    val contentStart = 12.dp + TagTreeIndent * node.depth
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onToggleSelect)
-            .padding(start = (node.depth * 12).dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.width(30.dp), contentAlignment = Alignment.Center) {
-            if (node.children.isNotEmpty()) {
-                IconButton(onClick = onToggleExpand, modifier = Modifier.size(30.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = stringResource(
-                            if (expanded) R.string.tags_collapse else R.string.tags_expand
-                        ),
-                        modifier = Modifier
-                            .size(18.dp)
-                            .rotate(if (expanded) 90f else 0f),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+            .height(TagTreeRowHeight)
+            .drawBehind {
+                val stroke = 1.dp.toPx()
+                val overshoot = 2.dp.toPx()
+                val centerY = size.height / 2f
+                // A depth-D row is inside every ancestor, so one full-height line per level is
+                // enough. The overshoot bridges the list's 2dp item spacing.
+                for (level in 0 until node.depth) {
+                    val x = (12.dp + TagTreeIndent * level + TagTreeGuideOffset).toPx()
+                    drawLine(guideColor, Offset(x, -overshoot), Offset(x, size.height + overshoot), stroke)
+                }
+                if (node.depth > 0) {
+                    val parentX =
+                        (12.dp + TagTreeIndent * (node.depth - 1) + TagTreeGuideOffset).toPx()
+                    drawLine(guideColor, Offset(parentX, centerY), Offset(contentStart.toPx(), centerY), stroke)
+                }
+                if (selected || descendantSelected) {
+                    val barHeight = TagTreeAccentHeight.toPx()
+                    drawRoundRect(
+                        color = if (selected) accent else accent.copy(alpha = 0.35f),
+                        topLeft = Offset(contentStart.toPx(), centerY - barHeight / 2f),
+                        size = Size(TagTreeAccentWidth.toPx(), barHeight),
+                        cornerRadius = CornerRadius(TagTreeAccentWidth.toPx() / 2f)
                     )
                 }
             }
+            .clip(RoundedCornerShape(8.dp))
+            .selectable(
+                selected = selected,
+                role = Role.Checkbox,
+                onClick = onToggleSelect
+            )
+            .padding(start = contentStart + TagTreeAccentWidth + TagTreeAccentGap, end = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .width(TagTreeChevronSlot)
+                .fillMaxHeight()
+                .then(
+                    if (node.children.isNotEmpty()) {
+                        Modifier.clickable(role = Role.Button, onClick = onToggleExpand)
+                    } else {
+                        Modifier
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (node.children.isNotEmpty()) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = stringResource(
+                        if (expanded) R.string.tags_collapse else R.string.tags_expand
+                    ),
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(if (expanded) 90f else 0f),
+                    tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        AppCheckbox(checked = selected, onCheckedChange = { onToggleSelect() })
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(4.dp))
         Text(
             text = "#${node.path}",
             style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            color = if (selected) accent else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -588,7 +645,12 @@ private fun TagTreeRow(
             Text(
                 text = count.toString(),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (selected) {
+                    accent.copy(alpha = 0.8f)
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.padding(start = 8.dp)
             )
         }
     }
