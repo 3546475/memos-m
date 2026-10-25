@@ -29,6 +29,8 @@ import androidx.compose.material3.Text
 import org.example.moxia.ui.theme.AppCard
 import org.example.moxia.ui.theme.AppPullToRefresh
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -110,6 +112,9 @@ fun NotificationsScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        // The list runs under the system bars; only the top bar and the list padding keep a
+        // safe distance.
+        contentWindowInsets = pageContentWindowInsets(),
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.profile_notifications),
@@ -169,7 +174,7 @@ fun NotificationsScreen(
                             start = 16.dp,
                             top = 16.dp,
                             end = 16.dp,
-                            bottom = 16.dp
+                            bottom = 16.dp + navigationBarBottom()
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {

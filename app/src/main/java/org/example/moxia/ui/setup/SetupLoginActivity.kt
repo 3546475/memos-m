@@ -45,6 +45,8 @@ import org.example.moxia.ui.component.LocalNetworkPermission
 import org.example.moxia.ui.component.LoginContent
 import org.example.moxia.ui.component.rememberLocalNetworkPermission
 import org.example.moxia.ui.theme.SavedMoxiaTheme
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import org.koin.android.ext.android.inject
 
 class SetupLoginActivity : ComponentActivity() {
@@ -84,7 +86,10 @@ class SetupLoginActivity : ComponentActivity() {
                                 }
                             )
                         },
-                        snackbarHost = { AppSnackbarHost(snackbar) }
+                        snackbarHost = { AppSnackbarHost(snackbar) },
+                        // The form runs under the system bars; only its own padding keeps the
+                        // status bar and the gesture handle clear.
+                        contentWindowInsets = pageContentWindowInsets()
                     ) { padding ->
                         Box(Modifier.fillMaxSize().padding(padding).imePadding(), contentAlignment = Alignment.TopCenter) {
                             if (!ready || saving) {
@@ -93,7 +98,9 @@ class SetupLoginActivity : ComponentActivity() {
                                 }
                             } else {
                                 LoginContent(
-                                    modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(24.dp),
+                                    modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth()
+                                        .padding(24.dp)
+                                        .padding(bottom = navigationBarBottom()),
                                     onLoginSuccess = { baseUrl, token ->
                                         scope.launch {
                                             saving = true

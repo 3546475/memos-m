@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.example.moxia.R
+import org.example.moxia.ui.theme.navigationBarBottom
 import org.example.moxia.viewmodel.MemosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +62,13 @@ fun ArchivedMemosScreen(
                     listState = listState,
                     userProvider = { uiState.session.currUser },
                     showSkeleton = !uiState.archivedMemoList.list.initialLoadFinished,
-                    contentPadding = PaddingValues(16.dp)
+                    // The list runs under the gesture handle; the last card keeps that space.
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp + navigationBarBottom()
+                    )
                 )
             })
     }

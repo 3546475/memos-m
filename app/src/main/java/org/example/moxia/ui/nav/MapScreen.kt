@@ -53,6 +53,7 @@ import org.example.moxia.ui.theme.AppDotLoader
 import org.example.moxia.ui.theme.AppDropdownMenu
 import org.example.moxia.ui.theme.AppDropdownMenuItem
 import org.example.moxia.ui.theme.AppFilterChip
+import org.example.moxia.ui.theme.navigationBarBottom
 import org.example.moxia.viewmodel.MemosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,13 +91,14 @@ fun MapScreen(
     var controlsHeight by remember { mutableIntStateOf(0) }
     val controlsBottom = with(LocalDensity.current) { controlsHeight.toDp() } + 12.dp
     val configuration = LocalConfiguration.current
-    val navigationBarInset =
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val navigationBarInset = navigationBarBottom()
     val barInset = 80.dp + navigationBarInset
+    // Space the map's floating controls keep clear at the bottom: the capsule bar when it is
+    // showing, otherwise the gesture handle. The map canvas itself runs to the screen edge.
     val bottom = if (configuration.screenWidthDp < 600 && isNavBarVisible && !searchExpanded) {
         barInset
     } else {
-        0.dp
+        navigationBarInset
     }
     val dark = MaterialTheme.colorScheme.background.let { it.red + it.green + it.blue < 1.5f }
     val visible = remember(map.memos, searchResults) {
@@ -122,9 +124,11 @@ fun MapScreen(
         onToggleNavBar = { onToggleNavBar?.invoke(it) },
         isNavBarVisible = isNavBarVisible,
         navBarAlwaysVisible = navBarAlwaysVisible,
-        navBarInset = if (onToggleNavBar != null && isNavBarVisible) barInset else 0.dp,
+        navBarInset = if (onToggleNavBar != null && isNavBarVisible) barInset else navigationBarInset,
         listPane = { onMemoClick ->
-            BoxWithConstraints(Modifier.fillMaxSize().padding(bottom = bottom).testTag("memo_map")) {
+            // Full bleed: the tiles go from edge to edge, the floating controls keep their own
+            // distance from the status bar and from the gesture handle.
+            BoxWithConstraints(Modifier.fillMaxSize().testTag("memo_map")) {
                 val desktop = maxWidth >= 600.dp
                 val sheetWidth = if (desktop) 380.dp else maxWidth
                 val sheetMaxHeight = maxHeight * 0.7f
@@ -152,7 +156,8 @@ fun MapScreen(
                                 stringResource(R.string.map_retry)) { tileRetry++ }
                         }
                         if (desktop || place == null) {
-                            Surface(modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                            Surface(modifier = Modifier.align(Alignment.BottomEnd)
+                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp + bottom),
                                 shape = RoundedCornerShape(50), shadowElevation = 3.dp) {
                                 IconButton(onClick = controller::fitAll, enabled = visible.isNotEmpty(),
                                     modifier = Modifier.testTag("map_fit_all")) {
@@ -179,10 +184,14 @@ fun MapScreen(
                                 containerColor = Color.Transparent,
                                 sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                                 sheetContent = {
+                                // The sheet is anchored to the screen edge, so its rows keep
+                                // clear of the gesture handle themselves.
                                 Column(Modifier.fillMaxWidth()
                                     .heightIn(max = sheetMaxHeight)
                                     .onGloballyPositioned { panelBounds = it.boundsInWindow() }
-                                    .testTag("map_place_panel").padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    .testTag("map_place_panel")
+                                    .navigationBarsPadding()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)) {
                                     Text(sharedMapLabel(selected).takeIf { selection.memoLocations.distinct().size == 1 }
                                         ?: "${point.latitude}, ${point.longitude}",
                                         modifier = Modifier.padding(vertical = 12.dp),
@@ -237,6 +246,9 @@ fun MapScreen(
                     }
                     Column(Modifier.align(Alignment.TopCenter)
                         .then(if (searchExpanded) Modifier.fillMaxSize() else Modifier.fillMaxWidth().padding(top = 12.dp))
+                        // The map runs to the top edge, so the search field and the scope chips
+                        // clear the status bar themselves.
+                        .statusBarsPadding()
                         .onSizeChanged { controlsHeight = it.height }) {
                       MemoSearchBar(viewModel = viewModel, onMemoClick = onMemoClick,
                         localMemos = map.memos, onLocalResultsChanged = { searchResults = it },

@@ -5,8 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +44,8 @@ import androidx.compose.ui.res.stringResource
 import org.example.moxia.model.Account
 import org.example.moxia.ui.component.resolveResourceUrl
 import org.example.moxia.ui.theme.SavedMoxiaTheme
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import org.koin.android.ext.android.inject
 
 class UserStatsWidgetConfigActivity : ComponentActivity() {
@@ -52,6 +56,7 @@ class UserStatsWidgetConfigActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         // Find the widget ID from the intent.
         val intent = intent
@@ -71,6 +76,9 @@ class UserStatsWidgetConfigActivity : ComponentActivity() {
         setContent {
             SavedMoxiaTheme(dataStoreManager) {
                 Scaffold(
+                    // The account list runs to the screen edges; the top bar and the list's own
+                    // content padding keep the system bars clear.
+                    contentWindowInsets = pageContentWindowInsets(),
                     topBar = {
                         AppTopBar(title = stringResource(R.string.widget_stats_select_account))
                     }) { padding ->
@@ -81,7 +89,8 @@ class UserStatsWidgetConfigActivity : ComponentActivity() {
                     LazyColumn(
                         modifier = Modifier
                             .padding(padding)
-                            .fillMaxSize()
+                            .fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = navigationBarBottom())
                     ) {
                         items(accounts.value) { account ->
                             AccountItem(account = account, onClick = {

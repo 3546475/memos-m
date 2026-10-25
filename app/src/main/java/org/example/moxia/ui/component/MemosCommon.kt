@@ -44,14 +44,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -116,6 +113,8 @@ import org.example.moxia.ui.component.item.MemoSkeletonCard
 import org.example.moxia.ui.component.item.markdown.MarkdownCache
 import org.example.moxia.ui.theme.AppCircularProgressIndicator
 import org.example.moxia.ui.theme.AppPullToRefresh
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import org.example.moxia.viewmodel.MemosViewModel
 
 val LocalMemoEditor = compositionLocalOf<(Memo) -> Unit> { { } }
@@ -179,7 +178,7 @@ fun MemosScaffold(
     /** Which card gesture opens the editor directly; see [LocalMemoEditGesture]. */
     memoEditGesture: EditGesture = EditGesture.NONE,
     /** Space the floating bottom bar covers, so panes can keep their own floating controls clear. */
-    navBarInset: Dp = 0.dp,
+    navBarInset: Dp = navigationBarBottom(),
     navigationKey: Any? = null,
     /** One-shot request from outside (launcher shortcut, compose sheet) to expand the search field. */
     openSearch: Boolean = false,
@@ -188,7 +187,13 @@ fun MemosScaffold(
         showSearchBar: Boolean,
         isSearchExpanded: Boolean,
         onSearchExpandedChange: (Boolean) -> Unit
-    ) -> Unit = { _, _, _ -> }
+    ) -> Unit = { _, _, _ -> },
+    /**
+     * True when the list pane itself starts at the window's top edge (the home feed), so [listHeader]
+     * has to clear the status bar. Pages with their own top bar leave this off: their pane already
+     * starts below the bar, and reserving the inset again would paint an empty band over the list.
+     */
+    listPaneUnderStatusBar: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusRequester = remember { FocusRequester() }
@@ -337,13 +342,11 @@ fun MemosScaffold(
     ) {
         Box(Modifier.fillMaxSize()) {
             Scaffold(
-                // The feed must stay edge-to-edge at the bottom. Leaving the navigation-bar
-                // inset here painted the Scaffold's background across the gesture-handle row,
-                // hiding whatever was scrolled underneath it. Top/horizontal insets stay so
-                // the floating header is still below the status bar.
-                contentWindowInsets = WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-                ),
+                // The feed runs under every system bar. Applying an inset here would clip the
+                // list at the status bar and at the gesture handle, so the pages add the insets
+                // they need themselves: the floating header pads its own rows with the status
+                // bar, and each list/overlay pads its content at the bottom.
+                contentWindowInsets = pageContentWindowInsets(),
                 topBar = { topBar(isDetailVisible, isDualPane) }) { paddingValues ->
                 NavigableListDetailPaneScaffold(
                     modifier = Modifier
@@ -401,7 +404,18 @@ fun MemosScaffold(
                                             Modifier.background(MaterialTheme.colorScheme.background)
                                         }
                                     ) {
-                                        listHeader(showSearchBar, isSearchExpanded) { isSearchExpanded = it }
+                                        // The frosted band reaches the top edge, so its rows
+                                        // are pushed below the status bar instead: the blur has
+                                        // to cover the inset, the labels must not.
+                                        Box(
+                                            if (listPaneUnderStatusBar) {
+                                                Modifier.statusBarsPadding()
+                                            } else {
+                                                Modifier
+                                            }
+                                        ) {
+                                            listHeader(showSearchBar, isSearchExpanded) { isSearchExpanded = it }
+                                        }
                                     }
                                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                         overlay(

@@ -49,6 +49,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import org.example.moxia.ui.theme.AppSecureTextField
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -226,6 +228,9 @@ fun EditProfileScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().imePadding(),
+        // The form scrolls under the gesture handle; the column below keeps that inset as its
+        // own bottom padding.
+        contentWindowInsets = pageContentWindowInsets(),
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.profile_edit_account),
@@ -270,7 +275,7 @@ fun EditProfileScreen(
                     .widthIn(max = 600.dp)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + navigationBarBottom()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (errorMessage != null) {

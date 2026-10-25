@@ -38,6 +38,7 @@ import org.example.moxia.R
 import org.example.moxia.ui.component.setting.SettingsGroup
 import org.example.moxia.ui.component.rememberPageOverscroll
 import org.example.moxia.ui.theme.AppListItem
+import org.example.moxia.ui.theme.navigationBarBottom
 
 enum class SettingsSection(
     @StringRes val titleRes: Int,
@@ -78,7 +79,12 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
         state = listState,
         overscrollEffect = overscroll,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 12.dp,
+            end = 16.dp,
+            bottom = 12.dp + navigationBarBottom()
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

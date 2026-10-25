@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -180,7 +181,12 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        // The page below runs edge to edge and handles its own insets, so the
+                        // Scaffold must not inset it.
+                        Scaffold(
+                            modifier = Modifier.fillMaxSize(),
+                            contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                        ) { _ ->
                             if (activeAccount != null && checkedAccount != activeAccount.id) {
                                 StartupPlaceholder(
                                     showHomeShell = showHomeShell,
@@ -223,7 +229,6 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 // If no active account, show login
                                 LoginScreen(
-                                modifier = Modifier.padding(innerPadding),
                                 onLoginSuccess = { baseUrl, token ->
                                     Log.d("MemosLogin", "main login: handler entered")
                                     scope.launch {

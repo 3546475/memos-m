@@ -16,6 +16,7 @@ import org.example.moxia.R
 import org.example.moxia.model.MemoContentType
 import org.example.moxia.model.matchesContentType
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
 import org.example.moxia.viewmodel.MemosViewModel
 
 /**
@@ -71,7 +72,13 @@ fun MemoTypeMemosScreen(
                     listState = listState,
                     userProvider = { uiState.session.currUser },
                     showSkeleton = !uiState.userMemoList.list.initialLoadFinished,
-                    contentPadding = PaddingValues(16.dp)
+                    // The list runs under the gesture handle; the last card keeps that space.
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp + navigationBarBottom()
+                    )
                 )
             })
     }

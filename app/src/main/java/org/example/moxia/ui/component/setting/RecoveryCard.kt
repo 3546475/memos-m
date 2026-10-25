@@ -45,6 +45,8 @@ import org.example.moxia.model.Draft
 import org.example.moxia.model.Memo
 import org.example.moxia.ui.formatBytes
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import org.koin.core.context.GlobalContext
 
 @Composable
@@ -332,12 +334,15 @@ fun BackupTransferScreen(
             navigationIcon = { IconButton(enabled = !busy, onClick = onClose) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.backup_back))
             } })
-    }) { padding ->
+        // The form runs to the screen edges; the column keeps the gesture handle clear.
+    }, contentWindowInsets = pageContentWindowInsets()) { padding ->
         if (exportPage || prepared != null) {
             val importing = prepared != null
             val available = prepared?.manifest?.categories ?: BackupCategory.entries.toSet()
             val identities = prepared?.manifest?.accounts?.map { it.identity } ?: accounts.map { BackupIdentity(it.id, it.hostUrl, it.user?.name, it.displayName ?: it.name ?: it.hostUrl) }
-            Column(Modifier.fillMaxSize().padding(padding).imePadding().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.fillMaxSize().padding(padding).imePadding()
+                .padding(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 12.dp + navigationBarBottom()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.backup_accounts_heading), style = MaterialTheme.typography.titleSmall)
                     identities.forEach { identity ->

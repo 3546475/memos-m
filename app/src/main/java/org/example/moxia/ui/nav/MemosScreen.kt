@@ -21,8 +21,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +28,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -85,6 +82,8 @@ import org.example.moxia.ui.component.ActionSheetItem
 import org.example.moxia.ui.theme.AppDialog
 import org.example.moxia.ui.theme.AppTextButton
 import org.example.moxia.ui.theme.LocalThemeStyle
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.statusBarTop
 import org.example.moxia.ui.component.filter.FeedFilterBar
 import org.example.moxia.ui.component.filter.FeedFilterBarHeight
 import org.example.moxia.ui.component.filter.FeedFilterButton
@@ -317,8 +316,11 @@ fun MemosScreen(
 
     // The bars are edge-to-edge overlays: the system navigation area (including the gesture
     // handle) sits between them and the screen edge, so the content has to clear that inset too.
-    val navigationBarInset =
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val navigationBarInset = navigationBarBottom()
+
+    // The feed runs under the status bar, so the chrome above the first card is the status bar
+    // band plus whatever the header itself draws.
+    val statusBarInset = statusBarTop()
 
     val bottomPadding by animateDpAsState(
         targetValue = (if (isNavBarVisible) 80.dp else 16.dp) + navigationBarInset,
@@ -331,7 +333,9 @@ fun MemosScreen(
         targetValue = if (onToggleNavBar != null && isNavBarVisible) {
             80.dp + navigationBarInset
         } else {
-            0.dp
+            // With the bar gone the page still runs under the gesture handle, so the detail
+            // pane's own floating action keeps that inset instead of dropping onto it.
+            navigationBarInset
         },
         label = "NavBarInset"
     )
@@ -364,6 +368,9 @@ fun MemosScreen(
     }
 
     MemosScaffold(
+        // The feed is the page whose list pane starts at the window's top edge, so its header
+        // reserves the status bar itself.
+        listPaneUnderStatusBar = true,
         viewModel = viewModel,
         memos = activeMemos,
         listState = listState,
@@ -508,9 +515,9 @@ fun MemosScreen(
                     label = "feedFilterBarInset"
                 )
                 val headerTop = if (miuixFeed) {
-                    64.dp + filterBarInset
+                    statusBarInset + 64.dp + filterBarInset
                 } else {
-                    88.dp + feedHeaderHeight + filterBarInset
+                    statusBarInset + 88.dp + feedHeaderHeight + filterBarInset
                 }
                 val contentPadding = PaddingValues(
                     start = 16.dp,
@@ -532,9 +539,9 @@ fun MemosScreen(
                 // instead of being clipped by it: Miuix has one header row, MD has the tabs plus
                 // the floating search field.
                 val indicatorPadding = if (miuixFeed) {
-                    64.dp + filterBarInset
+                    statusBarInset + 64.dp + filterBarInset
                 } else {
-                    feedHeaderHeight + 56.dp + filterBarInset
+                    statusBarInset + feedHeaderHeight + 56.dp + filterBarInset
                 }
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(

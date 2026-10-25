@@ -74,6 +74,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.example.moxia.R
 import org.example.moxia.ui.theme.AppSecureTextField
 import org.example.moxia.ui.theme.AppTextField
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.statusBarTop
 import org.example.moxia.api.MemosApiFactory
 import org.example.moxia.api.SsoFailure
 import org.example.moxia.api.SsoTransaction
@@ -115,7 +117,9 @@ fun LoginScreen(
                     .widthIn(max = 480.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .padding(top = 64.dp, bottom = 24.dp)
+                    // The page is edge to edge: the form starts below the status bar and keeps
+                    // clear of the gesture handle, while the page background fills both bands.
+                    .padding(top = 64.dp + statusBarTop(), bottom = 24.dp + navigationBarBottom())
             )
             val backupContext = androidx.compose.ui.platform.LocalContext.current
             TextButton(onClick = { backupContext.startActivity(org.example.moxia.ui.backup.BackupTransferActivity.importIntent(backupContext)) }) {

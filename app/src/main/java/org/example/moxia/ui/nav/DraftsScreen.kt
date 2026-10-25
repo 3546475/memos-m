@@ -22,6 +22,8 @@ import androidx.compose.material3.TextButton
 import org.example.moxia.ui.theme.AppDialog
 import org.example.moxia.ui.theme.AppTextButton
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +59,7 @@ fun DraftsScreen(
     val listState = rememberLazyListState()
     val overscroll = rememberPageOverscroll()
 
-    Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
+    Scaffold(modifier = Modifier.fillMaxSize(), contentWindowInsets = pageContentWindowInsets(), topBar = {
         AppTopBar(title = stringResource(R.string.drafts_title), navigationIcon = {
             ProfileBackButton(onClick = onBack)
         })
@@ -82,7 +84,12 @@ fun DraftsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp + navigationBarBottom()
+                ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

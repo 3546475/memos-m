@@ -34,6 +34,8 @@ import org.example.moxia.ui.component.ProfileBackButton
 import org.example.moxia.ui.component.rememberLocalNetworkPermission
 import org.example.moxia.ui.theme.ProfileTheme
 import org.example.moxia.ui.theme.SavedMoxiaTheme
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import org.koin.android.ext.android.inject
 
 /** Android owns Back so it can preview the account switcher underneath this page. */
@@ -63,6 +65,9 @@ class EditAccountCredentialsActivity : ComponentActivity() {
                     CompositionLocalProvider(LocalNetworkPermission provides permission) {
                         Scaffold(
                             modifier = Modifier.fillMaxSize().imePadding(),
+                            // The form runs under the system bars; its own padding keeps the
+                            // status bar and the gesture handle clear.
+                            contentWindowInsets = pageContentWindowInsets(),
                             topBar = {
                                 AppTopBar(
                                     title = stringResource(R.string.profile_edit_credentials),
@@ -82,7 +87,9 @@ class EditAccountCredentialsActivity : ComponentActivity() {
                                     LoginContent(
                                         editAccount = account,
                                         showTitle = false,
-                                        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(24.dp),
+                                        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth()
+                                            .padding(24.dp)
+                                            .padding(bottom = navigationBarBottom()),
                                         onLoginSuccess = { baseUrl, token ->
                                             setResult(Activity.RESULT_OK, Intent()
                                                 .putExtra(EXTRA_ACCOUNT_ID, accountId)
