@@ -74,6 +74,18 @@ class SyncManager(
     private var retryJob: Job? = null
 
     /**
+     * True while a replay pass owns the queue. Separate from [_isSyncing], which is what the UI
+     * shows: a pass with an empty queue is still a pass (it must not be replaced by a second one)
+     * but it is not something to report.
+     */
+    @Volatile
+    private var running = false
+
+    /** Bumped by every pass and by [cancelSync], so a superseded pass cannot clear the state. */
+    @Volatile
+    private var generation = 0L
+
+    /**
      * Set when a push is requested while a pass is already running. The running pass
      * takes its queue snapshot up front, so an op queued afterwards would otherwise
      * wait for the WorkManager fallback (up to six hours on the periodic request).
@@ -119,6 +131,8 @@ class SyncManager(
     }
 
     fun cancelSync() {
+        generation++
+        running = false
         syncJob?.cancel()
         retryJob?.cancel()
         rerunRequested = false
@@ -127,7 +141,7 @@ class SyncManager(
 
     /** Push all queued changes to the server, regardless of previous failures. */
     fun pushPendingChanges() {
-        if (_isSyncing.value) {
+        if (running) {
             rerunRequested = true
             return
         }
@@ -137,8 +151,11 @@ class SyncManager(
         val user = currentUserProvider()
         syncJob?.cancel()
         // Claim the attempt before launching so consecutive gestures cannot
-        // cancel and replace a replay that has not started running yet.
-        _isSyncing.value = true
+        // cancel and replace a replay that has not started running yet. This guard is
+        // separate from the published [isSyncing]: the state the header shows must not flip
+        // for a pass that finds nothing to send.
+        running = true
+        val attempt = ++generation
         syncJob = scope.launch {
             try {
                 if (!accountSession.isCurrent(context)) return@launch
@@ -147,6 +164,10 @@ class SyncManager(
                     var ops = repository.getOps(accountId)
                     val executor = newExecutor(context, user)
                     if (ops.isNotEmpty()) {
+                        // Only now is there something to replay. Publishing earlier painted
+                        // "syncing" for the empty queue, which is the common case: every resume,
+                        // pull-to-refresh and foreground probe runs this function.
+                        _isSyncing.value = true
                         Log.d(TAG, "pushPendingChanges: pushing ${ops.size} ops")
                     }
                     var index = 0
@@ -204,11 +225,15 @@ class SyncManager(
                     }
                 }
             } finally {
-                if (accountSession.isCurrent(context)) _isSyncing.value = false
+                // A cancelled/replaced pass must not clear the state of the one that took over.
+                if (attempt == generation) {
+                    running = false
+                    _isSyncing.value = false
+                }
             }
             // Honour a request that arrived while this pass ran: the op it cares about may
             // have been queued after the queue snapshot was taken.
-            if (rerunRequested) {
+            if (attempt == generation && rerunRequested) {
                 rerunRequested = false
                 if (accountSession.isCurrent(context)) pushPendingChanges()
             }
