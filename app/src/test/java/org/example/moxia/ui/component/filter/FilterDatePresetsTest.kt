@@ -62,28 +62,6 @@ class FilterDatePresetsTest {
         )
     }
 
-    @Test
-    fun `picker millis round trip as UTC midnights`() {
-        assertEquals(today, pickerMillisToLocalDate(today.toPickerMillis()))
-    }
-
-    @Test
-    fun `a closed range prints both ends and a single day prints once`() {
-        val start = LocalDate.of(2026, 10, 1)
-        val end = LocalDate.of(2026, 10, 3)
-        val range = MemoDateRange(
-            startMillis = start.atStartOfDay(zone).toInstant().toEpochMilli(),
-            endMillisExclusive = end.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        )
-        assertEquals("Oct 1, 2026 – Oct 3, 2026", range.displayLabel(zone, Locale.US))
-
-        val singleDay = MemoDateRange(
-            startMillis = start.atStartOfDay(zone).toInstant().toEpochMilli(),
-            endMillisExclusive = start.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        )
-        assertEquals("Oct 1, 2026", singleDay.displayLabel(zone, Locale.US))
-    }
-
     private fun localDate(millis: Long): LocalDate =
         Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
 }

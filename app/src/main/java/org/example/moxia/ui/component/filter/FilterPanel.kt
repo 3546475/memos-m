@@ -39,15 +39,10 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.UnfoldLess
 import androidx.compose.material.icons.outlined.UnfoldMore
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -99,7 +94,6 @@ import org.example.moxia.ui.theme.MiuixTokens
  * and the feed order. It edits a draft and only commits on "apply", so toggling several
  * conditions costs one request instead of one per tap.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterPanel(
     show: Boolean,
@@ -118,10 +112,8 @@ fun FilterPanel(
     // The tag search is a tool, not the resting view: as a permanent full-width field it was the
     // largest block of the panel even when nobody was searching.
     var tagSearchOpen by remember(show) { mutableStateOf(false) }
-    // Custom range flow: start date first, then the end date.
-    var showStartPicker by remember(show) { mutableStateOf(false) }
-    var showEndPicker by remember(show) { mutableStateOf(false) }
-    var pendingStart by remember(show) { mutableStateOf<LocalDate?>(null) }
+    // The custom window is picked in one calendar dialog instead of two chained Material pickers.
+    var showDatePicker by remember(show) { mutableStateOf(false) }
     val today = remember(show) { LocalDate.now() }
     val zone = remember(show) { ZoneId.systemDefault() }
     val locale = remember(show) { Locale.getDefault() }
@@ -450,7 +442,7 @@ fun FilterPanel(
                         // used to spell it out below the row is gone.
                         AppFilterChip(
                             selected = customRange != null,
-                            onClick = { showStartPicker = true }
+                            onClick = { showDatePicker = true }
                         ) {
                             Text(
                                 customRange?.chipLabel(zone)
@@ -478,76 +470,27 @@ fun FilterPanel(
             }
         }
 
-        // Material's date pickers are used for the custom range: the panel already runs inside an
-        // AppDialog, and a nested dialog is far less code than a hand-rolled calendar. They read
-        // the app's Material colour scheme, so MIUIX stays colour-consistent.
-        if (showStartPicker) {
-            val pickerState = rememberDatePickerState(
-                initialSelectedDateMillis = draft.date?.let { range ->
-                    Instant.ofEpochMilli(range.startMillis).atZone(zone).toLocalDate().toPickerMillis()
+        // The custom window is picked in the app's own calendar: Material's picker renders a broken
+        // Chinese weekday row under core library desugaring (seven "星"), and one dialog can carry
+        // both ends instead of chaining two pickers.
+        if (showDatePicker) {
+            val current = draft.date?.toLocalDates(zone)
+            AppCalendarDialog(
+                title = stringResource(R.string.memo_filter_date_range_title),
+                initialStart = current?.first,
+                initialEnd = current?.second,
+                rangeSelection = true,
+                zone = zone,
+                onDismissRequest = { showDatePicker = false },
+                onClear = {
+                    draft = draft.copy(date = null)
+                    showDatePicker = false
+                },
+                onConfirm = { start, end ->
+                    draft = draft.copy(date = localDatesToRange(start, end, zone))
+                    showDatePicker = false
                 }
             )
-            DatePickerDialog(
-                onDismissRequest = { showStartPicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        val picked = pickerState.selectedDateMillis
-                        showStartPicker = false
-                        if (picked != null) {
-                            pendingStart = pickerMillisToLocalDate(picked)
-                            showEndPicker = true
-                        }
-                    }) { Text(stringResource(android.R.string.ok)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showStartPicker = false }) {
-                        Text(stringResource(R.string.common_cancel))
-                    }
-                }
-            ) {
-                DatePicker(state = pickerState)
-            }
-        }
-
-        if (showEndPicker) {
-            val pickerState = rememberDatePickerState(
-                initialSelectedDateMillis = pendingStart?.toPickerMillis()
-            )
-            DatePickerDialog(
-                onDismissRequest = {
-                    showEndPicker = false
-                    pendingStart = null
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        val start = pendingStart
-                        val picked = pickerState.selectedDateMillis
-                        if (start != null && picked != null) {
-                            val endDate = pickerMillisToLocalDate(picked)
-                                .let { if (it.isBefore(start)) start else it }
-                            draft = draft.copy(
-                                date = MemoDateRange(
-                                    startMillis = start.atStartOfDay(zone).toInstant().toEpochMilli(),
-                                    endMillisExclusive = endDate.plusDays(1).atStartOfDay(zone)
-                                        .toInstant().toEpochMilli()
-                                )
-                            )
-                        }
-                        showEndPicker = false
-                        pendingStart = null
-                    }) { Text(stringResource(android.R.string.ok)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showEndPicker = false
-                        pendingStart = null
-                    }) {
-                        Text(stringResource(R.string.common_cancel))
-                    }
-                }
-            ) {
-                DatePicker(state = pickerState)
-            }
         }
     }
 }

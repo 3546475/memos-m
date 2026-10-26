@@ -77,6 +77,21 @@
     <string name="memo_filter_date_week">This week</string>
     <string name="memo_filter_date_month">This month</string>
     <string name="memo_filter_date_custom">Custom range</string>
+    <string name="memo_filter_date_range_title" tools:ignore="MissingTranslation">Date range</string>
+    <string name="memo_filter_date_pick_start" tools:ignore="MissingTranslation">Pick a start date</string>
+    <string name="memo_filter_date_pick_end" tools:ignore="MissingTranslation">Pick an end date</string>
+    <string name="memo_filter_date_pick_single" tools:ignore="MissingTranslation">Pick a date</string>
+    <string name="memo_filter_date_previous_month" tools:ignore="MissingTranslation">Previous month</string>
+    <string name="memo_filter_date_next_month" tools:ignore="MissingTranslation">Next month</string>
+    <string-array name="date_weekday_labels" tools:ignore="MissingTranslation">
+        <item>S</item>
+        <item>M</item>
+        <item>T</item>
+        <item>W</item>
+        <item>T</item>
+        <item>F</item>
+        <item>S</item>
+    </string-array>
     <string name="memo_filter_sort_pinned">Pinned first</string>
     <string name="memo_filter_sort_newest">Newest</string>
     <string name="memo_filter_sort_oldest">Oldest</string>

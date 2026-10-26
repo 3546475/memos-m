@@ -56,8 +56,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
@@ -77,7 +75,6 @@ import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -103,6 +100,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import java.util.Date
 import java.util.Locale
+import java.time.ZoneId
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.example.moxia.R
@@ -115,6 +113,9 @@ import org.example.moxia.model.filter.celString
 import org.example.moxia.model.filter.matches
 import org.example.moxia.model.filter.toCel
 import org.example.moxia.ui.component.item.MemoItem
+import org.example.moxia.ui.component.filter.AppCalendarDialog
+import org.example.moxia.ui.component.filter.localDateToUtcMillis
+import org.example.moxia.ui.component.filter.utcMillisToLocalDate
 import org.example.moxia.ui.nav.SettingsSection
 import org.example.moxia.ui.profile.SettingsActivity
 import org.example.moxia.viewmodel.MemosUiState
@@ -544,45 +545,41 @@ private fun SearchResultContent(
     var showSortMenu by remember { mutableStateOf(false) }
 
     if (showStartDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = startDateMillis)
-        DatePickerDialog(onDismissRequest = { showStartDatePicker = false }, confirmButton = {
-            TextButton(onClick = {
-                onStartDateSelected(datePickerState.selectedDateMillis)
-                showStartDatePicker = false
-            }) {
-                Text(stringResource(android.R.string.ok))
-            }
-        }, dismissButton = {
-            TextButton(onClick = {
+        AppCalendarDialog(
+            title = stringResource(R.string.search_date_start),
+            initialStart = startDateMillis?.let(::utcMillisToLocalDate),
+            initialEnd = null,
+            rangeSelection = false,
+            zone = ZoneId.systemDefault(),
+            onDismissRequest = { showStartDatePicker = false },
+            onClear = {
                 onStartDateSelected(null)
                 showStartDatePicker = false
-            }) {
-                Text(stringResource(R.string.common_cancel))
+            },
+            onConfirm = { date, _ ->
+                onStartDateSelected(localDateToUtcMillis(date))
+                showStartDatePicker = false
             }
-        }) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     if (showEndDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = endDateMillis)
-        DatePickerDialog(onDismissRequest = { showEndDatePicker = false }, confirmButton = {
-            TextButton(onClick = {
-                onEndDateSelected(datePickerState.selectedDateMillis)
-                showEndDatePicker = false
-            }) {
-                Text(stringResource(android.R.string.ok))
-            }
-        }, dismissButton = {
-            TextButton(onClick = {
+        AppCalendarDialog(
+            title = stringResource(R.string.search_date_end),
+            initialStart = endDateMillis?.let(::utcMillisToLocalDate),
+            initialEnd = null,
+            rangeSelection = false,
+            zone = ZoneId.systemDefault(),
+            onDismissRequest = { showEndDatePicker = false },
+            onClear = {
                 onEndDateSelected(null)
                 showEndDatePicker = false
-            }) {
-                Text(stringResource(R.string.common_cancel))
+            },
+            onConfirm = { date, _ ->
+                onEndDateSelected(localDateToUtcMillis(date))
+                showEndDatePicker = false
             }
-        }) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     LazyColumn(
