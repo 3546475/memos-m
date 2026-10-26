@@ -123,6 +123,11 @@
     <string name="memo_filter_sort_newest">最新</string>
     <string name="memo_filter_sort_oldest">最早</string>
     <string name="memo_filter_apply">应用（%1$d）</string>
+    <string name="memo_filter_apply_plain">应用筛选</string>
+    <plurals name="memo_filter_apply_count">
+        <item quantity="other">应用 %1$d 个条件</item>
+    </plurals>
+    <string name="memo_filter_tag_match">匹配</string>
     <string name="memo_filter_reset">重置</string>
     <string name="memo_filter_save_view">保存为视图…</string>
     <string name="memo_filter_save_view_title">保存为视图</string>

@@ -742,7 +742,10 @@ fun AppFilterChip(
                 // black and was unreadable on a dark selected fill.
                 CompositionLocalProvider(LocalContentColor provides contentColor) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        // 9dp of vertical padding puts the pill at ~40dp: closer to a comfortable
+                        // touch target than the 34dp it had, without turning filter rows into
+                        // buttons.
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         content = content

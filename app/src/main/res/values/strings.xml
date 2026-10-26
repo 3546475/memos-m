@@ -81,6 +81,12 @@
     <string name="memo_filter_sort_newest">Newest</string>
     <string name="memo_filter_sort_oldest">Oldest</string>
     <string name="memo_filter_apply">Apply (%1$d)</string>
+    <string name="memo_filter_apply_plain" tools:ignore="MissingTranslation">Apply filter</string>
+    <plurals name="memo_filter_apply_count" tools:ignore="MissingTranslation">
+        <item quantity="one">Apply %1$d condition</item>
+        <item quantity="other">Apply %1$d conditions</item>
+    </plurals>
+    <string name="memo_filter_tag_match" tools:ignore="MissingTranslation">Match</string>
     <string name="memo_filter_reset">Reset</string>
     <string name="memo_filter_save_view">Save as view…</string>
     <string name="memo_filter_save_view_title">Save as view</string>

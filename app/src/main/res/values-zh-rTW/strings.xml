@@ -76,6 +76,11 @@
     <string name="memo_filter_sort_newest">最新</string>
     <string name="memo_filter_sort_oldest">最舊</string>
     <string name="memo_filter_apply">套用（%1$d）</string>
+    <string name="memo_filter_apply_plain">套用篩選</string>
+    <plurals name="memo_filter_apply_count">
+        <item quantity="other">套用 %1$d 個條件</item>
+    </plurals>
+    <string name="memo_filter_tag_match">比對</string>
     <string name="memo_filter_reset">重設</string>
     <string name="memo_filter_save_view">儲存為檢視…</string>
     <string name="memo_filter_save_view_title">儲存為檢視</string>

@@ -1,10 +1,12 @@
 package org.example.moxia.ui.component.filter
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -15,14 +17,18 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.UnfoldLess
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material3.DatePicker
@@ -47,14 +53,17 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import org.example.moxia.R
 import org.example.moxia.model.MemoContentType
@@ -69,12 +78,12 @@ import org.example.moxia.ui.component.TagNode
 import org.example.moxia.ui.component.buildTagTree
 import org.example.moxia.ui.component.collapsibleTagPaths
 import org.example.moxia.ui.component.flattenTagTree
+import org.example.moxia.ui.theme.AppButton
 import org.example.moxia.ui.theme.AppDialog
-import org.example.moxia.ui.theme.AppDivider
 import org.example.moxia.ui.theme.AppFilterChip
 import org.example.moxia.ui.theme.AppRadioButton
-import org.example.moxia.ui.theme.AppTextButton
 import org.example.moxia.ui.theme.AppTextField
+import org.example.moxia.ui.theme.MiuixTokens
 
 /**
  * The structured filter panel: saved views, tags (AND/OR), the memo kind, a created-time window
@@ -97,6 +106,9 @@ fun FilterPanel(
     // Reopening the panel starts from what is actually applied; closing throws the draft away.
     var draft by remember(show, filter) { mutableStateOf(filter) }
     var tagQuery by remember(show) { mutableStateOf("") }
+    // The tag search is a tool, not the resting view: as a permanent full-width field it was the
+    // largest block of the panel even when nobody was searching.
+    var tagSearchOpen by remember(show) { mutableStateOf(false) }
     // Custom range flow: start date first, then the end date.
     var showStartPicker by remember(show) { mutableStateOf(false) }
     var showEndPicker by remember(show) { mutableStateOf(false) }
@@ -137,16 +149,33 @@ fun FilterPanel(
         title = stringResource(R.string.memo_filter_title),
         onDismissRequest = onDismiss,
         buttons = {
-            AppTextButton(
-                text = stringResource(R.string.memo_filter_reset),
+            // Applying is the one action that carries the accent; reset stays a quiet secondary
+            // fill. As two equal text buttons neither of them read as the primary action.
+            AppButton(
+                onClick = { draft = MemoFilter() },
                 modifier = Modifier.weight(1f),
-                onClick = { draft = MemoFilter() }
-            )
-            AppTextButton(
-                text = stringResource(R.string.memo_filter_apply, draft.activeCount),
-                modifier = Modifier.weight(1f),
-                onClick = { onApply(draft) }
-            )
+                secondary = true
+            ) {
+                Text(stringResource(R.string.memo_filter_reset))
+            }
+            AppButton(
+                onClick = { onApply(draft) },
+                modifier = Modifier.weight(2f)
+            ) {
+                Text(
+                    // The parenthesised number used to read like a result count; it is the number
+                    // of conditions that will be applied.
+                    if (draft.activeCount > 0) {
+                        pluralStringResource(
+                            R.plurals.memo_filter_apply_count,
+                            draft.activeCount,
+                            draft.activeCount
+                        )
+                    } else {
+                        stringResource(R.string.memo_filter_apply_plain)
+                    }
+                )
+            }
         }
     ) {
         LazyColumn(
@@ -154,8 +183,31 @@ fun FilterPanel(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             item(key = "views") {
-                Column {
-                    SectionLabel(stringResource(R.string.memo_filter_section_views))
+                Column(Modifier.padding(top = 2.dp)) {
+                    SectionHeader(
+                        title = stringResource(R.string.memo_filter_section_views),
+                        trailing = {
+                            // Saving and managing views belong to the views list; in a footer below
+                            // the fold nobody ever found them.
+                            IconButton(
+                                onClick = { compiledCel?.let(onSaveAsView) },
+                                enabled = compiledCel != null
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.BookmarkAdd,
+                                    contentDescription = stringResource(R.string.memo_filter_save_view),
+                                    modifier = Modifier.size(MiuixTokens.IconSmall)
+                                )
+                            }
+                            IconButton(onClick = onManageShortcuts) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Tune,
+                                    contentDescription = stringResource(R.string.memo_filter_manage),
+                                    modifier = Modifier.size(MiuixTokens.IconSmall)
+                                )
+                            }
+                        }
+                    )
                     ChoiceRow(
                         selected = !draft.hasLegacyClause,
                         label = stringResource(R.string.memo_filter_all),
@@ -199,64 +251,103 @@ fun FilterPanel(
             }
 
             item(key = "tags-header") {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.memo_filter_section_tags),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
+                Column(Modifier.padding(top = SectionGap)) {
+                    SectionHeader(
+                        title = stringResource(R.string.memo_filter_section_tags),
+                        trailing = {
+                            IconButton(onClick = {
+                                tagSearchOpen = !tagSearchOpen
+                                if (!tagSearchOpen) tagQuery = ""
+                            }) {
+                                Icon(
+                                    imageVector = if (tagSearchOpen) {
+                                        Icons.Outlined.Close
+                                    } else {
+                                        Icons.Outlined.Search
+                                    },
+                                    contentDescription = stringResource(
+                                        if (tagSearchOpen) {
+                                            R.string.common_close
+                                        } else {
+                                            R.string.memo_filter_tag_search
+                                        }
+                                    ),
+                                    modifier = Modifier.size(MiuixTokens.IconSmall)
+                                )
+                            }
+                            if (collapsibleTags.isNotEmpty()) {
+                                val allCollapsed = collapsedTags.containsAll(collapsibleTags)
+                                IconButton(onClick = {
+                                    collapsedTags = if (allCollapsed) emptySet() else collapsibleTags
+                                }) {
+                                    Icon(
+                                        imageVector = if (allCollapsed) {
+                                            Icons.Outlined.UnfoldMore
+                                        } else {
+                                            Icons.Outlined.UnfoldLess
+                                        },
+                                        contentDescription = stringResource(
+                                            if (allCollapsed) {
+                                                R.string.tags_expand_all
+                                            } else {
+                                                R.string.tags_collapse_all
+                                            }
+                                        ),
+                                        modifier = Modifier.size(MiuixTokens.IconSmall)
+                                    )
+                                }
+                            }
+                        }
                     )
-                    AppFilterChip(
-                        selected = draft.tagMatch == TagMatch.ALL,
-                        onClick = { draft = draft.copy(tagMatch = TagMatch.ALL) }
+                    // The AND/OR switch is a row of its own: as chips beside the heading it stole
+                    // the heading's line and left both looking cramped.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(stringResource(R.string.memo_filter_tags_all))
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    AppFilterChip(
-                        selected = draft.tagMatch == TagMatch.ANY,
-                        onClick = { draft = draft.copy(tagMatch = TagMatch.ANY) }
-                    ) {
-                        Text(stringResource(R.string.memo_filter_tags_any))
+                        Text(
+                            text = stringResource(R.string.memo_filter_tag_match),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        AppFilterChip(
+                            selected = draft.tagMatch == TagMatch.ALL,
+                            onClick = { draft = draft.copy(tagMatch = TagMatch.ALL) }
+                        ) {
+                            Text(stringResource(R.string.memo_filter_tags_all))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        AppFilterChip(
+                            selected = draft.tagMatch == TagMatch.ANY,
+                            onClick = { draft = draft.copy(tagMatch = TagMatch.ANY) }
+                        ) {
+                            Text(stringResource(R.string.memo_filter_tags_any))
+                        }
                     }
                 }
             }
 
-            item(key = "tags-search") {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            if (tagSearchOpen) {
+                item(key = "tags-search") {
                     AppTextField(
                         value = tagQuery,
                         onValueChange = { tagQuery = it },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, top = 8.dp, end = 16.dp),
                         placeholder = stringResource(R.string.memo_filter_tag_search),
-                        singleLine = true
-                    )
-                    if (collapsibleTags.isNotEmpty()) {
-                        val allCollapsed = collapsedTags.containsAll(collapsibleTags)
-                        IconButton(
-                            onClick = {
-                                collapsedTags = if (allCollapsed) emptySet() else collapsibleTags
-                            }
-                        ) {
+                        singleLine = true,
+                        leadingIcon = {
                             Icon(
-                                imageVector = if (allCollapsed) {
-                                    Icons.Outlined.UnfoldMore
-                                } else {
-                                    Icons.Outlined.UnfoldLess
-                                },
-                                contentDescription = stringResource(
-                                    if (allCollapsed) R.string.tags_expand_all else R.string.tags_collapse_all
-                                ),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                    }
+                    )
                 }
             }
 
@@ -298,9 +389,9 @@ fun FilterPanel(
             }
 
             item(key = "types") {
-                Column {
-                    SectionLabel(stringResource(R.string.memo_filter_section_types))
-                    ChipRow {
+                Column(Modifier.padding(top = SectionGap)) {
+                    SectionHeader(stringResource(R.string.memo_filter_section_types))
+                    ChipFlow {
                         MemoContentType.entries.forEach { type ->
                             AppFilterChip(
                                 selected = type in draft.types,
@@ -322,12 +413,12 @@ fun FilterPanel(
             }
 
             item(key = "date") {
-                Column {
-                    SectionLabel(stringResource(R.string.memo_filter_section_date))
+                Column(Modifier.padding(top = SectionGap)) {
+                    SectionHeader(stringResource(R.string.memo_filter_section_date))
                     val customRange = draft.date?.takeIf {
                         filterDatePresetOf(it, today, zone, locale) == null
                     }
-                    ChipRow {
+                    ChipFlow {
                         FilterDatePreset.entries.forEach { preset ->
                             val range = datePresets[preset]
                             AppFilterChip(
@@ -337,23 +428,25 @@ fun FilterPanel(
                                 Text(preset.dateLabel())
                             }
                         }
+                        // The picked window becomes the chip's own label: the extra grey line that
+                        // used to spell it out below the row is gone.
                         AppFilterChip(
                             selected = customRange != null,
                             onClick = { showStartPicker = true }
                         ) {
-                            Text(stringResource(R.string.memo_filter_date_custom))
+                            Text(
+                                customRange?.chipLabel(zone)
+                                    ?: stringResource(R.string.memo_filter_date_custom)
+                            )
                         }
-                    }
-                    if (customRange != null) {
-                        Hint(customRange.displayLabel(zone, locale))
                     }
                 }
             }
 
             item(key = "sort") {
-                Column {
-                    SectionLabel(stringResource(R.string.memo_filter_section_sort))
-                    ChipRow {
+                Column(Modifier.padding(top = SectionGap)) {
+                    SectionHeader(stringResource(R.string.memo_filter_section_sort))
+                    ChipFlow {
                         MemoSort.entries.forEach { sort ->
                             AppFilterChip(
                                 selected = draft.sort == sort,
@@ -362,27 +455,6 @@ fun FilterPanel(
                                 Text(sort.sortLabel())
                             }
                         }
-                    }
-                }
-            }
-
-            item(key = "footer") {
-                Column(Modifier.padding(top = 8.dp)) {
-                    AppDivider()
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AppTextButton(
-                            text = stringResource(R.string.memo_filter_save_view),
-                            enabled = compiledCel != null,
-                            onClick = { if (compiledCel != null) onSaveAsView(compiledCel) }
-                        )
-                        Spacer(Modifier.weight(1f))
-                        AppTextButton(
-                            text = stringResource(R.string.memo_filter_manage),
-                            onClick = onManageShortcuts
-                        )
                     }
                 }
             }
@@ -480,14 +552,38 @@ private fun MemoContentType.typeLabel(): String = stringResource(
     }
 )
 
+/** Vertical gap between sections; the lazy list already contributes 2dp between items. */
+private val SectionGap = 8.dp
+
+/**
+ * A section heading. Deliberately quiet: the accent belongs to selected chips and rows, so
+ * headings used to compete with them for the same blue and the panel lost its hierarchy. Every
+ * heading keeps the same height whether or not it carries trailing actions, so the sections read
+ * as a rhythm instead of a ragged stack.
+ */
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 8.dp, top = 10.dp, bottom = 4.dp)
-    )
+private fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable RowScope.() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            // end = 2dp puts the trailing icon glyphs on the same 16dp inset as the chips: an
+            // IconButton carries 14dp of its own padding.
+            .padding(start = 16.dp, end = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        trailing?.invoke(this)
+    }
 }
 
 @Composable
@@ -496,20 +592,41 @@ private fun Hint(text: String) {
         text = text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 16.dp, bottom = 2.dp)
     )
 }
 
+/**
+ * Chips wrap instead of scrolling sideways: every option stays visible, and the last one can no
+ * longer be clipped by the dialog edge the way the custom date was.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChipRow(content: @Composable RowScope.() -> Unit) {
-    Row(
+private fun ChipFlow(content: @Composable FlowRowScope.() -> Unit) {
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         content = content
     )
+}
+
+/** "10-01 – 10-25": a window short enough to live inside its own chip. */
+private fun MemoDateRange.chipLabel(zone: ZoneId): String {
+    val formatter = DateTimeFormatter.ofPattern("MM-dd")
+    val start = Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDate()
+    val end = if (endMillisExclusive == MemoDateRange.UNBOUNDED) {
+        start
+    } else {
+        Instant.ofEpochMilli(endMillisExclusive - 1).atZone(zone).toLocalDate()
+    }
+    return if (end == start) {
+        formatter.format(start)
+    } else {
+        "${formatter.format(start)} – ${formatter.format(end)}"
+    }
 }
 
 @Composable
@@ -541,7 +658,7 @@ private fun ChoiceRow(
     }
 }
 
-private val TagTreeRowHeight = 44.dp
+private val TagTreeRowHeight = 48.dp
 private val TagTreeIndent = 24.dp
 private val TagTreeLabelStart = 12.dp
 private val TagTreeBarWidth = 3.dp
@@ -578,6 +695,17 @@ private fun TagTreeRow(
             .fillMaxWidth()
             .height(TagTreeRowHeight)
             .drawBehind {
+                if (selected || descendantSelected) {
+                    // The whole row carries the selection now: a text-colour change alone was too
+                    // faint next to the accent bar.
+                    val inset = 8.dp.toPx()
+                    drawRoundRect(
+                        color = accent.copy(alpha = if (selected) 0.10f else 0.04f),
+                        topLeft = Offset(inset, 2.dp.toPx()),
+                        size = Size(size.width - inset * 2, size.height - 4.dp.toPx()),
+                        cornerRadius = CornerRadius(10.dp.toPx())
+                    )
+                }
                 val stroke = 1.dp.toPx()
                 val overshoot = 2.dp.toPx()
                 val centerY = size.height / 2f
@@ -667,7 +795,8 @@ private fun TagTreeRow(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                modifier = Modifier.padding(start = 8.dp)
+                textAlign = TextAlign.End,
+                modifier = Modifier.padding(start = 8.dp).widthIn(min = 24.dp)
             )
         }
     }
