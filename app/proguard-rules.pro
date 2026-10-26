@@ -41,3 +41,15 @@
 # service interfaces at runtime. Keep them whole so R8 does not merge or reshape them.
 -keep class org.example.moxia.api.** { *; }
 -keep class org.example.moxia.model.** { *; }
+
+# msgpack-core (the .mmbackup container) picks its buffer implementation by name:
+# MessageBuffer.<clinit> does Class.forName("org.msgpack.core.buffer.MessageBufferU") on Android
+# (MessageBufferBE/MessageBuffer on the JVM). R8 cannot see that edge, so without these rules the
+# class is renamed or dropped and the first backup export or import dies with
+# ExceptionInInitializerError before the file picker opens, taking the whole activity with it.
+-keep class org.msgpack.core.buffer.MessageBufferU { *; }
+-keep class org.msgpack.core.buffer.MessageBufferBE { *; }
+-keep class org.msgpack.core.buffer.MessageBuffer { *; }
+# DirectBufferAccess is a JDK-only path (Unsafe address of a direct ByteBuffer); Android has no
+# sun.nio.ch.DirectBuffer, and the keep rules above put that class in R8's graph.
+-dontwarn sun.nio.ch.DirectBuffer
