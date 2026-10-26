@@ -72,10 +72,30 @@
     <string name="memo_filter_date_week">本週</string>
     <string name="memo_filter_date_month">本月</string>
     <string name="memo_filter_date_custom">自訂區間</string>
+    <string name="memo_filter_date_range_title">選擇日期區間</string>
+    <string name="memo_filter_date_pick_start">選擇開始日期</string>
+    <string name="memo_filter_date_pick_end">再選結束日期</string>
+    <string name="memo_filter_date_pick_single">選擇日期</string>
+    <string name="memo_filter_date_previous_month">上個月</string>
+    <string name="memo_filter_date_next_month">下個月</string>
+    <string-array name="date_weekday_labels">
+        <item>日</item>
+        <item>一</item>
+        <item>二</item>
+        <item>三</item>
+        <item>四</item>
+        <item>五</item>
+        <item>六</item>
+    </string-array>
     <string name="memo_filter_sort_pinned">置頂優先</string>
     <string name="memo_filter_sort_newest">最新</string>
     <string name="memo_filter_sort_oldest">最舊</string>
     <string name="memo_filter_apply">套用（%1$d）</string>
+    <string name="memo_filter_apply_plain">套用篩選</string>
+    <plurals name="memo_filter_apply_count">
+        <item quantity="other">套用 %1$d 個條件</item>
+    </plurals>
+    <string name="memo_filter_tag_match">比對</string>
     <string name="memo_filter_reset">重設</string>
     <string name="memo_filter_save_view">儲存為檢視…</string>
     <string name="memo_filter_save_view_title">儲存為檢視</string>

@@ -68,6 +68,7 @@ import org.example.moxia.ui.theme.AppDialog
 import org.example.moxia.ui.theme.AppSlider
 import org.example.moxia.ui.theme.AppTextButton
 import org.example.moxia.ui.theme.MoxiaTheme
+import org.example.moxia.ui.theme.navigationBarBottom
 import org.example.moxia.ui.theme.appearanceColorScheme
 import org.example.moxia.ui.theme.fontFamily
 import org.example.moxia.ui.theme.systemColorScheme
@@ -105,7 +106,10 @@ internal fun AppearanceSettingsContent(
     }
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+        // The page scrolls under the gesture handle, so the last card keeps that space as its
+        // own bottom padding.
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp + navigationBarBottom()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(Modifier.widthIn(max = 600.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {

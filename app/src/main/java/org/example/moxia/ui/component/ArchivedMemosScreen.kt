@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,7 +61,13 @@ fun ArchivedMemosScreen(
                     listState = listState,
                     userProvider = { uiState.session.currUser },
                     showSkeleton = !uiState.archivedMemoList.list.initialLoadFinished,
-                    contentPadding = PaddingValues(16.dp)
+                    // The list runs under the gesture handle; the last card keeps that space.
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp + navigationBarBottom()
+                    )
                 )
             })
     }

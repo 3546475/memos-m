@@ -17,8 +17,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +24,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
@@ -71,6 +68,8 @@ import org.example.moxia.R
 import org.example.moxia.ui.component.ActionSheet
 import org.example.moxia.ui.component.ActionSheetItem
 import org.example.moxia.ui.theme.AppDialog
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.statusBarTop
 import org.example.moxia.ui.theme.AppTextButton
 import org.example.moxia.ui.component.filter.FeedFilterBar
 import org.example.moxia.ui.component.filter.FeedFilterBarHeight
@@ -289,8 +288,11 @@ fun MemosScreen(
 
     // The bars are edge-to-edge overlays: the system navigation area (including the gesture
     // handle) sits between them and the screen edge, so the content has to clear that inset too.
-    val navigationBarInset =
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val navigationBarInset = navigationBarBottom()
+
+    // The feed runs under the status bar, so the chrome above the first card is the status bar
+    // band plus whatever the header itself draws.
+    val statusBarInset = statusBarTop()
 
     val bottomPadding by animateDpAsState(
         targetValue = (if (isNavBarVisible) 80.dp else 16.dp) + navigationBarInset,
@@ -303,7 +305,9 @@ fun MemosScreen(
         targetValue = if (onToggleNavBar != null && isNavBarVisible) {
             80.dp + navigationBarInset
         } else {
-            0.dp
+            // With the bar gone the page still runs under the gesture handle, so the detail
+            // pane's own floating action keeps that inset instead of dropping onto it.
+            navigationBarInset
         },
         label = "NavBarInset"
     )
@@ -336,6 +340,9 @@ fun MemosScreen(
     }
 
     MemosScaffold(
+        // The feed is the page whose list pane starts at the window's top edge, so its header
+        // reserves the status bar itself.
+        listPaneUnderStatusBar = true,
         viewModel = viewModel,
         memos = activeMemos,
         listState = listState,
@@ -453,7 +460,7 @@ fun MemosScreen(
                     label = "feedFilterBarInset"
                 )
                 // The one header row (tabs, actions) plus the filter summary above the list.
-                val headerTop = 64.dp + filterBarInset
+                val headerTop = statusBarInset + 64.dp + filterBarInset
                 val contentPadding = PaddingValues(
                     start = 16.dp,
                     top = headerTop,
@@ -472,7 +479,7 @@ fun MemosScreen(
                 }
                 // The pull-to-refresh chip floats over the list, so it has to clear the chrome
                 // instead of being clipped by it.
-                val indicatorPadding = 64.dp + filterBarInset
+                val indicatorPadding = statusBarInset + 64.dp + filterBarInset
                 when (feed) {
                     MemoFeed.MEMOS -> MemosListPane(
                         viewModel = viewModel,

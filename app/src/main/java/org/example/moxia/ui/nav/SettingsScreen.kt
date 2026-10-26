@@ -32,6 +32,8 @@ import org.example.moxia.ui.component.ProfileBackButton
 import org.example.moxia.ui.component.rememberPageOverscroll
 import org.example.moxia.ui.component.setting.*
 import org.example.moxia.ui.theme.AppTopBar
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.pageContentWindowInsets
 import org.example.moxia.viewmodel.MemosViewModel
 
 @Composable
@@ -72,7 +74,12 @@ fun SettingsScreen(
                 state = listState,
                 overscrollEffect = overscroll,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 12.dp,
+                    end = 16.dp,
+                    bottom = 12.dp + navigationBarBottom()
+                ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -216,6 +223,9 @@ internal fun SettingsPageScaffold(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        // Settings pages scroll under the navigation area; every section adds that inset to its
+        // own scroll padding instead of clipping the content at the bar.
+        contentWindowInsets = pageContentWindowInsets(),
         topBar = {
             AppTopBar(
                 title = title,

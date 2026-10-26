@@ -1,6 +1,7 @@
 package org.example.moxia.ui.nav
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import org.example.moxia.R
 import org.example.moxia.ui.theme.AppCircularProgressIndicator
+import org.example.moxia.ui.theme.navigationBarBottom
 
 @Composable
 internal fun OpenSourceLicensesScreen(onBack: () -> Unit) {
@@ -27,7 +29,13 @@ internal fun OpenSourceLicensesScreen(onBack: () -> Unit) {
                 AppCircularProgressIndicator()
             }
         } else {
-            LibrariesContainer(libraries = loaded, modifier = Modifier.fillMaxSize().padding(padding))
+            // The licence list runs under the gesture handle, so the last row keeps that space
+            // as its own content padding.
+            LibrariesContainer(
+                libraries = loaded,
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentPadding = PaddingValues(bottom = navigationBarBottom())
+            )
         }
     }
 }

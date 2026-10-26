@@ -43,6 +43,7 @@ import org.example.moxia.ui.theme.AppDialog
 import org.example.moxia.ui.theme.AppFilterChip
 import org.example.moxia.ui.theme.AppListItem
 import org.example.moxia.ui.theme.AppTextButton
+import org.example.moxia.ui.theme.navigationBarBottom
 import org.koin.core.context.GlobalContext
 import java.text.DateFormat
 import java.util.Date
@@ -69,7 +70,12 @@ fun AuditLogContent(modifier: Modifier = Modifier) {
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 12.dp,
+            end = 16.dp,
+            bottom = 12.dp + navigationBarBottom()
+        ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item(key = "filters") {

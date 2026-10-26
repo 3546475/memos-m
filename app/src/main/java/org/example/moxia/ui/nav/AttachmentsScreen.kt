@@ -7,14 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -58,6 +54,8 @@ import org.example.moxia.ui.component.rememberScrollContext
 import org.example.moxia.ui.component.rememberPageOverscroll
 import org.example.moxia.ui.theme.AppCircularProgressIndicator
 import org.example.moxia.ui.theme.AppPullToRefresh
+import org.example.moxia.ui.theme.navigationBarBottom
+import org.example.moxia.ui.theme.statusBarTop
 import org.example.moxia.viewmodel.MemosViewModel
 import java.time.LocalDate
 import java.time.ZoneId
@@ -156,12 +154,14 @@ fun AttachmentsScreen(
     )
 
     // Keep the last row above the system navigation area as well as above the floating bar.
-    val navigationBarInset =
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val navigationBarInset = navigationBarBottom()
     val bottomPadding by animateDpAsState(
         targetValue = (if (isNavBarVisible) 80.dp else 16.dp) + navigationBarInset,
         label = "BottomPadding"
     )
+    // The timeline runs under the status bar; the first month heading is the only thing that has
+    // to start below the clock.
+    val topPadding = statusBarTop() + 12.dp
     val overscroll = rememberPageOverscroll()
 
     LaunchedEffect(Unit) {
@@ -182,9 +182,8 @@ fun AttachmentsScreen(
     AppPullToRefresh(
         isRefreshing = uiState.isRefreshing, onRefresh = {
             viewModel.fetchAttachments(refresh = true)
-        }, modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
+        }, modifier = Modifier.fillMaxSize(),
+        indicatorTopPadding = topPadding
     ) {
         BoxWithConstraints(
             modifier = Modifier
@@ -292,7 +291,7 @@ fun AttachmentsScreen(
                     state = listState,
                     overscrollEffect = overscroll,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 12.dp, bottom = bottomPadding),
+                    contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     items(entries, key = { it.key }, contentType = {

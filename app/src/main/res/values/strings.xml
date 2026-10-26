@@ -77,10 +77,31 @@
     <string name="memo_filter_date_week">This week</string>
     <string name="memo_filter_date_month">This month</string>
     <string name="memo_filter_date_custom">Custom range</string>
+    <string name="memo_filter_date_range_title" tools:ignore="MissingTranslation">Date range</string>
+    <string name="memo_filter_date_pick_start" tools:ignore="MissingTranslation">Pick a start date</string>
+    <string name="memo_filter_date_pick_end" tools:ignore="MissingTranslation">Pick an end date</string>
+    <string name="memo_filter_date_pick_single" tools:ignore="MissingTranslation">Pick a date</string>
+    <string name="memo_filter_date_previous_month" tools:ignore="MissingTranslation">Previous month</string>
+    <string name="memo_filter_date_next_month" tools:ignore="MissingTranslation">Next month</string>
+    <string-array name="date_weekday_labels" tools:ignore="MissingTranslation">
+        <item>S</item>
+        <item>M</item>
+        <item>T</item>
+        <item>W</item>
+        <item>T</item>
+        <item>F</item>
+        <item>S</item>
+    </string-array>
     <string name="memo_filter_sort_pinned">Pinned first</string>
     <string name="memo_filter_sort_newest">Newest</string>
     <string name="memo_filter_sort_oldest">Oldest</string>
     <string name="memo_filter_apply">Apply (%1$d)</string>
+    <string name="memo_filter_apply_plain" tools:ignore="MissingTranslation">Apply filter</string>
+    <plurals name="memo_filter_apply_count" tools:ignore="MissingTranslation">
+        <item quantity="one">Apply %1$d condition</item>
+        <item quantity="other">Apply %1$d conditions</item>
+    </plurals>
+    <string name="memo_filter_tag_match" tools:ignore="MissingTranslation">Match</string>
     <string name="memo_filter_reset">Reset</string>
     <string name="memo_filter_save_view">Save as view…</string>
     <string name="memo_filter_save_view_title">Save as view</string>

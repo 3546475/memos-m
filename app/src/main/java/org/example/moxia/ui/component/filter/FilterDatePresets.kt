@@ -2,12 +2,8 @@ package org.example.moxia.ui.component.filter
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -62,28 +58,3 @@ private fun rangeOf(start: LocalDate, endExclusive: LocalDate, zone: ZoneId): Me
         startMillis = start.atStartOfDay(zone).toInstant().toEpochMilli(),
         endMillisExclusive = endExclusive.atStartOfDay(zone).toInstant().toEpochMilli()
     )
-
-/** A local date as the UTC-midnight millis Material's date pickers exchange. */
-fun LocalDate.toPickerMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-fun pickerMillisToLocalDate(millis: Long): LocalDate =
-    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-
-/** "Oct 1, 2026 – Oct 24, 2026" in the given locale; a single day collapses to one date. */
-fun MemoDateRange.displayLabel(
-    zone: ZoneId = ZoneId.systemDefault(),
-    locale: Locale = Locale.getDefault()
-): String {
-    val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
-    val start = Instant.ofEpochMilli(startMillis).atZone(zone).toLocalDate()
-    val end = if (endMillisExclusive == MemoDateRange.UNBOUNDED) {
-        null
-    } else {
-        Instant.ofEpochMilli(endMillisExclusive - 1).atZone(zone).toLocalDate()
-    }
-    return if (end == null || end == start) {
-        formatter.format(start)
-    } else {
-        "${formatter.format(start)} – ${formatter.format(end)}"
-    }
-}

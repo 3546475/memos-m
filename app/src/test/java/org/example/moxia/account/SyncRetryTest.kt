@@ -84,8 +84,9 @@ class SyncRetryTest {
         fixture.release = CompletableDeferred()
         fixture.manager.pushPendingChanges()
         fixture.manager.pushPendingChanges()
-        assertTrue(fixture.manager.isSyncing.value)
         runCurrent()
+        // The state is only claimed once the queue has actually been read and has work in it.
+        assertTrue(fixture.manager.isSyncing.value)
         assertEquals(1, fixture.attempts)
 
         fixture.manager.pushPendingChanges()
@@ -95,6 +96,18 @@ class SyncRetryTest {
         runCurrent()
         assertNull(fixture.queued)
         assertFalse(fixture.manager.isSyncing.value)
+    }
+
+    @Test fun `a pass with nothing to push never reports a sync`() = runTest {
+        val fixture = Fixture(backgroundScope)
+        // Every resume, pull-to-refresh and foreground probe runs this with an empty queue; it
+        // used to claim the state anyway, which made the header's status blink.
+        fixture.queued = null
+        fixture.manager.pushPendingChanges()
+        assertFalse(fixture.manager.isSyncing.value)
+        runCurrent()
+        assertFalse(fixture.manager.isSyncing.value)
+        assertEquals(0, fixture.attempts)
     }
 
     @Test fun `failed pushes schedule another server attempt`() = runTest {

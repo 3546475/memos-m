@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -82,6 +83,18 @@ import org.example.moxia.viewmodel.manager.USER_MEMO_COMPARATOR
 import org.example.moxia.model.UserNotification
 import org.example.moxia.model.filter.matches
 import org.example.moxia.model.filter.toCel
+
+/**
+ * How long a replay pass has to run before the UI is told about it. A pass that drains the queue
+ * in a few milliseconds is not an event the header should show.
+ */
+private const val SyncStatusAppearDelayMs = 350L
+
+/**
+ * Once shown, the sync state stays up at least this long. Faster passes would otherwise render as
+ * a single-frame flicker of the header's status label and icon.
+ */
+private const val SyncStatusMinVisibleMs = 900L
 
 class MemosViewModel(
     private val dataStoreManager: DataStoreManager,
@@ -781,8 +794,25 @@ class MemosViewModel(
             }
         }
         viewModelScope.launch {
-            syncManager.isSyncing.collect { syncing ->
-                _uiState.update { it.copy(isSyncing = syncing) }
+            // The header turns this into visible text and an icon, so it must not report a pass
+            // that is over before it can be read: the queue is drained in milliseconds in the
+            // normal case, and publishing that straight through made the status blink on every
+            // resume, refresh and foreground probe. Wait until the pass has really been running,
+            // then keep the state up long enough to read it.
+            var shownAt = 0L
+            syncManager.isSyncing.collectLatest { syncing ->
+                if (syncing) {
+                    delay(SyncStatusAppearDelayMs)
+                    shownAt = System.currentTimeMillis()
+                    _uiState.update { it.copy(isSyncing = true) }
+                } else {
+                    if (shownAt > 0L) {
+                        val remaining = SyncStatusMinVisibleMs - (System.currentTimeMillis() - shownAt)
+                        if (remaining > 0) delay(remaining)
+                        shownAt = 0L
+                    }
+                    _uiState.update { it.copy(isSyncing = false) }
+                }
             }
         }
         viewModelScope.launch {
