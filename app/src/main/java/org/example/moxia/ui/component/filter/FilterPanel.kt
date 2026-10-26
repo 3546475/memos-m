@@ -1,5 +1,13 @@
 package org.example.moxia.ui.component.filter
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +61,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -330,8 +339,14 @@ fun FilterPanel(
                 }
             }
 
-            if (tagSearchOpen) {
-                item(key = "tags-search") {
+            item(key = "tags-search") {
+                // A permanent item whose content expands: inserting and removing the item itself
+                // made the field pop open instead of growing.
+                AnimatedVisibility(
+                    visible = tagSearchOpen,
+                    enter = expandVertically(animationSpec = tween(180)) + fadeIn(tween(120)),
+                    exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(tween(100))
+                ) {
                     AppTextField(
                         value = tagQuery,
                         onValueChange = { tagQuery = it },
@@ -383,7 +398,10 @@ fun FilterPanel(
                             } else {
                                 collapsedTags + node.path
                             }
-                        }
+                        },
+                        // Folding a branch or filtering the list animates the rows into their new
+                        // places instead of re-drawing the pane.
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -683,29 +701,59 @@ private fun TagTreeRow(
     descendantSelected: Boolean,
     expanded: Boolean,
     onToggleSelect: () -> Unit,
-    onToggleExpand: () -> Unit
+    onToggleExpand: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val guideColor = MaterialTheme.colorScheme.outlineVariant
     val accent = MaterialTheme.colorScheme.primary
+    // Selecting, clearing and branch-level highlighting all cross-fade: a row that flips colour
+    // in a single frame reads as a redraw rather than as a selection.
+    val rowTint by animateColorAsState(
+        targetValue = when {
+            selected -> accent.copy(alpha = 0.10f)
+            descendantSelected -> accent.copy(alpha = 0.04f)
+            else -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 150),
+        label = "tagRowTint"
+    )
+    val barColor by animateColorAsState(
+        targetValue = when {
+            selected -> accent
+            descendantSelected -> accent.copy(alpha = 0.35f)
+            else -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 150),
+        label = "tagRowBar"
+    )
+    val labelColor by animateColorAsState(
+        targetValue = if (selected) accent else MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(durationMillis = 150),
+        label = "tagRowLabel"
+    )
+    // The fold arrow turns instead of jumping between two angles.
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(durationMillis = 160),
+        label = "tagRowChevron"
+    )
     val contentStart = TagTreeLabelStart + TagTreeIndent * node.depth
     val labelOffset = TagTreeBarWidth + TagTreeBarGap + TagTreeChevronSlot + TagTreeLabelGap
     val labelX = contentStart + labelOffset
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(TagTreeRowHeight)
             .drawBehind {
-                if (selected || descendantSelected) {
-                    // The whole row carries the selection now: a text-colour change alone was too
-                    // faint next to the accent bar.
-                    val inset = 8.dp.toPx()
-                    drawRoundRect(
-                        color = accent.copy(alpha = if (selected) 0.10f else 0.04f),
-                        topLeft = Offset(inset, 2.dp.toPx()),
-                        size = Size(size.width - inset * 2, size.height - 4.dp.toPx()),
-                        cornerRadius = CornerRadius(10.dp.toPx())
-                    )
-                }
+                // The row tint is always painted; it is simply transparent while the row is out
+                // of the selection, which is what lets the transition interpolate.
+                val inset = 8.dp.toPx()
+                drawRoundRect(
+                    color = rowTint,
+                    topLeft = Offset(inset, 2.dp.toPx()),
+                    size = Size(size.width - inset * 2, size.height - 4.dp.toPx()),
+                    cornerRadius = CornerRadius(10.dp.toPx())
+                )
                 val stroke = 1.dp.toPx()
                 val overshoot = 2.dp.toPx()
                 val centerY = size.height / 2f
@@ -730,15 +778,15 @@ private fun TagTreeRow(
                         stroke
                     )
                 }
-                if (selected || descendantSelected) {
-                    val barHeight = TagTreeAccentHeight.toPx()
-                    drawRoundRect(
-                        color = if (selected) accent else accent.copy(alpha = 0.35f),
-                        topLeft = Offset(contentStart.toPx(), centerY - barHeight / 2f),
-                        size = Size(TagTreeBarWidth.toPx(), barHeight),
-                        cornerRadius = CornerRadius(TagTreeBarWidth.toPx() / 2f)
-                    )
-                }
+                // Same as the tint: always drawn, transparent when the row is not selected, so
+                // the colour has something to animate.
+                val barHeight = TagTreeAccentHeight.toPx()
+                drawRoundRect(
+                    color = barColor,
+                    topLeft = Offset(contentStart.toPx(), centerY - barHeight / 2f),
+                    size = Size(TagTreeBarWidth.toPx(), barHeight),
+                    cornerRadius = CornerRadius(TagTreeBarWidth.toPx() / 2f)
+                )
             }
             .clip(RoundedCornerShape(8.dp))
             .selectable(
@@ -771,7 +819,7 @@ private fun TagTreeRow(
                     ),
                     modifier = Modifier
                         .size(16.dp)
-                        .rotate(if (expanded) 90f else 0f),
+                        .rotate(chevronRotation),
                     tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -781,7 +829,7 @@ private fun TagTreeRow(
             text = "#${node.path}",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-            color = if (selected) accent else MaterialTheme.colorScheme.onSurface,
+            color = labelColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)

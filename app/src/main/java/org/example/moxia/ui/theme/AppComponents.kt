@@ -1,7 +1,11 @@
 package org.example.moxia.ui.theme
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +63,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -716,21 +721,43 @@ fun AppFilterChip(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     if (usesMiuix) {
         val shape = RoundedCornerShape(MiuixTokens.PillCornerRadius)
-        val containerColor =
-            if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.surfaceContainerHigh
-        val contentColor =
-            if (selected) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurfaceContainer
+        // A filter toggles in place, so the pill cross-fades between its two fills instead of
+        // snapping to the other colour; 150ms still reads as an immediate response.
+        val containerColor by animateColorAsState(
+            targetValue = if (selected) {
+                MiuixTheme.colorScheme.primary
+            } else {
+                MiuixTheme.colorScheme.surfaceContainerHigh
+            },
+            animationSpec = tween(durationMillis = 150),
+            label = "filterChipContainer"
+        )
+        val contentColor by animateColorAsState(
+            targetValue = if (selected) {
+                MiuixTheme.colorScheme.onPrimary
+            } else {
+                MiuixTheme.colorScheme.onSurfaceContainer
+            },
+            animationSpec = tween(durationMillis = 150),
+            label = "filterChipContent"
+        )
         MiuixTheme(colors = LocalMiuixColors.current) {
             MiuixSurface(
                 modifier = modifier
+                    .pressScale(interactionSource)
                     .clip(shape)
                     // A plain clickable announced no state: TalkBack read the label but never said
                     // whether the filter behind it was on. selectable publishes the selection.
+                    // The interaction source is shared with pressScale, and the indication is
+                    // passed explicitly because naming the source otherwise opts out of the ripple.
                     .selectable(
                         selected = selected,
                         enabled = enabled,
+                        interactionSource = interactionSource,
+                        indication = LocalIndication.current,
                         onClick = onClick
                     ),
                 shape = shape,
@@ -764,8 +791,9 @@ fun AppFilterChip(
                     content = content
                 )
             },
-            modifier = modifier,
-            enabled = enabled
+            modifier = modifier.pressScale(interactionSource),
+            enabled = enabled,
+            interactionSource = interactionSource
         )
     }
 }
