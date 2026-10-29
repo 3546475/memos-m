@@ -44,8 +44,22 @@ data class AppearancePreferences(
     val topBarScrollMode: TopBarScrollMode = TopBarScrollMode.ON_SCROLL,
     /** Frosts the floating feed header (API 33+ only). Off by default: the header is a thin row. */
     val topBarBlur: Boolean = false,
-    /** Frosts the bottom bar and the compose button that shares its material (API 33+ only). */
+    /**
+     * Frosts the bottom bar and the compose button that shares its material (API 33+ only).
+     *
+     * Independent of [liquidNavBar]: this is the bar's material, that one is an interaction on top
+     * of it. Off means a solid bar, with or without the droplet.
+     */
     val bottomBarBlur: Boolean = true,
+    /**
+     * Turns the bottom bar's liquid glass on: touching or dragging it grows a bevelled, magnifying
+     * bead that refracts the bar under the finger, slides to the destination that was tapped and
+     * fades out. Off by default.
+     *
+     * An interaction, not a material: it draws over whatever [bottomBarBlur] decided, so the frost
+     * on/off and the glass on/off are two independent axes.
+     */
+    val liquidNavBar: Boolean = false,
     /** Draws the bottom bar as a floating capsule with a centred compose button. */
     val floatingNavBar: Boolean = true,
     /** Opens the editor straight from a card, bypassing the detail page and the menu. */

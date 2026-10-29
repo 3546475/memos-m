@@ -21,6 +21,14 @@ import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 
 /**
+ * How much of the bar's own colour covers its backdrop when the frost is on.
+ *
+ * Shared by the docked bar and by the floating capsule's frosted material, so the two shapes that
+ * sit in the same place on screen cannot drift apart.
+ */
+internal const val CapsuleSurfaceAlpha = 0.86f
+
+/**
  * The floating bottom bar's "glass" rim, shared by every surface that adopted the same material.
  *
  * It is two strokes: a narrow white bevel that is brightest at the top, and a fainter glow just

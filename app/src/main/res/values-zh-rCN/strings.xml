@@ -35,7 +35,6 @@
     <string name="profile_app_settings_page_size">分页大小</string>
     <string name="profile_app_settings_page_size_hint">每页项目数</string>
     <string name="profile_app_settings_link_previews">链接预览</string>
-    <string name="profile_app_settings_link_previews_description">为独立的网页链接显示预览卡片</string>
     <string name="profile_app_settings_header_scale">标题大小</string>
     <string name="profile_app_settings_header_scale_format">%.1fx</string>
     <string name="profile_archived">归档</string>
@@ -60,7 +59,6 @@
     <string name="audit_log_clear">清空</string>
     <string name="audit_log_clear_confirm">会删除全部已记录的日志，无法恢复。</string>
     <string name="audit_log_empty_hint">只有离线排队、同步重试、附件上传和备份恢复会写入记录。</string>
-    <string name="settings_summary_audit">离线队列、同步重试、附件上传与备份恢复的审计记录</string>
     <string name="profile_about_version_copied">已将版本号复制到剪贴板</string>
     <string name="profile_about_repo">源码仓库</string>
     <string name="profile_about_issues">反馈问题</string>
@@ -77,7 +75,6 @@
     <string name="profile_avatar_url">头像 URL</string>
     <string name="profile_avatar_generated">已使用图片生成头像</string>
     <string name="profile_avatar_use_url">改用链接</string>
-    <string name="profile_avatar_change_hint">点击图片可上传新头像</string>
     <string name="profile_avatar_upload_failed">头像上传失败</string>
     <string name="profile_account_management">账号管理</string>
     <string name="profile_description">简介</string>
@@ -464,7 +461,6 @@
 
     <!-- Settings, offline operation, and app controls. -->
     <string name="appearance_choose_color">配色主题</string>
-    <string name="appearance_color_hint">滑动以选择强调色</string>
     <string name="appearance_color_option">配色方案 %1$d</string>
     <string name="appearance_custom">自定义</string>
     <string name="appearance_custom_colors">自定义颜色</string>
@@ -483,8 +479,6 @@
     <string name="appearance_save_error">无法保存外观设置，请重试。</string>
     <string name="appearance_theme_mode">主题模式</string>
     <string name="settings_theme_style">主题风格</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · 澎湃风格</string>
     <string name="attachments_unknown_filename">文件</string>
     <string name="common_no_active_account">未找到当前账户</string>
     <string name="common_operation_failed">无法完成操作，请重试。</string>
@@ -557,14 +551,6 @@
     <string name="settings_memos">备忘录</string>
     <string name="settings_network">网络</string>
     <string name="settings_shortcuts_summary">管理已保存的备忘录筛选条件</string>
-    <string name="settings_summary_about">应用版本、日志、源代码、许可证</string>
-    <string name="settings_summary_appearance">颜色、字体、链接预览、标题大小</string>
-    <string name="settings_summary_general">语言、默认可见性、每页数量</string>
-    <string name="settings_summary_instance">服务器版本、模式、地址</string>
-    <string name="settings_summary_memos">快捷方式、Webhooks</string>
-    <string name="settings_summary_network">本地网络访问</string>
-    <string name="settings_summary_offline">自动缓存、存储限制、清除缓存</string>
-    <string name="settings_summary_recovery">导出和恢复数据</string>
     <string name="settings_webhooks_summary">管理 Webhook 集成</string>
     <string name="widget_stats_error_account_not_found">未找到账户</string>
     <string name="widget_stats_error_network">网络错误</string>
@@ -590,12 +576,12 @@
     <string name="video_playback_speed">视频播放速度</string>
     <string name="video_playback_error">无法播放此视频。</string>
     <string name="settings_navigation">导航栏</string>
-    <string name="settings_navigation_summary">滚动行为、底栏项目</string>
     <string name="settings_nav_bar_hide_on_scroll">底栏随滚动隐藏</string>
     <string name="settings_top_bar_hide_on_scroll">顶栏随滚动隐藏</string>
     <string name="settings_floating_nav_bar">悬浮底栏</string>
     <string name="settings_top_bar_blur">顶栏模糊</string>
     <string name="settings_nav_bar_blur">底栏模糊</string>
+    <string name="settings_nav_bar_liquid_glass">液态玻璃</string>
     <string name="settings_nav_items">底栏项目</string>
     <string name="settings_nav_move_up">上移</string>
     <string name="settings_nav_move_down">下移</string>
@@ -607,7 +593,6 @@
     <string name="settings_nav_style_docked">贴边</string>
     <string name="settings_nav_style_floating">悬浮胶囊</string>
     <string name="settings_nav_items_edit">编辑</string>
-    <string name="settings_nav_items_hint">至少保留一项；用箭头调整顺序。</string>
     <string name="settings_blur_needs_android13">需要 Android 13 及以上</string>
     <string name="settings_blur_needs_miuix">仅在 Miuix 主题下可用</string>
     <string name="settings_edit_gesture">编辑手势</string>
@@ -621,13 +606,8 @@
     <string name="code_block_collapse">收起</string>
     <string name="code_block_line_copied">已复制第 %1$d 行</string>
     <string name="settings_editor">编辑器</string>
-    <string name="settings_summary_editor">笔记正文与代码块的显示方式</string>
     <string name="settings_editor_line_numbers">代码行号</string>
-    <string name="settings_editor_line_numbers_description">在代码行左侧显示行号；自动换行时隐藏</string>
     <string name="settings_editor_wrap_lines">代码自动换行</string>
-    <string name="settings_editor_wrap_lines_description">长行折行显示，不再横向滚动</string>
     <string name="settings_editor_paragraph_indent">首行缩进</string>
-    <string name="settings_editor_paragraph_indent_description">每段首行缩进两个字符</string>
     <string name="settings_editor_cjk_spacing">中英文自动加空格</string>
-    <string name="settings_editor_cjk_spacing_description">在中文与字母、数字之间插入细空隙</string>
 </resources>

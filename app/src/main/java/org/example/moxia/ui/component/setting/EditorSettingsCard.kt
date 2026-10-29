@@ -27,25 +27,21 @@ fun EditorSettingsCard(
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         SettingToggleRow(
             label = stringResource(R.string.settings_editor_line_numbers),
-            description = stringResource(R.string.settings_editor_line_numbers_description),
             checked = codeLineNumbers,
             onCheckedChange = onCodeLineNumbersChange
         )
         SettingToggleRow(
             label = stringResource(R.string.settings_editor_wrap_lines),
-            description = stringResource(R.string.settings_editor_wrap_lines_description),
             checked = codeWrapLines,
             onCheckedChange = onCodeWrapLinesChange
         )
         SettingToggleRow(
             label = stringResource(R.string.settings_editor_paragraph_indent),
-            description = stringResource(R.string.settings_editor_paragraph_indent_description),
             checked = paragraphIndent,
             onCheckedChange = onParagraphIndentChange
         )
         SettingToggleRow(
             label = stringResource(R.string.settings_editor_cjk_spacing),
-            description = stringResource(R.string.settings_editor_cjk_spacing_description),
             checked = cjkSpacing,
             onCheckedChange = onCjkSpacingChange
         )

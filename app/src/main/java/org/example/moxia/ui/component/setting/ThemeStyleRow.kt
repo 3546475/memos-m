@@ -31,9 +31,6 @@ internal fun ThemeStyleRow(
     val miuix = appearance.themeStyle == ThemeStyle.MIUIX
     SettingToggleRow(
         label = stringResource(R.string.settings_theme_style),
-        description = stringResource(
-            if (miuix) R.string.settings_theme_style_miuix else R.string.settings_theme_style_md
-        ),
         checked = miuix,
         onCheckedChange = { enabled ->
             scope.launch {

@@ -63,7 +63,6 @@ fun AppSettingsCard(
         if (category == AppSettingsCategory.LINK_PREVIEWS) {
             SettingToggleRow(
                 label = stringResource(R.string.profile_app_settings_link_previews),
-                description = stringResource(R.string.profile_app_settings_link_previews_description),
                 checked = linkPreviewEnabled,
                 onCheckedChange = onLinkPreviewEnabledChange
             )
