@@ -35,7 +35,6 @@
     <string name="profile_app_settings_page_size">ページネーションサイズ</string>
     <string name="profile_app_settings_page_size_hint">1ページあたりの項目数</string>
     <string name="profile_app_settings_link_previews">リンクプレビュー</string>
-    <string name="profile_app_settings_link_previews_description">単独のウェブページリンクをプレビューカードで表示</string>
     <string name="profile_app_settings_header_scale">見出しのサイズ</string>
     <string name="profile_app_settings_header_scale_format">%.1fx</string>
     <string name="profile_archived">アーカイブ</string>
@@ -267,7 +266,6 @@
 
     <!-- Settings, offline operation, and app controls. -->
     <string name="appearance_choose_color">カラーテーマ</string>
-    <string name="appearance_color_hint">スライダーでアクセントカラーを選んでください</string>
     <string name="appearance_color_option">カラー %1$d</string>
     <string name="appearance_custom">カスタム</string>
     <string name="appearance_custom_colors">カスタムカラー</string>
@@ -286,8 +284,6 @@
     <string name="appearance_save_error">外観を保存できませんでした。もう一度お試しください。</string>
     <string name="appearance_theme_mode">テーマのモード</string>
     <string name="settings_theme_style">テーマのスタイル</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">ファイル</string>
     <string name="audit_log_account">アカウント: %1$s</string>
     <string name="audit_log_empty">ログはまだ記録されていません。</string>
@@ -452,14 +448,6 @@
     <string name="settings_memos">メモ</string>
     <string name="settings_network">ネットワーク</string>
     <string name="settings_shortcuts_summary">保存したメモのフィルターを管理</string>
-    <string name="settings_summary_about">アプリのバージョン、ログ、ソースコード、ライセンス</string>
-    <string name="settings_summary_appearance">色、フォント、リンクプレビュー、見出しのサイズ</string>
-    <string name="settings_summary_general">言語、標準の公開範囲、ページサイズ</string>
-    <string name="settings_summary_instance">サーバーのバージョン、モード、アドレス</string>
-    <string name="settings_summary_memos">ショートカット、Webhook</string>
-    <string name="settings_summary_network">ローカルネットワークへのアクセス</string>
-    <string name="settings_summary_offline">自動キャッシュ、容量の上限、キャッシュの消去</string>
-    <string name="settings_summary_recovery">データの書き出しと復元</string>
     <string name="settings_title">設定</string>
     <string name="settings_webhooks_summary">Webhook 連携を管理</string>
     <string name="sync_panel_last_sync">最終同期: %1$s</string>

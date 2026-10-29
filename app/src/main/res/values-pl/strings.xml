@@ -36,7 +36,6 @@
     <string name="profile_app_settings_page_size">Liczba elementów na stronę</string>
     <string name="profile_app_settings_page_size_hint">Elementy na stronę</string>
     <string name="profile_app_settings_link_previews">Podgląd linków</string>
-    <string name="profile_app_settings_link_previews_description">Pokazuj karty podglądu dla samodzielnych linków do stron</string>
     <string name="profile_app_settings_header_scale">Rozmiar nagłówków</string>
     <string name="profile_app_settings_header_scale_format">%.1fx</string>
     <string name="profile_notifications">Powiadomienia</string>
@@ -262,7 +261,6 @@
 
     <!-- Settings, offline operation, and app controls. -->
     <string name="appearance_choose_color">Motyw kolorystyczny</string>
-    <string name="appearance_color_hint">Przesuń suwak, aby wybrać kolor akcentu</string>
     <string name="appearance_color_option">Kolor %1$d</string>
     <string name="appearance_custom">Niestandardowy</string>
     <string name="appearance_custom_colors">Własne kolory</string>
@@ -281,8 +279,6 @@
     <string name="appearance_save_error">Nie udało się zapisać ustawień wyglądu. Spróbuj ponownie.</string>
     <string name="appearance_theme_mode">Tryb motywu</string>
     <string name="settings_theme_style">Styl motywu</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_offline_empty">Brak połączenia — nie ma jeszcze załączników w pamięci podręcznej. Pojawią się po synchronizacji.</string>
     <string name="audit_log_account">Konto: %1$s</string>
     <string name="audit_log_empty">Nie zarejestrowano jeszcze żadnych wpisów.</string>
@@ -411,14 +407,6 @@
     <string name="settings_memos">Notatki</string>
     <string name="settings_network">Sieć</string>
     <string name="settings_shortcuts_summary">Zarządzaj zapisanymi filtrami notatek</string>
-    <string name="settings_summary_about">Wersja aplikacji, dzienniki, kod źródłowy, licencje</string>
-    <string name="settings_summary_appearance">Kolory, czcionki, podgląd linków, rozmiar nagłówków</string>
-    <string name="settings_summary_general">Język, domyślna widoczność, rozmiar strony</string>
-    <string name="settings_summary_instance">Wersja serwera, tryb, adres</string>
-    <string name="settings_summary_memos">Skróty, webhooki</string>
-    <string name="settings_summary_network">Dostęp do sieci lokalnej</string>
-    <string name="settings_summary_offline">Automatyczne zapisywanie, limity miejsca, czyszczenie pamięci podręcznej</string>
-    <string name="settings_summary_recovery">Eksportowanie i przywracanie danych</string>
     <string name="settings_title">Ustawienia</string>
     <string name="settings_webhooks_summary">Zarządzaj integracjami webhooków</string>
     <string name="sync_panel_last_sync">Ostatnia synchronizacja: %1$s</string>
