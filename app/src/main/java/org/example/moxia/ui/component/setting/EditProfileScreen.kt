@@ -317,14 +317,6 @@ fun EditProfileScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = stringResource(R.string.profile_avatar_change_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
                 avatarError?.let { message ->
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(

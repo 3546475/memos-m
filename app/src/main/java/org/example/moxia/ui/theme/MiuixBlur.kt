@@ -32,3 +32,13 @@ internal fun topBarBlurSupported(): Boolean =
 @Composable
 internal fun bottomBarBlurSupported(): Boolean =
     LocalBottomBarBlurEnabled.current && miuixBlurAvailable()
+
+/**
+ * Whether the bar's translucent materials can be drawn here at all.
+ *
+ * The frost and the liquid glass are one pipeline — runtime shaders over a recorded backdrop — so
+ * both need Android 13+. Which of the two is on is the user's choice; this only answers whether
+ * either can run.
+ */
+@Composable
+internal fun navBarMaterialSupported(): Boolean = miuixBlurAvailable()

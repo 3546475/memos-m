@@ -6,11 +6,12 @@ import org.example.moxia.model.NavBarScrollMode
 import org.example.moxia.model.AppearancePreferences
 
 
+
 import org.example.moxia.ui.theme.appFadeSpec
 
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-import org.example.moxia.ui.theme.bottomBarBlurSupported
+import org.example.moxia.ui.theme.navBarMaterialSupported
 
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 
@@ -22,54 +23,35 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.blur
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 
 
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.State
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.filled.Attachment
@@ -82,9 +64,11 @@ import org.example.moxia.model.MapCapability
 import org.example.moxia.ui.nav.MapScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.example.moxia.ui.theme.AppSurface
-import org.example.moxia.ui.theme.capsuleHighlight
+import org.example.moxia.ui.theme.CapsuleSurfaceAlpha
 import top.yukonga.miuix.kmp.basic.NavigationBar as MiuixNavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem as MiuixNavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationRail as MiuixNavigationRail
@@ -112,7 +96,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import kotlin.math.pow
 import org.example.moxia.R
 import org.example.moxia.model.Attachment
 import org.example.moxia.model.ShareIntentData
@@ -129,6 +112,7 @@ import org.example.moxia.ui.component.item.markdown.LocalMarkdownFormat
 import org.example.moxia.ui.component.item.markdown.MarkdownFormat
 import org.example.moxia.ui.component.item.markdown.LinkPreviewEnvironment
 import org.example.moxia.ui.nav.AttachmentsScreen
+import org.example.moxia.ui.nav.FloatingBottomBar
 import org.example.moxia.ui.nav.MemoFeed
 import org.example.moxia.ui.nav.MemosScreen
 import org.example.moxia.ui.nav.ProfileScreen
@@ -146,8 +130,11 @@ enum class MainDestination(
 
 private const val NavBlurRadius = 24f
 
-/** Opacity of the capsule's own surface over its blur, the same in the light and dark themes. */
-private const val CapsuleSurfaceAlpha = 0.86f
+/**
+ * The docked bar is a full-width rectangle. Its shape carries no corners, but it still goes through
+ * a rounded-corner shape so the bar can sample itself the same way whichever material is on.
+ */
+private val DockedBarShape = RoundedCornerShape(0.dp)
 
 @Composable
 fun MainScreen(
@@ -344,6 +331,7 @@ private fun MainScreenContent(
     val configuration = LocalConfiguration.current
     val isMobile = configuration.screenWidthDp < 600
 
+
     // The bottom bar blurs a snapshot of the content layer, and neither that snapshot nor the bar
     // is invalidated by the destination cross-fade on its own. This transition ticks on every frame
     // of that fade; both the content layer and the bar read it, so the backdrop is re-recorded and
@@ -379,7 +367,6 @@ private fun MainScreenContent(
             }
         }, onDismiss = { isAddingAccount = false })
     }
-
 
     fun handleDestinationClick(destination: MainDestination) {
         focusManager.clearFocus()
@@ -424,12 +411,20 @@ private fun MainScreenContent(
         modifier = modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background
     ) {
         // Each bar has its own frosted switch; the values are provided here so every screen below
-        // reads the same preference without threading it through every composable.
+        // reads the same preference without threading it through every composable. The frost also
+        // covers the surfaces that copy the bar's material (the compose button, the composer's own
+        // bottom bar), so it stays on while the bar is liquid glass: the bar is still translucent
+        // there, it is only glass instead of a frosted surface.
         CompositionLocalProvider(
             LocalTopBarBlurEnabled provides appearance.topBarBlur,
             LocalBottomBarBlurEnabled provides appearance.bottomBarBlur
         ) {
-        val navBlurEnabled = bottomBarBlurSupported()
+        // The bar's own material comes straight from the preferences: the helper above answers for
+        // the surfaces that copy the bar's material, which keep frosting under either switch.
+        // Mutually exclusive in the settings, so at most one of these is true.
+        val barMaterialSupported = navBarMaterialSupported()
+        val navBlurEnabled = appearance.bottomBarBlur && barMaterialSupported
+        val navGlassEnabled = appearance.liquidNavBar && barMaterialSupported
         Box(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxSize()) {
                 // Navigation Rail for tablets/desktops
@@ -480,7 +475,9 @@ private fun MainScreenContent(
                             Modifier
                                 .fillMaxSize()
                                 .then(
-                                    if (navBlurEnabled) {
+                                    // The page records its backdrop for whichever material is on:
+                                    // the frost and the glass both sample it.
+                                    if (navBlurEnabled || navGlassEnabled) {
                                         Modifier.layerBackdrop(backdropFor(targetDestination))
                                     } else {
                                         Modifier
@@ -537,7 +534,8 @@ private fun MainScreenContent(
 
             // Bottom Navigation Bar for mobile
             if (isMobile) {
-                val floatingBar = appearance.floatingNavBar
+                val floatingBar =
+                    appearance.floatingNavBar
                 if (floatingBar) {
                     FloatingBottomBar(
                         visible = isNavBarVisible && bottomBarReady,
@@ -557,6 +555,7 @@ private fun MainScreenContent(
                             }
                         },
                         blurEnabled = navBlurEnabled,
+                        liquidGlass = navGlassEnabled,
                         backdrop = activeNavBackdrop,
                         blurRefresh = barBlurRefresh,
                         modifier = Modifier.align(Alignment.BottomCenter)
@@ -570,15 +569,17 @@ private fun MainScreenContent(
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(animationSpec = tween(140)),
                         exit = slideOutVertically(targetOffsetY = { it })
                     ) {
+                        val barMaterial = navBlurEnabled
                         MiuixNavigationBar(
                             // A translucent bar lets the list frost through; without blur it
-                            // stays the plain opaque surface.
-                            color = if (navBlurEnabled) {
+                            // stays the plain opaque surface. The docked bar has no droplet to
+                            // carry the glass, so both switches land on the same surface here.
+                            color = if (barMaterial) {
                                 MiuixTheme.colorScheme.surface.copy(alpha = CapsuleSurfaceAlpha)
                             } else {
                                 MiuixTheme.colorScheme.surface
                             },
-                            modifier = if (navBlurEnabled) {
+                            modifier = if (barMaterial) {
                                 Modifier
                                     .drawWithContent {
                                         if (barBlurRefresh.value < 0f) {
@@ -588,7 +589,7 @@ private fun MainScreenContent(
                                     }
                                     .drawBackdrop(
                                         backdrop = activeNavBackdrop,
-                                        shape = { RectangleShape },
+                                        shape = { DockedBarShape },
                                         effects = { blur(NavBlurRadius, NavBlurRadius) }
                                     )
                             } else {
@@ -634,337 +635,3 @@ internal fun MainDestination.navIcon(selected: Boolean): ImageVector = when (thi
     MainDestination.PROFILE -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
 }
 
-/** Blur radius of the capsule's compose button, in pixels. */
-private const val CapsuleBlurRadius = 18f
-
-/** Thickness of the crisp specular line that outlines the capsule. */
-
-/**
- * Width of the soft inner rim just inside that line. The reference material has a ~2dp bevel,
- * brightest along the top edge and fading into the surface.
- */
-
-/** Spread of the soft ambient shadow that lifts the capsule off the page. */
-private val CapsuleShadowSpread = 34.dp
-
-/** The shadow is nudged down so it reads as a light source above the bar. */
-private val CapsuleShadowOffsetY = 4.dp
-
-/** The capsule's own height; the shadow's corner radius is derived from it. */
-private val CapsuleBarHeight = 64.dp
-
-/**
- * Gap between the capsule and the navigation-bar inset. The system gesture handle lives inside
- * that inset and must stay free of the bar's background (and of its shadow).
- */
-private val CapsuleNavigationGap = 7.dp
-
-/**
- * Steps in the stacked shadow. Kept moderate: with dozens of very faint layers the per-layer
- * alpha can round away during blending (which made the 3% version disappear), while too many
- * 1-LSB steps build a shadow much stronger than the requested total. Sixteen steps land near the
- * reference's edge shading and still render reliably.
- */
-private const val CapsuleShadowLayers = 16
-
-/** The bar's capsule shape, reused by its items so the press feedback follows the bar's corners. */
-private val CapsuleShape = RoundedCornerShape(percent = 50)
-
-/**
- * Slot the compose button occupies in the capsule. It is wider than the blue squircle so that a
- * tap right next to the button still belongs to the bar instead of the content behind it.
- */
-private val CapsuleButtonSlotWidth = 68.dp
-
-/**
- * Length of the floating capsule with four destinations enabled. The bar keeps this length when
- * fewer destinations are on, so the navigation does not change shape when items are toggled.
- */
-private val CapsuleBarWidth = 272.dp
-
-/** The shared enter/exit for the capsule and its shadow, so both settle on the same frame. */
-private val capsuleEnter: EnterTransition =
-    fadeIn(animationSpec = tween(180)) + scaleIn(
-        animationSpec = tween(220),
-        initialScale = 0.92f,
-        transformOrigin = TransformOrigin(0.5f, 1f)
-    )
-
-private val capsuleExit: ExitTransition =
-    fadeOut(animationSpec = tween(160)) + scaleOut(
-        animationSpec = tween(180),
-        targetScale = 0.92f,
-        transformOrigin = TransformOrigin(0.5f, 1f)
-    )
-
-/**
- * The shadow arrives on a shorter fade than the bar: 5% black only becomes visible late in a
- * 180ms fade, so matching the bar's curve made the halo read as a separate, later event.
- */
-private val capsuleShadowEnter: EnterTransition =
-    fadeIn(animationSpec = tween(120)) + scaleIn(
-        animationSpec = tween(220),
-        initialScale = 0.92f,
-        transformOrigin = TransformOrigin(0.5f, 1f)
-    )
-
-private val capsuleShadowExit: ExitTransition =
-    fadeOut(animationSpec = tween(120)) + scaleOut(
-        animationSpec = tween(180),
-        targetScale = 0.92f,
-        transformOrigin = TransformOrigin(0.5f, 1f)
-    )
-
-/**
- * The floating bottom bar: a capsule that hovers over the content with the compose button in the
- * middle, so the primary action lives in the navigation instead of a separate floating button.
- */
-@Composable
-private fun FloatingBottomBar(
-    visible: Boolean,
-    destinations: List<MainDestination>,
-    current: MainDestination,
-    onDestination: (MainDestination) -> Unit,
-    onCompose: () -> Unit,
-    blurEnabled: Boolean,
-    backdrop: LayerBackdrop,
-    blurRefresh: State<Float>,
-    modifier: Modifier = Modifier
-) {
-    // Read the refresh state in composition, not only in draw: the drawBackdrop modifier element
-    // must be updated while the destination cross-fade runs, or its internal blurred layer stays
-    // cached and the bar keeps showing the previous page until some unrelated invalidation.
-    val refreshTick = blurRefresh.value
-    // The capsule is the card color, not the page surface: white in the day theme and #242424 in
-    // the dark one, matching the reference. With blur on, that same color goes translucent so the
-    // feed still frosts through; the same alpha in both themes keeps the material identical.
-    val lightSurface = MiuixTheme.colorScheme.surface.luminance() > 0.5f
-    val barColor = MiuixTheme.colorScheme.surfaceContainer.copy(
-        alpha = if (blurEnabled) CapsuleSurfaceAlpha else 1f
-    )
-    // The bevel and its glow live in ui/theme/CapsuleMaterial so the composer, the detail page and
-    // the docked FAB can wear the same glass without copying the gradients.
-    Box(
-        modifier = modifier
-            .padding(horizontal = 20.dp)
-            // The gesture handle belongs to the navigation-bar inset. Without this the capsule
-            // sits on top of the handle and the system's swipe-up area runs through the bar.
-            .navigationBarsPadding()
-            .padding(top = CapsuleNavigationGap, bottom = CapsuleNavigationGap)
-    ) {
-        // The shadow gets its own enter/exit layer instead of sitting under the bar's fade: at 5%
-        // black it crosses the visibility threshold only late in a 0-1 fade, which read as the
-        // halo arriving a beat after the capsule. As a sibling on the same timeline the halo is
-        // at full strength halfway through the fade instead of a quarter of it.
-        CapsuleShadowLayer(visible = visible, lightSurface = lightSurface)
-        AnimatedVisibility(
-            visible = visible,
-            enter = capsuleEnter,
-            exit = capsuleExit
-        ) {
-        Row(
-            modifier = Modifier
-                // A fixed length keeps the capsule the same width whatever destination count is
-                // enabled; the two halves split it around the centred compose button.
-                .width(CapsuleBarWidth)
-                .drawWithContent {
-                    // Resample the backdrop while the destination cross-fade runs. Without this
-                    // read the bar is not invalidated by content changes, so its blur would keep
-                    // showing the page that was just switched away from.
-                    if (refreshTick < 0f || blurRefresh.value < 0f) {
-                        return@drawWithContent
-                    }
-                    drawContent()
-                }
-                    .clip(CapsuleShape)
-                    .then(
-                        if (blurEnabled) {
-                            Modifier.drawBackdrop(
-                                backdrop = backdrop,
-                                shape = { RectangleShape },
-                                effects = { blur(NavBlurRadius, NavBlurRadius) }
-                            )
-                        } else {
-                            Modifier
-                        }
-                    )
-                    .background(barColor)
-                    // The rim is drawn after the fill so it stays crisp while pressed.
-                    .capsuleHighlight(lightSurface = lightSurface)
-                    // The capsule floats over the feed, so a tap on the parts of it that are not
-                    // a destination must not reach the memo underneath. The destinations are
-                    // children of this row and keep their own clicks; this only makes the bar
-                    // itself a hit target.
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false).consume()
-                        }
-                    }
-                    .height(CapsuleBarHeight)
-                    .padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val firstHalf = (destinations.size + 1) / 2
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    destinations.take(firstHalf).forEach { destination ->
-                        FloatingBarItem(
-                            destination = destination,
-                            selected = current == destination,
-                            onClick = { onDestination(destination) },
-                            // The item takes the whole slot, so with two destinations a tap
-                            // anywhere in that half of the bar reaches it.
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-                ComposeCapsuleButton(
-                    onClick = onCompose,
-                    blurEnabled = blurEnabled,
-                    backdrop = backdrop
-                )
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    destinations.drop(firstHalf).forEach { destination ->
-                        FloatingBarItem(
-                            destination = destination,
-                            selected = current == destination,
-                            onClick = { onDestination(destination) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * The capsule's ambient shadow: a stack of faint rounded layers on the bar's enter/exit timeline,
- * but in a layer of its own so the bar's 0-1 fade does not dim the 5% black behind it.
- */
-@Composable
-private fun CapsuleShadowLayer(
-    visible: Boolean,
-    lightSurface: Boolean
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = capsuleShadowEnter,
-        exit = capsuleShadowExit
-    ) {
-        Box(
-            modifier = Modifier
-                .width(CapsuleBarWidth)
-                .height(CapsuleBarHeight)
-                .drawBehind {
-                    // Day keeps a soft ambient shadow; night gets none, because the reference bar
-                    // is separated from black by its rim and a dark halo over gray cards was the
-                    // effect to avoid.
-                    val shadowMaxAlpha = if (lightSurface) 0.05f else 0f
-                    if (shadowMaxAlpha <= 0f || size.height <= 0f) return@drawBehind
-                    // Each stacked capsule is faint; together they reach `shadowMaxAlpha` at the
-                    // bar and fade to nothing at the edge of the spread.
-                    val layerAlpha = 1f - (1f - shadowMaxAlpha).pow(1f / CapsuleShadowLayers)
-                    val spread = CapsuleShadowSpread.toPx()
-                    val offsetY = CapsuleShadowOffsetY.toPx()
-                    // Fixed bar height: a first draw before layout would otherwise produce a
-                    // square-cornered block instead of a capsule.
-                    val radius = CapsuleBarHeight.toPx() / 2f
-                    val step = spread / CapsuleShadowLayers
-                    for (i in CapsuleShadowLayers downTo 1) {
-                        val grow = step * i
-                        drawRoundRect(
-                            color = Color.Black.copy(alpha = layerAlpha),
-                            topLeft = Offset(-grow, -grow + offsetY),
-                            size = Size(size.width + grow * 2f, size.height + grow * 2f),
-                            cornerRadius = CornerRadius(radius + grow)
-                        )
-                    }
-                }
-        )
-    }
-}
-
-@Composable
-private fun FloatingBarItem(
-    destination: MainDestination,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val color = if (selected) {
-        MiuixTheme.colorScheme.primary
-    } else {
-        MiuixTheme.colorScheme.onSurfaceVariantActions
-    }
-    // Icon only: a floating bar is narrower than the docked one, and the labels made the icons
-    // read as cramped. The destination name stays available to accessibility services.
-    // The press tint uses the capsule shape as well, so its corners match the bar's instead of
-    // showing a smaller rounded rectangle inside the capsule.
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(CapsuleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = destination.navIcon(selected),
-            contentDescription = stringResource(destination.labelRes),
-            tint = color,
-            modifier = Modifier.size(22.dp)
-        )
-    }
-}
-
-@Composable
-private fun ComposeCapsuleButton(
-    onClick: () -> Unit,
-    blurEnabled: Boolean,
-    backdrop: LayerBackdrop
-) {
-    // Squircle rather than a circle, so it reads as the capsule's own action. Two thirds of the
-    // old height: the corner radius shrinks with it, otherwise it would clamp into a pill.
-    val squircle = RoundedCornerShape(12.dp)
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(CapsuleButtonSlotWidth),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .width(52.dp)
-                .height(35.dp)
-                .clip(squircle)
-                .then(
-                    if (blurEnabled) {
-                        Modifier.drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { RectangleShape },
-                            effects = { blur(CapsuleBlurRadius, CapsuleBlurRadius) }
-                        )
-                    } else {
-                        Modifier
-                    }
-                )
-                .background(
-                    MiuixTheme.colorScheme.primary.copy(alpha = if (blurEnabled) 0.78f else 1f)
-                )
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Add,
-                contentDescription = stringResource(R.string.memo_composer_fab_new_memo),
-                tint = MiuixTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-    }
-}

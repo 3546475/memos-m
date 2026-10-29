@@ -37,7 +37,6 @@
     <string name="profile_app_settings_page_size">Pagination Size</string>
     <string name="profile_app_settings_page_size_hint">Items per page</string>
     <string name="profile_app_settings_link_previews">Link previews</string>
-    <string name="profile_app_settings_link_previews_description">Show preview cards for standalone webpage links</string>
     <string name="profile_app_settings_header_scale">Heading size</string>
     <string name="profile_app_settings_header_scale_format">%.1fx</string>
     <string name="profile_notifications">Notifications</string>
@@ -140,7 +139,6 @@
     <string name="audit_log_clear">Clear</string>
     <string name="audit_log_clear_confirm">Every recorded entry is deleted. This cannot be undone.</string>
     <string name="audit_log_empty_hint">Only offline queues, sync retries, attachment uploads and backup/restore write entries here.</string>
-    <string name="settings_summary_audit">Audit trail of offline queues, retries, uploads and restores</string>
     <string name="profile_about_licenses">Open Source Licenses</string>
     <string name="profile_add_account">Add Account</string>
     <string name="profile_accounts">Accounts</string>
@@ -153,7 +151,6 @@
     <string name="profile_avatar_url">Avatar URL</string>
     <string name="profile_avatar_generated">Avatar set from a picture</string>
     <string name="profile_avatar_use_url">Use a URL instead</string>
-    <string name="profile_avatar_change_hint">Tap the picture to upload a new avatar</string>
     <string name="profile_avatar_upload_failed">Could not upload the avatar</string>
     <string name="profile_account_management">Account management</string>
     <string name="profile_description">Description</string>
@@ -481,20 +478,12 @@
     <string name="settings_appearance">Appearance</string>
     <string name="settings_memos">Memos</string>
     <string name="settings_network">Network</string>
-    <string name="settings_summary_general">Language, default visibility, page size</string>
-    <string name="settings_summary_appearance">Colors, fonts, link previews, heading size</string>
-    <string name="settings_summary_memos">Shortcuts, webhooks</string>
-    <string name="settings_summary_network">Local network access</string>
-    <string name="settings_summary_offline">Automatic caching, storage limits, clear cache</string>
-    <string name="settings_summary_recovery">Export and restore your data</string>
-    <string name="settings_summary_about">App version, logs, source code, licenses</string>
     <string name="settings_cache_files_used">Used by cached files</string>
     <string name="settings_cache_files_limit">%1$s file cache limit</string>
     <string name="settings_cache_downloads">Automatic caching</string>
     <string name="settings_cache_limits">Storage limits</string>
     <string name="settings_shortcuts_summary">Manage saved memo filters</string>
     <string name="settings_webhooks_summary">Manage webhook integrations</string>
-    <string name="settings_summary_instance">Server version, mode, address</string>
     <string name="appearance_preview_memo"># Title\n\n## Heading\n\n### Subheading\n\nA small thought can become **something great**.\n\n- Capture an idea\n- Come back to it later</string>
     <string name="appearance_theme_mode">Theme mode</string>
     <string name="appearance_mode_system">Follow system</string>
@@ -507,7 +496,6 @@
     <string name="appearance_device_colors">Follow system</string>
     <string name="appearance_choose_color">Color theme</string>
     <string name="appearance_color_option">Color option %1$d</string>
-    <string name="appearance_color_hint">Slide to choose your accent color</string>
     <string name="appearance_font">Font</string>
     <string name="appearance_font_system">System default</string>
     <string name="appearance_font_sans">Sans serif</string>
@@ -515,8 +503,6 @@
     <string name="appearance_font_mono">Monospace</string>
     <string name="appearance_save_error">Could not save appearance. Try again.</string>
     <string name="settings_theme_style">Theme style</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <!-- Hidden About-screen game. -->
     <string name="memo_catch_title">Memo Catch</string>
     <string name="memo_catch_instruction">Drag the tray to catch the falling memos.</string>
@@ -587,12 +573,12 @@
     <string name="attachments_unknown_date">Unknown date</string>
     <string name="attachments_video">Video</string>
     <string name="settings_navigation">Navigation</string>
-    <string name="settings_navigation_summary">Bars, order</string>
     <string name="settings_nav_bar_hide_on_scroll">Hide bottom bar on scroll</string>
     <string name="settings_top_bar_hide_on_scroll">Hide top bar on scroll</string>
     <string name="settings_floating_nav_bar">Floating bottom bar</string>
     <string name="settings_top_bar_blur">Frost the top bar</string>
     <string name="settings_nav_bar_blur">Frost the bottom bar</string>
+    <string name="settings_nav_bar_liquid_glass">Liquid glass</string>
     <string name="settings_nav_items">Bottom bar items</string>
     <string name="settings_nav_move_up">Move up</string>
     <string name="settings_nav_move_down">Move down</string>
@@ -604,7 +590,6 @@
     <string name="settings_nav_style_docked">Edge to edge</string>
     <string name="settings_nav_style_floating">Floating capsule</string>
     <string name="settings_nav_items_edit">Edit</string>
-    <string name="settings_nav_items_hint">At least one item stays on. Use the arrows to reorder.</string>
     <string name="settings_blur_needs_android13">Needs Android 13 or newer</string>
     <string name="settings_blur_needs_miuix">Only available in the Miuix theme</string>
     <string name="settings_edit_gesture">Edit gesture</string>
@@ -618,13 +603,8 @@
     <string name="code_block_collapse">Collapse</string>
     <string name="code_block_line_copied">Copied line %1$d</string>
     <string name="settings_editor">Editor</string>
-    <string name="settings_summary_editor">How note text and code blocks are drawn</string>
     <string name="settings_editor_line_numbers">Code line numbers</string>
-    <string name="settings_editor_line_numbers_description">Show numbers beside each code line; hidden while long lines wrap</string>
     <string name="settings_editor_wrap_lines">Wrap long code lines</string>
-    <string name="settings_editor_wrap_lines_description">Fold long lines instead of scrolling sideways</string>
     <string name="settings_editor_paragraph_indent">Indent the first line</string>
-    <string name="settings_editor_paragraph_indent_description">Start every paragraph two characters in, as Chinese typesetting does</string>
     <string name="settings_editor_cjk_spacing">Space between Chinese and Latin</string>
-    <string name="settings_editor_cjk_spacing_description">Insert a thin gap between Chinese characters and Latin letters or digits</string>
 </resources>

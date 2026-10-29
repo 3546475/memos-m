@@ -42,18 +42,17 @@ import org.example.moxia.ui.theme.navigationBarBottom
 
 enum class SettingsSection(
     @StringRes val titleRes: Int,
-    val icon: ImageVector,
-    @StringRes val summaryRes: Int? = null
+    val icon: ImageVector
 ) {
-    GENERAL(R.string.settings_group_general, Icons.Outlined.Settings, R.string.settings_summary_general),
-    APPEARANCE(R.string.settings_appearance, Icons.Outlined.Palette, R.string.settings_summary_appearance),
-    EDITOR(R.string.settings_editor, Icons.Outlined.Code, R.string.settings_summary_editor),
-    NAVIGATION(R.string.settings_navigation, Icons.Outlined.ViewAgenda, R.string.settings_navigation_summary),
+    GENERAL(R.string.settings_group_general, Icons.Outlined.Settings),
+    APPEARANCE(R.string.settings_appearance, Icons.Outlined.Palette),
+    EDITOR(R.string.settings_editor, Icons.Outlined.Code),
+    NAVIGATION(R.string.settings_navigation, Icons.Outlined.ViewAgenda),
     SHORTCUTS(R.string.profile_shortcuts, Icons.Outlined.Bookmarks),
     WEBHOOKS(R.string.profile_webhooks, Icons.Outlined.Link),
-    OFFLINE(R.string.offline_settings_title, Icons.Outlined.CloudDownload, R.string.settings_summary_offline),
-    RECOVERY(R.string.recovery_title, Icons.Outlined.ImportExport, R.string.settings_summary_recovery),
-    AUDIT(R.string.audit_log_title, Icons.Outlined.History, R.string.settings_summary_audit),
+    OFFLINE(R.string.offline_settings_title, Icons.Outlined.CloudDownload),
+    RECOVERY(R.string.recovery_title, Icons.Outlined.ImportExport),
+    AUDIT(R.string.audit_log_title, Icons.Outlined.History),
     ABOUT(R.string.profile_about, Icons.Outlined.Info),
     INSTANCE(R.string.profile_instance_info, Icons.Outlined.Dns)
 }
@@ -95,7 +94,6 @@ internal fun SettingsOverview(onOpenSection: (SettingsSection) -> Unit, modifier
                         group.forEach { section ->
                             AppListItem(
                                 title = stringResource(section.titleRes),
-                                summary = section.summaryRes?.let { stringResource(it) },
                                 modifier = Modifier.clip(RoundedCornerShape(4.dp)),
                                 leading = {
                                     // Same treatment as the profile rows: a plain icon, not a

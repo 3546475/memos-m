@@ -245,7 +245,6 @@ internal fun AppearanceSettingsContent(
                     }
                 }
                 if (selected == ColorTheme.CUSTOM) {
-                    Text(stringResource(R.string.appearance_color_hint))
                     val sliderState = remember { SliderState(value = hue, trackRange = 0f..360f) }
                     LaunchedEffect(hue) { sliderState.value = hue }
                     AppSlider(state = sliderState, onValueChange = { hue = it }, valueRange = 0f..360f)

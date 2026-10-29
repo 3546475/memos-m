@@ -66,6 +66,7 @@ class DataStoreManager(
         val APPEARANCE_BLUR_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_blur_enabled")
         val APPEARANCE_TOP_BAR_BLUR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_top_bar_blur")
         val APPEARANCE_BOTTOM_BAR_BLUR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_bottom_bar_blur")
+        val APPEARANCE_LIQUID_NAV_BAR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_liquid_nav_bar")
         val APPEARANCE_FLOATING_NAV_BAR = androidx.datastore.preferences.core.booleanPreferencesKey("appearance_floating_nav_bar")
         val ACCOUNTS_JSON = stringPreferencesKey("accounts_json")
         val SETUP_COMPLETED = androidx.datastore.preferences.core.booleanPreferencesKey("setup_completed")
@@ -284,6 +285,9 @@ class DataStoreManager(
         val hue = preferences[APPEARANCE_CUSTOM_HUE]?.takeIf { it.isFinite() && it in 0f..360f }
         val colorTheme = ColorTheme.entries.firstOrNull { it.name == preferences[APPEARANCE_COLOR_THEME] }
             ?: ColorTheme.SYSTEM
+        // Two independent switches: the frost is the bar's material, the liquid glass is an
+        // interaction on top of it. Either can be on without the other.
+        val liquidNavBar = preferences[APPEARANCE_LIQUID_NAV_BAR] ?: false
         AppearancePreferences(
             themeMode = ThemeMode.entries.firstOrNull { it.name == preferences[APPEARANCE_THEME_MODE] }
                 ?: ThemeMode.SYSTEM,
@@ -299,6 +303,7 @@ class DataStoreManager(
                 ?: preferences[APPEARANCE_BLUR_ENABLED] ?: false,
             bottomBarBlur = preferences[APPEARANCE_BOTTOM_BAR_BLUR]
                 ?: preferences[APPEARANCE_BLUR_ENABLED] ?: true,
+            liquidNavBar = liquidNavBar,
             floatingNavBar = preferences[APPEARANCE_FLOATING_NAV_BAR] ?: true,
             editGesture = EditGesture.entries.firstOrNull {
                 it.name == preferences[APPEARANCE_EDIT_GESTURE]
@@ -342,6 +347,10 @@ class DataStoreManager(
 
     suspend fun saveBottomBarBlur(enabled: Boolean) {
         editPreferences { it[APPEARANCE_BOTTOM_BAR_BLUR] = enabled }
+    }
+
+    suspend fun saveLiquidNavBar(enabled: Boolean) {
+        editPreferences { it[APPEARANCE_LIQUID_NAV_BAR] = enabled }
     }
 
     suspend fun saveFloatingNavBar(enabled: Boolean) {
@@ -601,7 +610,7 @@ class DataStoreManager(
         APPEARANCE_THEME_MODE, APPEARANCE_COLOR_THEME, APPEARANCE_CUSTOM_HUE, APPEARANCE_FONT,
         APPEARANCE_NAV_SCROLL_MODE, APPEARANCE_TOP_SCROLL_MODE,
         APPEARANCE_NAV_DESTINATIONS, APPEARANCE_BLUR_ENABLED, APPEARANCE_FLOATING_NAV_BAR,
-        APPEARANCE_TOP_BAR_BLUR, APPEARANCE_BOTTOM_BAR_BLUR,
+        APPEARANCE_TOP_BAR_BLUR, APPEARANCE_BOTTOM_BAR_BLUR, APPEARANCE_LIQUID_NAV_BAR,
         PAGE_SIZE, HEADER_SCALE, LINK_PREVIEW_ENABLED, PRE_DOWNLOAD_TEXT, PRE_DOWNLOAD_ATTACHMENTS,
         PRE_DOWNLOAD_WIFI_ONLY, PRE_DOWNLOAD_EXPLORE, ATTACHMENT_CACHE_MAX_MB, TEXT_CACHE_MAX_MB, THEME_CACHE_MAX_MB,
         CODE_LINE_NUMBERS, CODE_WRAP_LINES, PARAGRAPH_INDENT, CJK_SPACING

@@ -51,7 +51,9 @@ import org.koin.core.context.GlobalContext
  * Two things are deliberate. The bar shape is a two-segment control instead of a switch, because
  * "floating" is a choice between two shapes rather than an on/off. And the frosting switches are
  * disabled with a reason when the effect cannot run at all (the blur pipeline needs Android 13+),
- * instead of silently doing nothing.
+ * instead of silently doing nothing. The frost and the liquid glass sit next to each other because
+ * they are two axes, not two choices: the first is the bar's material, the second an interaction
+ * drawn on top of it, so each has its own switch and neither clears the other.
  *
  * Destination names are stored as `MainDestination` enum names so the list survives enum additions;
  * an empty list means "everything in the default order".
@@ -118,6 +120,18 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                     checked = appearance.bottomBarBlur,
                     onCheckedChange = { on ->
                         scope.launch { dataStore.saveBottomBarBlur(on) }
+                    }
+                )
+                // The glass is an interaction over whatever material the bar has: with the frost on
+                // it refracts the frost, with the frost off it refracts the solid bar. Hence its own
+                // switch, and no clearing of the frost.
+                SettingToggleRow(
+                    label = stringResource(R.string.settings_nav_bar_liquid_glass),
+                    description = blurUnavailable,
+                    enabled = blurUnavailable == null,
+                    checked = appearance.liquidNavBar,
+                    onCheckedChange = { on ->
+                        scope.launch { dataStore.saveLiquidNavBar(on) }
                     }
                 )
             }
@@ -209,14 +223,6 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                     )
                 }
             }
-            if (editingItems) {
-                Text(
-                    text = stringResource(R.string.settings_nav_items_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, top = 2.dp)
-                )
-            }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -279,6 +285,7 @@ fun NavigationSettingsCard(mapSupported: Boolean) {
                         dataStore.saveTopBarScrollMode(TopBarScrollMode.ON_SCROLL)
                         dataStore.saveFloatingNavBar(true)
                         dataStore.saveTopBarBlur(false)
+                        dataStore.saveLiquidNavBar(false)
                         dataStore.saveBottomBarBlur(true)
                     }
                 }

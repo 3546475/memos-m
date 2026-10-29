@@ -59,11 +59,33 @@ class AppearanceSettingsTest {
     }
 
     @Test
+    fun `the frost and the liquid glass are independent`() = withSettings { settings ->
+        // The frost is the bar's material, the liquid glass an interaction over it. Neither switch
+        // may clear the other, or the frost-off/glass-on combination would be unreachable.
+        assertEquals(true, settings.appearance.first().bottomBarBlur)
+        assertEquals(false, settings.appearance.first().liquidNavBar)
+
+        settings.saveLiquidNavBar(true)
+        assertEquals(true, settings.appearance.first().liquidNavBar)
+        assertEquals(true, settings.appearance.first().bottomBarBlur)
+
+        // Frost off with the glass on is a real state: a solid bar with the droplet.
+        settings.saveBottomBarBlur(false)
+        assertEquals(false, settings.appearance.first().bottomBarBlur)
+        assertEquals(true, settings.appearance.first().liquidNavBar)
+
+        settings.saveLiquidNavBar(false)
+        assertEquals(false, settings.appearance.first().liquidNavBar)
+        assertEquals(false, settings.appearance.first().bottomBarBlur)
+    }
+
+    @Test
     fun `a fresh install starts with the floating two-item bar`() = withSettings { settings ->
         val appearance = settings.appearance.first()
         assertEquals(NavBarScrollMode.ALWAYS_VISIBLE, appearance.navBarScrollMode)
         assertEquals(TopBarScrollMode.ON_SCROLL, appearance.topBarScrollMode)
         assertEquals(true, appearance.floatingNavBar)
+        assertEquals(false, appearance.liquidNavBar)
         assertEquals(DefaultNavDestinations, appearance.navDestinations)
 
         // Only notes and profile are in the bar, and in that order.
