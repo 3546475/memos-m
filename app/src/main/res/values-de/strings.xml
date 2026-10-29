@@ -35,7 +35,6 @@
     <string name="profile_app_settings_page_size">Seitengröße</string>
     <string name="profile_app_settings_page_size_hint">Einträge pro Seite</string>
     <string name="profile_app_settings_link_previews">Link-Vorschauen</string>
-    <string name="profile_app_settings_link_previews_description">Vorschaukarten für alleinstehende Webseitenlinks anzeigen</string>
     <string name="profile_app_settings_header_scale">Überschriftengröße</string>
     <string name="profile_app_settings_header_scale_format">%.1fx</string>
     <string name="profile_archived">Archiviert</string>
@@ -266,7 +265,6 @@
 
     <!-- Settings, offline operation, and app controls. -->
     <string name="appearance_choose_color">Farbdesign</string>
-    <string name="appearance_color_hint">Wähle deine Akzentfarbe mit dem Schieberegler</string>
     <string name="appearance_color_option">Farboption %1$d</string>
     <string name="appearance_custom">Benutzerdefiniert</string>
     <string name="appearance_custom_colors">Deine eigenen Farben</string>
@@ -285,8 +283,6 @@
     <string name="appearance_save_error">Darstellung konnte nicht gespeichert werden. Versuche es erneut.</string>
     <string name="appearance_theme_mode">Darstellungsmodus</string>
     <string name="settings_theme_style">Themenstil</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">Datei</string>
     <string name="audit_log_account">Konto: %1$s</string>
     <string name="audit_log_empty">Noch keine Protokolleinträge vorhanden.</string>
@@ -451,14 +447,6 @@
     <string name="settings_memos">Memos</string>
     <string name="settings_network">Netzwerk</string>
     <string name="settings_shortcuts_summary">Gespeicherte Memo-Filter verwalten</string>
-    <string name="settings_summary_about">App-Version, Protokolle, Quellcode, Lizenzen</string>
-    <string name="settings_summary_appearance">Farben, Schriftarten, Link-Vorschauen, Überschriftengröße</string>
-    <string name="settings_summary_general">Sprache, Standardsichtbarkeit, Seitengröße</string>
-    <string name="settings_summary_instance">Serverversion, Modus, Adresse</string>
-    <string name="settings_summary_memos">Kurzbefehle, Webhooks</string>
-    <string name="settings_summary_network">Zugriff auf das lokale Netzwerk</string>
-    <string name="settings_summary_offline">Automatischer Cache, Speicherlimits, Cache leeren</string>
-    <string name="settings_summary_recovery">Daten exportieren und wiederherstellen</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_webhooks_summary">Webhook-Integrationen verwalten</string>
     <string name="sync_panel_last_sync">Letzte Synchronisierung: %1$s</string>

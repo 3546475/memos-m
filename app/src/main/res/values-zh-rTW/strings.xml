@@ -35,7 +35,6 @@
     <string name="profile_app_settings_page_size">分頁大小</string>
     <string name="profile_app_settings_page_size_hint">每頁項目數</string>
     <string name="profile_app_settings_link_previews">連結預覽</string>
-    <string name="profile_app_settings_link_previews_description">為獨立的網頁連結顯示預覽卡片</string>
     <string name="profile_app_settings_header_scale">標題大小</string>
     <string name="profile_app_settings_header_scale_format">%.1fx</string>
     <string name="profile_archived">歸檔</string>
@@ -128,7 +127,6 @@
     <string name="audit_log_clear">清空</string>
     <string name="audit_log_clear_confirm">會刪除全部已記錄的日誌，無法復原。</string>
     <string name="audit_log_empty_hint">只有離線佇列、同步重試、附件上傳與備份還原會寫入記錄。</string>
-    <string name="settings_summary_audit">離線佇列、同步重試、附件上傳與備份還原的稽核記錄</string>
     <string name="profile_about_version_copied">已將版本號複製到剪貼簿</string>
     <string name="profile_about_repo">原始碼</string>
     <string name="profile_about_issues">回報問題</string>
@@ -144,7 +142,6 @@
     <string name="profile_avatar_url">頭像 URL</string>
     <string name="profile_avatar_generated">已使用圖片產生頭像</string>
     <string name="profile_avatar_use_url">改用連結</string>
-    <string name="profile_avatar_change_hint">點擊圖片可上傳新頭像</string>
     <string name="profile_avatar_upload_failed">頭像上傳失敗</string>
     <string name="profile_account_management">帳號管理</string>
     <string name="profile_description">簡介</string>
@@ -392,7 +389,6 @@
 
     <!-- Settings, offline operation, and app controls. -->
     <string name="appearance_choose_color">配色主題</string>
-    <string name="appearance_color_hint">拖曳滑桿以選擇強調色</string>
     <string name="appearance_color_option">配色方案 %1$d</string>
     <string name="appearance_custom">自訂</string>
     <string name="appearance_custom_colors">自訂色彩</string>
@@ -411,8 +407,6 @@
     <string name="appearance_save_error">無法儲存外觀設定，請再試一次。</string>
     <string name="appearance_theme_mode">主題模式</string>
     <string name="settings_theme_style">主題風格</string>
-    <string name="settings_theme_style_md">MD · Material Design</string>
-    <string name="settings_theme_style_miuix">Miuix · HyperOS</string>
     <string name="attachments_unknown_filename">檔案</string>
     <string name="audit_log_account">帳戶：%1$s</string>
     <string name="audit_log_empty">目前沒有記錄。</string>
@@ -521,14 +515,6 @@
     <string name="settings_memos">備忘錄</string>
     <string name="settings_network">網路</string>
     <string name="settings_shortcuts_summary">管理已儲存的備忘錄篩選條件</string>
-    <string name="settings_summary_about">應用程式版本、記錄、原始碼、授權條款</string>
-    <string name="settings_summary_appearance">色彩、字型、連結預覽、標題大小</string>
-    <string name="settings_summary_general">語言、預設可見範圍、每頁數量</string>
-    <string name="settings_summary_instance">伺服器版本、模式、位址</string>
-    <string name="settings_summary_memos">捷徑、Webhooks</string>
-    <string name="settings_summary_network">本機網路存取</string>
-    <string name="settings_summary_offline">自動快取、儲存空間上限、清除快取</string>
-    <string name="settings_summary_recovery">匯出與還原資料</string>
     <string name="settings_title">設定</string>
     <string name="settings_webhooks_summary">管理 Webhook 整合</string>
     <string name="sync_queue_attempts">嘗試次數</string>
@@ -582,13 +568,8 @@
     <string name="code_block_collapse">收合</string>
     <string name="code_block_line_copied">已複製第 %1$d 行</string>
     <string name="settings_editor">編輯器</string>
-    <string name="settings_summary_editor">筆記正文與程式碼區塊的顯示方式</string>
     <string name="settings_editor_line_numbers">程式碼行號</string>
-    <string name="settings_editor_line_numbers_description">在程式碼行左側顯示行號；自動換行時隱藏</string>
     <string name="settings_editor_wrap_lines">程式碼自動換行</string>
-    <string name="settings_editor_wrap_lines_description">長行折行顯示，不再橫向捲動</string>
     <string name="settings_editor_paragraph_indent">首行縮排</string>
-    <string name="settings_editor_paragraph_indent_description">每段首行縮排兩個字元</string>
     <string name="settings_editor_cjk_spacing">中文與英數之間加空格</string>
-    <string name="settings_editor_cjk_spacing_description">在中文與字母、數字之間插入細空隙</string>
 </resources>
